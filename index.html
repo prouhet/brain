@@ -170,6 +170,22 @@
 
   .scope-business { background: #2d4a3e; color: #4ecdc4; }
   .scope-personal { background: #4a2d4a; color: #c49cde; }
+
+  .switch-btn {
+    display: none;
+    margin: 0 20px 8px;
+    padding: 10px 16px;
+    background: #252545;
+    border: 1px solid #8b8bf5;
+    border-radius: 8px;
+    color: #8b8bf5;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: calc(100% - 40px);
+    text-align: center;
+  }
+  .switch-btn:active { opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -184,7 +200,7 @@
     id="thought"
     placeholder="Type or tap mic to speak...
 
-Just type = business brain
+Anything = business brain
 me: ... = personal"
     autofocus
   ></textarea>
@@ -196,7 +212,8 @@ me: ... = personal"
 </div>
 
 <div class="status" id="status"></div>
-<div class="hint">Type a thought and hit Capture. Start with <strong>me:</strong> for personal.</div>
+<button class="switch-btn" id="switchBtn"></button>
+<div class="hint">Anything = business &nbsp;|&nbsp; <strong>me:</strong> = personal</div>
 
 <div class="history" id="history"></div>
 
@@ -211,10 +228,13 @@ const thought = document.getElementById('thought');
 const captureBtn = document.getElementById('captureBtn');
 const micBtn = document.getElementById('micBtn');
 const status = document.getElementById('status');
+const switchBtn = document.getElementById('switchBtn');
 const history = document.getElementById('history');
 const sessionCount = document.getElementById('sessionCount');
 
 let count = 0;
+let lastCapture = null; // { id, scope }
+let switchTimer = null;
 
 // Enable/disable capture button
 thought.addEventListener('input', () => {
@@ -260,7 +280,16 @@ async function capture() {
     thought.value = '';
     captureBtn.disabled = true;
 
-    // Clear status after 3 seconds
+    // Show switch button
+    if (data.id) {
+      lastCapture = { id: data.id, scope: data.scope };
+      const otherScope = data.scope === 'business' ? 'personal' : 'business';
+      switchBtn.textContent = `↩ Wrong scope? Switch to ${otherScope}`;
+      switchBtn.style.display = 'block';
+      clearTimeout(switchTimer);
+      switchTimer = setTimeout(() => { switchBtn.style.display = 'none'; lastCapture = null; }, 10000);
+    }
+
     setTimeout(() => setStatus(''), 3000);
 
   } catch (err) {
@@ -273,6 +302,38 @@ function setStatus(msg, type = '') {
   status.textContent = msg;
   status.className = 'status' + (type ? ' ' + type : '');
 }
+
+// Switch scope of last capture
+switchBtn.addEventListener('click', async () => {
+  if (!lastCapture) return;
+  const newScope = lastCapture.scope === 'business' ? 'personal' : 'business';
+  switchBtn.textContent = 'Switching...';
+  try {
+    const res = await fetch(`${API_BASE}?key=${KEY}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: lastCapture.id, scope: newScope }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setStatus(`Switched to ${newScope}`, 'success');
+      // Update history badge
+      const badges = history.querySelectorAll('.scope-badge');
+      if (badges.length > 0) {
+        badges[0].className = `scope-badge scope-${newScope}`;
+        badges[0].textContent = newScope;
+      }
+    } else {
+      setStatus(data.error || 'Switch failed', 'error');
+    }
+  } catch (err) {
+    setStatus('Network error', 'error');
+  }
+  switchBtn.style.display = 'none';
+  lastCapture = null;
+  clearTimeout(switchTimer);
+  setTimeout(() => setStatus(''), 3000);
+});
 
 function addToHistory(text, data) {
   const div = document.createElement('div');
