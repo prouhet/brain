@@ -252,6 +252,14 @@ thought.addEventListener('keydown', (e) => {
 captureBtn.addEventListener('click', capture);
 
 async function capture() {
+  // Stop mic if still listening
+  if (isListening && recognition) {
+    stoppedByUser = true;
+    recognition.stop();
+    isListening = false;
+    micBtn.classList.remove('listening');
+  }
+
   const text = thought.value.trim();
   if (!text) return;
 
@@ -356,11 +364,12 @@ function addToHistory(text, data) {
 // --- Voice Input (Web Speech API) ---
 let recognition = null;
 let isListening = false;
+let stoppedByUser = false;
 
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
-  recognition.continuous = false;
+  recognition.continuous = true;   // keep mic open through pauses
   recognition.interimResults = true;
   recognition.lang = 'en-US';
 
@@ -374,31 +383,37 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   };
 
   recognition.onend = () => {
-    isListening = false;
-    micBtn.classList.remove('listening');
-    // Auto-capture if we got text
-    if (thought.value.trim()) {
-      capture();
+    if (isListening && !stoppedByUser) {
+      // Browser stopped due to silence — restart automatically
+      recognition.start();
+    } else {
+      isListening = false;
+      stoppedByUser = false;
+      micBtn.classList.remove('listening');
+      setStatus('', '');
     }
   };
 
   recognition.onerror = (e) => {
+    if (e.error === 'no-speech') return; // ignore silence, onend will restart
     isListening = false;
+    stoppedByUser = false;
     micBtn.classList.remove('listening');
-    if (e.error !== 'no-speech') {
-      setStatus('Mic error: ' + e.error, 'error');
-    }
+    setStatus('Mic error: ' + e.error, 'error');
   };
 
   micBtn.addEventListener('click', () => {
     if (isListening) {
+      stoppedByUser = true;
       recognition.stop();
     } else {
       thought.value = '';
+      captureBtn.disabled = true;
+      stoppedByUser = false;
       recognition.start();
       isListening = true;
       micBtn.classList.add('listening');
-      setStatus('Listening...', 'working');
+      setStatus('Listening... tap mic or Capture to stop', 'working');
     }
   });
 } else {
