@@ -287,11 +287,12 @@ function renderData(data) {
         ? `every ${item.recurring.every} ${item.recurring.unit}`
         : (item.recurring || 'recurring')) : null;
 
-      html += `<div class="task-item" id="${esc(rowId)}">`;
+      // Store id and recur flag as data attributes — avoids apostrophe JS injection bugs
+      html += `<div class="task-item" id="${esc(rowId)}" data-id="${esc(item.id||'')}" data-recur="${isRecur}">`;
 
-      // Checkmark — recurring uses blue ring
+      // Checkmark — reads data attrs from parent row, no title in onclick
       html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
-        onclick="handleCheck('${esc(item.id||'')}','${esc(item.title||'')}','${esc(rowId)}',this,${isRecur})">
+        onclick="handleCheck('${esc(rowId)}',this)">
         <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>`;
 
@@ -332,7 +333,7 @@ function renderData(data) {
             <option value="2m">2 months</option>
           </select>
           <button class="move-btn" id="${btnId}"
-            onclick="confirmMove('${esc(item.id)}','${selId}','${esc(item.title||'')}','${esc(rowId)}')">
+            onclick="confirmMove('${esc(rowId)}','${selId}')">
             Move
           </button>
         </div>`;
@@ -346,19 +347,24 @@ function renderData(data) {
   document.getElementById('main-content').innerHTML = html;
 }
 
-function confirmMove(id, selId, title, rowId) {
+function confirmMove(rowId, selId) {
   const sel = document.getElementById(selId);
   const row = document.getElementById(rowId);
-  if (!sel || !sel.value) return;
+  const id  = row?.dataset.id || '';
+  const title = row?.querySelector('.task-title')?.textContent || '';
+  if (!sel || !sel.value || !id) return;
   reschedule(id, sel.value, title, row);
   sel.value = '';
   sel.classList.remove('active');
   sel.nextElementSibling?.classList.remove('visible');
 }
 
-function handleCheck(id, title, rowId, btn, isRecur) {
-  btn.classList.add('checked');
+function handleCheck(rowId, btn) {
   const row = document.getElementById(rowId);
+  const id = row?.dataset.id || '';
+  const isRecur = row?.dataset.recur === 'true';
+  const title = row?.querySelector('.task-title')?.textContent || '';
+  btn.classList.add('checked');
   if (id && id.length > 10) {
     completeTask(id, title, row, isRecur, btn);
   } else {
@@ -378,7 +384,6 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     const data = await res.json();
 
     if (data.recurring) {
-      // Recurring — flash reset, stay in list
       showToast('✓ Done — resets next occurrence', 'success');
       rowEl.classList.add('reset');
       setTimeout(() => {
