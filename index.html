@@ -2,432 +2,502 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1a1a2e">
-<title>Brain</title>
+<meta name="theme-color" content="#0d0d0d">
+<title>Studio Strong Brain</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  :root {
+    --black: #0d0d0d;
+    --surface: #151515;
+    --surface2: #1e1e1e;
+    --surface3: #272727;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --text-faint: #555;
+    --teal: #2b7d94;
+    --teal-light: #3a9ab5;
+    --teal-dim: rgba(43,125,148,0.15);
+    --green: #1D9E75;
+    --green-dim: rgba(29,158,117,0.12);
+    --amber: #d4a017;
+    --amber-dim: rgba(212,160,23,0.12);
+    --purple: #7c5cbf;
+    --purple-dim: rgba(124,92,191,0.12);
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: #1a1a2e;
-    color: #e0e0e0;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    background:var(--black); color:var(--text);
+    font-family:'DM Sans',sans-serif;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(rgba(43,125,148,0.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(43,125,148,0.025) 1px,transparent 1px);
+    background-size:44px 44px;
   }
 
-  .header {
-    padding: 16px 20px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .wrapper { position:relative; z-index:1; max-width:560px; margin:0 auto; padding:24px 20px 48px; width:100%; }
+
+  /* ── Header ── */
+  .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-mark { width:32px; height:32px; border-radius:8px; background:var(--teal-dim); border:1px solid rgba(43,125,148,0.3); display:flex; align-items:center; justify-content:center; }
+  .logo-mark svg { width:16px; height:16px; }
+  .logo-text { font-size:14px; font-weight:500; color:var(--text); }
+  .logo-sub { font-size:11px; color:var(--text-faint); margin-top:1px; }
+  .scope-toggle { display:flex; gap:4px; background:var(--surface2); border-radius:8px; padding:3px; border:1px solid var(--border); }
+  .scope-btn { font-size:11px; padding:4px 12px; border-radius:6px; border:none; background:transparent; color:var(--text-dim); cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:500; transition:all 0.15s; }
+  .scope-btn.active { background:var(--surface3); color:var(--text); }
+
+  .override-indicator {
+    font-size:11px; color:var(--teal-light); margin-bottom:10px;
+    padding:6px 12px; background:var(--teal-dim); border-radius:6px;
+    border:1px solid rgba(43,125,148,0.25);
   }
 
-  .header h1 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #8b8bf5;
+  /* ── Type selector ── */
+  .type-label { font-size:11px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:10px; }
+  .type-selector { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px; }
+
+  .type-btn {
+    border-radius:var(--radius); border:1.5px solid var(--border);
+    background:var(--surface); padding:14px 12px 12px;
+    cursor:pointer; text-align:left; transition:all 0.15s;
+    display:flex; flex-direction:column; gap:6px;
   }
+  .type-btn:hover { border-color:var(--border2); background:var(--surface2); }
 
-  .header .count {
-    font-size: 13px;
-    color: #666;
+  /* Task */
+  .type-btn[data-type="task"].active {
+    border-color:rgba(29,158,117,0.6);
+    background:var(--green-dim);
+    box-shadow:0 0 0 1px rgba(29,158,117,0.2);
   }
+  .type-btn[data-type="task"] .type-icon { color:#1D9E75; }
+  .type-btn[data-type="task"].active .type-name { color:#5ecba1; }
 
-  .input-area {
-    flex: 1;
-    padding: 8px 20px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  /* Note */
+  .type-btn[data-type="note"].active {
+    border-color:rgba(212,160,23,0.6);
+    background:var(--amber-dim);
+    box-shadow:0 0 0 1px rgba(212,160,23,0.2);
   }
+  .type-btn[data-type="note"] .type-icon { color:#d4a017; }
+  .type-btn[data-type="note"].active .type-name { color:#e8c05a; }
 
-  #thought {
-    flex: 1;
-    background: #16213e;
-    border: 1px solid #333;
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 17px;
-    line-height: 1.5;
-    color: #e0e0e0;
-    resize: none;
-    outline: none;
-    font-family: inherit;
+  /* Observation */
+  .type-btn[data-type="observation"].active {
+    border-color:rgba(124,92,191,0.6);
+    background:var(--purple-dim);
+    box-shadow:0 0 0 1px rgba(124,92,191,0.2);
   }
+  .type-btn[data-type="observation"] .type-icon { color:#7c5cbf; }
+  .type-btn[data-type="observation"].active .type-name { color:#a98de8; }
 
-  #thought:focus {
-    border-color: #8b8bf5;
+  .type-icon { font-size:18px; line-height:1; }
+  .type-name { font-size:13px; font-weight:500; color:var(--text); }
+  .type-desc { font-size:10px; color:var(--text-faint); line-height:1.4; }
+
+  /* ── Text area ── */
+  .input-area { position:relative; margin-bottom:12px; }
+  textarea {
+    width:100%; min-height:120px; background:var(--surface); border:1.5px solid var(--border);
+    border-radius:var(--radius); color:var(--text); font-family:'DM Sans',sans-serif;
+    font-size:15px; line-height:1.6; padding:16px; resize:none; outline:none;
+    transition:border-color 0.15s;
   }
+  textarea:focus { border-color:var(--border2); }
+  textarea::placeholder { color:var(--text-faint); }
 
-  #thought::placeholder {
-    color: #555;
+  /* ── Controls row ── */
+  .controls { display:flex; gap:10px; align-items:center; }
+  .mic-btn {
+    width:44px; height:44px; border-radius:50%; flex-shrink:0;
+    background:var(--surface2); border:1.5px solid var(--border2);
+    color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:all 0.15s;
   }
+  .mic-btn:hover { border-color:var(--teal); color:var(--teal-light); }
+  .mic-btn.recording { background:rgba(220,50,50,0.15); border-color:rgba(220,50,50,0.6); color:#e06060; animation:pulse-mic 1.2s ease-in-out infinite; }
+  @keyframes pulse-mic { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
-  .controls {
-    display: flex;
-    gap: 10px;
+  .capture-btn {
+    flex:1; height:44px; border-radius:10px; border:none;
+    background:var(--teal); color:#fff; font-family:'DM Sans',sans-serif;
+    font-size:14px; font-weight:500; cursor:pointer; transition:all 0.15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
   }
+  .capture-btn:hover { background:var(--teal-light); }
+  .capture-btn:active { transform:scale(0.98); }
+  .capture-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 
-  .btn {
-    flex: 1;
-    padding: 14px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
+  /* ── Feedback toast ── */
+  .toast {
+    margin-top:16px; padding:12px 16px; border-radius:10px;
+    font-size:13px; line-height:1.5; display:none;
+    border:1px solid transparent;
   }
-
-  .btn:active {
-    transform: scale(0.97);
+  .toast.show { display:block; }
+  .toast.success {
+    background:rgba(29,158,117,0.1); border-color:rgba(29,158,117,0.3); color:#5ecba1;
   }
-
-  .btn-capture {
-    background: #8b8bf5;
-    color: #fff;
+  .toast.error {
+    background:rgba(220,80,80,0.1); border-color:rgba(220,80,80,0.3); color:#e08080;
   }
+  .toast .task-list { margin-top:8px; padding-left:4px; }
+  .toast .task-list li { color:rgba(255,255,255,0.5); font-size:12px; margin-top:4px; list-style:none; padding-left:12px; position:relative; }
+  .toast .task-list li::before { content:'•'; position:absolute; left:0; color:rgba(255,255,255,0.3); }
 
-  .btn-capture:disabled {
-    background: #444;
-    color: #666;
+  /* ── Recent ── */
+  .recent-label { font-size:11px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint); margin:24px 0 10px; }
+  .recent-list { display:flex; flex-direction:column; gap:6px; }
+  .recent-item {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:11px 14px;
+    display:flex; align-items:flex-start; gap:10px;
   }
-
-  .btn-mic {
-    flex: 0 0 56px;
-    background: #16213e;
-    border: 1px solid #333;
-    color: #e0e0e0;
-    font-size: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .btn-mic.listening {
-    background: #5c2a2a;
-    border-color: #e74c3c;
-    animation: pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-
-  .status {
-    text-align: center;
-    font-size: 14px;
-    min-height: 20px;
-    padding: 0 20px;
-    transition: all 0.3s;
-  }
-
-  .status.success { color: #4ecdc4; }
-  .status.error { color: #e74c3c; }
-  .status.working { color: #f39c12; }
-
-  .hint {
-    text-align: center;
-    font-size: 12px;
-    color: #444;
-    padding: 0 20px 16px;
-  }
-
-  .history {
-    max-height: 30vh;
-    overflow-y: auto;
-    padding: 0 20px 16px;
-  }
-
-  .history-item {
-    background: #16213e;
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    line-height: 1.4;
-  }
-
-  .history-item .meta {
-    font-size: 11px;
-    color: #666;
-    margin-top: 4px;
-  }
-
-  .scope-badge {
-    display: inline-block;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-  }
-
-  .scope-business { background: #2d4a3e; color: #4ecdc4; }
-  .scope-personal { background: #4a2d4a; color: #c49cde; }
-
-  .switch-btn {
-    display: none;
-    margin: 0 20px 8px;
-    padding: 10px 16px;
-    background: #252545;
-    border: 1px solid #8b8bf5;
-    border-radius: 8px;
-    color: #8b8bf5;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    width: calc(100% - 40px);
-    text-align: center;
-  }
-  .switch-btn:active { opacity: 0.7; }
+  .recent-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+  .dot-task { background:#1D9E75; }
+  .dot-note { background:#d4a017; }
+  .dot-observation { background:#7c5cbf; }
+  .dot-reference { background:#d4a017; }
+  .dot-unknown { background:var(--text-faint); }
+  .recent-content { font-size:13px; color:var(--text-dim); line-height:1.4; flex:1; }
+  .recent-meta { font-size:11px; color:var(--text-faint); margin-top:3px; font-family:'DM Mono',monospace; }
 </style>
 </head>
 <body>
+<div class="wrapper">
 
-<div class="header">
-  <h1>Studio Strong Brain</h1>
-  <span class="count" id="sessionCount"></span>
-</div>
-
-<div class="input-area">
-  <textarea
-    id="thought"
-    placeholder="Type or tap mic to speak...
-
-Anything = business brain
-me: ... = personal"
-    autofocus
-  ></textarea>
-
-  <div class="controls">
-    <button class="btn btn-mic" id="micBtn" title="Voice input">🎙</button>
-    <button class="btn btn-capture" id="captureBtn" disabled>Capture</button>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="8" r="3" fill="#3a9ab5"/>
+          <path d="M8 2v2M8 12v2M2 8h2M12 8h2" stroke="#3a9ab5" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">Studio Strong</div>
+        <div class="logo-sub">Open Brain</div>
+      </div>
+    </div>
+    <div class="scope-toggle">
+      <button class="scope-btn active" data-scope="business" onclick="setScope('business',this)">Business</button>
+      <button class="scope-btn" data-scope="personal" onclick="setScope('personal',this)">Me</button>
+    </div>
   </div>
+
+  <!-- Override indicator -->
+  <div id="override-indicator" class="override-indicator" style="display:none;"></div>
+
+  <!-- Type selector -->
+  <div class="type-label">What are you capturing?</div>
+  <div class="type-selector">
+    <button class="type-btn active" data-type="observation" onclick="setType('observation',this)">
+      <span class="type-icon">🧠</span>
+      <span class="type-name">Observation</span>
+      <span class="type-desc">Note that auto-creates tasks</span>
+    </button>
+    <button class="type-btn" data-type="note" onclick="setType('note',this)">
+      <span class="type-icon">📋</span>
+      <span class="type-name">Note</span>
+      <span class="type-desc">Context or info only — no tasks</span>
+    </button>
+    <button class="type-btn" data-type="task" onclick="setType('task',this)">
+      <span class="type-icon">✓</span>
+      <span class="type-name">Task</span>
+      <span class="type-desc">To-do item(s) — shows in priorities</span>
+    </button>
+  </div>
+
+  <!-- Text input -->
+  <div class="input-area">
+    <textarea id="content" placeholder="What's on your mind?"></textarea>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice input">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <button class="capture-btn" id="capture-btn" onclick="capture()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+      </svg>
+      Capture
+    </button>
+  </div>
+
+  <!-- Toast feedback -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Recent captures -->
+  <div class="recent-label">Recent captures</div>
+  <div class="recent-list" id="recent-list">
+    <div style="font-size:12px;color:var(--text-faint);padding:8px 0;">Loading…</div>
+  </div>
+
 </div>
-
-<div class="status" id="status"></div>
-<button class="switch-btn" id="switchBtn"></button>
-<div class="hint">Anything = business &nbsp;|&nbsp; <strong>me:</strong> = personal</div>
-
-<div class="history" id="history"></div>
 
 <script>
-// --- CONFIG ---
-// The key is passed as a URL parameter: ?key=YOUR_KEY
-const params = new URLSearchParams(window.location.search);
-const KEY = params.get('key') || '';
-const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/quick-capture';
+const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
+const KEY = new URLSearchParams(window.location.search).get('key') || '';
 
-const thought = document.getElementById('thought');
-const captureBtn = document.getElementById('captureBtn');
-const micBtn = document.getElementById('micBtn');
-const status = document.getElementById('status');
-const switchBtn = document.getElementById('switchBtn');
-const history = document.getElementById('history');
-const sessionCount = document.getElementById('sessionCount');
+let currentType  = 'observation';
+let currentScope = 'business';
+let recognition  = null;
+let isRecording  = false;
 
-let count = 0;
-let lastCapture = null; // { id, scope }
-let switchTimer = null;
+function setType(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updatePlaceholder();
+}
 
-// Enable/disable capture button
-thought.addEventListener('input', () => {
-  captureBtn.disabled = !thought.value.trim();
-});
+function setScope(scope, btn) {
+  currentScope = scope;
+  document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.scope-btn').forEach(b => {
+    if (b.dataset.scope === scope) b.classList.add('active');
+  });
+}
 
-// Enter to capture (shift+enter for newline)
-thought.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (thought.value.trim()) capture();
-  }
-});
+// ── Keyword detection ─────────────────────────────────────────
+// Detects prefixes like: "me task", "my note", "me observation",
+// "task", "note", "observation" at start of input
+const TYPE_KEYWORDS  = ['task', 'note', 'observation'];
+const SCOPE_KEYWORDS = ['me', 'my'];
 
-captureBtn.addEventListener('click', capture);
+function detectKeywords(text) {
+  const lower = text.toLowerCase().trimStart();
+  let detectedScope = null;
+  let detectedType  = null;
+  let stripped = lower;
 
-async function capture() {
-  // Stop mic if still listening
-  if (isListening && recognition) {
-    stoppedByUser = true;
-    recognition.stop();
-    isListening = false;
-    micBtn.classList.remove('listening');
-  }
-
-  const text = thought.value.trim();
-  if (!text) return;
-
-  captureBtn.disabled = true;
-  setStatus('Capturing...', 'working');
-
-  try {
-    const res = await fetch(`${API_BASE}?key=${KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setStatus(data.error || 'Failed', 'error');
-      captureBtn.disabled = false;
-      return;
+  // Check for scope keyword first
+  for (const sk of SCOPE_KEYWORDS) {
+    if (stripped.startsWith(sk + ' ') || stripped.startsWith(sk + '\n')) {
+      detectedScope = 'personal';
+      stripped = stripped.slice(sk.length).trimStart();
+      break;
     }
+  }
 
-    count++;
-    sessionCount.textContent = `${count} this session`;
-    setStatus(`Captured as ${data.type} [${data.scope}]`, 'success');
-    addToHistory(text, data);
-    thought.value = '';
-    captureBtn.disabled = true;
-
-    // Show switch button
-    if (data.id) {
-      lastCapture = { id: data.id, scope: data.scope };
-      const otherScope = data.scope === 'business' ? 'personal' : 'business';
-      switchBtn.textContent = `↩ Wrong scope? Switch to ${otherScope}`;
-      switchBtn.style.display = 'block';
-      clearTimeout(switchTimer);
-      switchTimer = setTimeout(() => { switchBtn.style.display = 'none'; lastCapture = null; }, 10000);
+  // Check for type keyword
+  for (const tk of TYPE_KEYWORDS) {
+    if (stripped.startsWith(tk + ' ') || stripped.startsWith(tk + '\n') || stripped === tk) {
+      detectedType = tk;
+      break;
     }
+  }
 
-    setTimeout(() => setStatus(''), 3000);
+  return { detectedScope, detectedType };
+}
 
-  } catch (err) {
-    setStatus('Network error — check connection', 'error');
-    captureBtn.disabled = false;
+function applyKeywordOverrides(text) {
+  const { detectedScope, detectedType } = detectKeywords(text);
+  const indicator = document.getElementById('override-indicator');
+  const parts = [];
+
+  if (detectedScope) {
+    setScope(detectedScope);
+    parts.push('Scope: Me');
+  }
+  if (detectedType) {
+    const btn = document.querySelector(`.type-btn[data-type="${detectedType}"]`);
+    if (btn) setType(detectedType, btn);
+    parts.push(`Type: ${detectedType.charAt(0).toUpperCase() + detectedType.slice(1)}`);
+  }
+
+  if (parts.length) {
+    indicator.textContent = '⌨ Override detected — ' + parts.join(', ');
+    indicator.style.display = 'block';
+  } else {
+    indicator.style.display = 'none';
   }
 }
 
-function setStatus(msg, type = '') {
-  status.textContent = msg;
-  status.className = 'status' + (type ? ' ' + type : '');
-}
-
-// Switch scope of last capture
-switchBtn.addEventListener('click', async () => {
-  if (!lastCapture) return;
-  const newScope = lastCapture.scope === 'business' ? 'personal' : 'business';
-  switchBtn.textContent = 'Switching...';
-  try {
-    const res = await fetch(`${API_BASE}?key=${KEY}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: lastCapture.id, scope: newScope }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setStatus(`Switched to ${newScope}`, 'success');
-      // Update history badge
-      const badges = history.querySelectorAll('.scope-badge');
-      if (badges.length > 0) {
-        badges[0].className = `scope-badge scope-${newScope}`;
-        badges[0].textContent = newScope;
-      }
-    } else {
-      setStatus(data.error || 'Switch failed', 'error');
+// Strip keyword prefix before sending
+function stripKeywordPrefix(text) {
+  let t = text.trimStart();
+  for (const sk of SCOPE_KEYWORDS) {
+    if (t.toLowerCase().startsWith(sk + ' ') || t.toLowerCase().startsWith(sk + '\n')) {
+      t = t.slice(sk.length).trimStart();
+      break;
     }
-  } catch (err) {
-    setStatus('Network error', 'error');
   }
-  switchBtn.style.display = 'none';
-  lastCapture = null;
-  clearTimeout(switchTimer);
-  setTimeout(() => setStatus(''), 3000);
-});
-
-function addToHistory(text, data) {
-  const div = document.createElement('div');
-  div.className = 'history-item';
-
-  const scopeClass = data.scope === 'personal' ? 'scope-personal' : 'scope-business';
-  const isPersonal = text.match(/^me[\s:]/i);
-  const displayText = isPersonal ? text.replace(/^me[\s:]+/i, '') : text;
-
-  div.innerHTML = `
-    ${displayText}
-    <div class="meta">
-      <span class="scope-badge ${scopeClass}">${data.scope}</span>
-      ${data.type} ${data.topics ? '— ' + data.topics : ''}
-    </div>
-  `;
-  history.prepend(div);
+  for (const tk of TYPE_KEYWORDS) {
+    const lower = t.toLowerCase();
+    if (lower.startsWith(tk + ' ') || lower.startsWith(tk + '\n')) {
+      t = t.slice(tk.length).trimStart();
+      break;
+    }
+  }
+  return t.trim();
 }
 
-// --- Voice Input (Web Speech API) ---
-let recognition = null;
-let isListening = false;
-let stoppedByUser = false;
+function updatePlaceholder() {
+  const ta = document.getElementById('content');
+  const placeholders = {
+    task: 'What needs to get done? (e.g. "Call Rebecca Merchiori" or "Buy food for Lizzie")',
+    note: 'Capture context or info — meeting notes, decisions, reference… no tasks will be created.',
+    observation: 'Brain dump with multiple actions — Claude will auto-extract tasks from this.',
+  };
+  ta.placeholder = placeholders[currentType] || 'What\'s on your mind?';
+}
 
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+// ── Voice input ───────────────────────────────────────────────
+function toggleMic() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Speech recognition not supported in this browser.', 'error');
+    return;
+  }
+
+  if (isRecording) {
+    recognition?.stop();
+    return;
+  }
+
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
-  recognition.continuous = true;   // keep mic open through pauses
+  recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
 
+  let finalTranscript = document.getElementById('content').value;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    document.getElementById('mic-btn').classList.add('recording');
+  };
+
   recognition.onresult = (e) => {
-    let transcript = '';
-    for (let i = 0; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
     }
-    thought.value = transcript;
-    captureBtn.disabled = !transcript.trim();
+    document.getElementById('content').value = finalTranscript + interim;
   };
 
   recognition.onend = () => {
-    if (isListening && !stoppedByUser) {
-      // Browser stopped due to silence — restart automatically
-      recognition.start();
-    } else {
-      isListening = false;
-      stoppedByUser = false;
-      micBtn.classList.remove('listening');
-      setStatus('', '');
+    isRecording = false;
+    document.getElementById('mic-btn').classList.remove('recording');
+    document.getElementById('content').value = finalTranscript.trim();
+  };
+
+  recognition.onerror = () => {
+    isRecording = false;
+    document.getElementById('mic-btn').classList.remove('recording');
+  };
+
+  recognition.start();
+}
+
+// ── Capture ───────────────────────────────────────────────────
+async function capture() {
+  const rawContent = document.getElementById('content').value.trim();
+  if (!rawContent) { showToast('Please enter something first.', 'error'); return; }
+  if (!KEY) { showToast('No key in URL — add ?key=YOUR_KEY', 'error'); return; }
+
+  // Strip keyword prefixes before sending
+  const content = stripKeywordPrefix(rawContent);
+
+  const btn = document.getElementById('capture-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32"><animate attributeName="stroke-dashoffset" values="32;0;32" dur="1.2s" repeatCount="indefinite"/></circle></svg> Saving…';
+
+  try {
+    const res = await fetch(`${API_BASE}/quick-capture`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, key: KEY, save_as: currentType, scope: currentScope }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Server error');
+
+    document.getElementById('content').value = '';
+
+    const typeLabels = { task: 'Task saved', note: 'Note saved', observation: 'Observation saved' };
+    let msg = `✓ ${typeLabels[currentType] || 'Saved'}`;
+    let taskHtml = '';
+
+    if (currentType === 'observation' && data.tasks?.length) {
+      msg += ` — ${data.tasks_extracted} task${data.tasks_extracted !== 1 ? 's' : ''} extracted`;
+      taskHtml = `<ul class="task-list">${data.tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
     }
-  };
 
-  recognition.onerror = (e) => {
-    if (e.error === 'no-speech') return; // ignore silence, onend will restart
-    isListening = false;
-    stoppedByUser = false;
-    micBtn.classList.remove('listening');
-    setStatus('Mic error: ' + e.error, 'error');
-  };
+    showToast(msg + taskHtml, 'success');
+    loadRecent();
 
-  micBtn.addEventListener('click', () => {
-    if (isListening) {
-      stoppedByUser = true;
-      recognition.stop();
-    } else {
-      thought.value = '';
-      captureBtn.disabled = true;
-      stoppedByUser = false;
-      recognition.start();
-      isListening = true;
-      micBtn.classList.add('listening');
-      setStatus('Listening... tap mic or Capture to stop', 'working');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Capture';
+  }
+}
+
+// ── Load recent ───────────────────────────────────────────────
+async function loadRecent() {
+  try {
+    const res = await fetch(`${API_BASE}/brain-priorities?key=${encodeURIComponent(KEY)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const owner = data.owner;
+
+    // Pull recent from Supabase directly via brain-priorities response isn't ideal,
+    // so show a placeholder for now
+    const list = document.getElementById('recent-list');
+    if (data.personal_count !== undefined) {
+      list.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:6px 0;">${data.business_count} business · ${data.personal_count} personal thoughts in brain</div>`;
+    }
+  } catch { /* silent */ }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.className = `toast show ${type}`;
+  if (type === 'success') setTimeout(() => t.classList.remove('show'), 5000);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Enter key to submit ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  updatePlaceholder();
+  loadRecent();
+
+  const ta = document.getElementById('content');
+  ta.addEventListener('input', () => applyKeywordOverrides(ta.value));
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      capture();
     }
   });
-} else {
-  // No speech API — hide mic, use keyboard voice instead
-  micBtn.style.display = 'none';
-}
-
-// Check for key
-if (!KEY) {
-  setStatus('Missing key — add ?key=YOUR_KEY to the URL', 'error');
-  captureBtn.disabled = true;
-  thought.disabled = true;
-}
+});
 </script>
-
 </body>
 </html>
