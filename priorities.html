@@ -128,7 +128,15 @@
   .move-btn:hover { background:rgba(43,125,148,0.25); }
   .move-btn.visible { display:block; }
 
-  /* No key state */
+  /* Recurring badge */
+  .recur-badge { font-size:10px; padding:2px 7px; border-radius:20px; flex-shrink:0; margin-top:2px; white-space:nowrap; background:rgba(37,99,196,0.12); color:#7aaaf0; border:1px solid rgba(37,99,196,0.25); }
+  .pill-recurring { background:rgba(37,99,196,0.1); color:#7aaaf0; border:1px solid rgba(37,99,196,0.2); }
+  /* Recurring checkmark — teal ring not green */
+  .check-btn.recur:hover { border-color:#7aaaf0; }
+  .check-btn.recur.checked { background:#2563c4; border-color:#2563c4; }
+  /* Flash animation on recurring reset */
+  @keyframes flash-reset { 0%{opacity:0.3} 50%{opacity:1} 100%{opacity:1} }
+  .task-item.reset { animation:flash-reset 0.5s ease; }
   .no-key { text-align:center; padding:60px 20px; color:var(--text-dim); }
   .no-key h2 { font-size:18px; font-weight:500; margin-bottom:8px; color:var(--text); }
   .state-msg { text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; }
@@ -225,21 +233,6 @@ async function reschedule(id, val, titleText, rowEl) {
   }
 }
 
-async function archiveTask(id, titleText, rowEl) {
-  try {
-    const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    if (!res.ok) throw new Error('Server error');
-    showToast(`Done: "${titleText.slice(0,40)}"`, 'success');
-    rowEl.classList.add('done');
-  } catch {
-    showToast('Failed to archive — try again', 'error');
-  }
-}
-
 // ── Render ────────────────────────────────────────────────────
 function renderData(data) {
   const cfg = ownerCfg(data.owner);
@@ -261,6 +254,7 @@ function renderData(data) {
   document.getElementById('stats-row').innerHTML = [
     `<span class="chip">business <span>${data.business_count || 0}</span></span>`,
     `<span class="chip">personal <span>${data.personal_count || 0}</span></span>`,
+    data.recurring_count ? `<span class="chip">recurring <span>${data.recurring_count}</span></span>` : '',
   ].join('');
 
   const sections = data.synthesized || [];
@@ -272,32 +266,45 @@ function renderData(data) {
 
   let html = '';
   for (const sec of sections) {
-    const pillClass = sec.priority === 'high' ? 'pill-high' : sec.priority === 'medium' ? 'pill-medium' : 'pill-low';
+    const isRecurSec = sec.priority === 'recurring';
+    const pillClass = isRecurSec ? 'pill-recurring'
+      : sec.priority === 'high' ? 'pill-high'
+      : sec.priority === 'medium' ? 'pill-medium' : 'pill-low';
+    const pillLabel = isRecurSec ? '⟳ recurring' : sec.priority;
     html += `<div class="section">`;
     html += `<div class="section-head">
       <span class="section-name">${esc(sec.section)}</span>
-      ${sec.priority ? `<span class="section-pill ${pillClass}">${esc(sec.priority)}</span>` : ''}
+      ${sec.priority ? `<span class="section-pill ${pillClass}">${esc(pillLabel)}</span>` : ''}
     </div>`;
 
     for (const item of (sec.items || [])) {
+      const isRecur = !!item.recurring || isRecurSec;
       const typeClass = item.type === 'personal' ? 'type-personal' : 'type-business';
       const tierLabel = item.tier ? `T${item.tier}` : '';
       const hasId = item.id && item.id.length > 10;
       const rowId = 'row-' + (item.id || Math.random().toString(36).slice(2));
+      const recurLabel = isRecur ? (typeof item.recurring === 'object'
+        ? `every ${item.recurring.every} ${item.recurring.unit}`
+        : (item.recurring || 'recurring')) : null;
 
       html += `<div class="task-item" id="${esc(rowId)}">`;
 
-      // Checkmark
-      html += `<button class="check-btn" title="Mark done" onclick="handleCheck('${esc(item.id||'')}','${esc(item.title||'')}','${esc(rowId)}',this)">
+      // Checkmark — recurring uses blue ring
+      html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
+        onclick="handleCheck('${esc(item.id||'')}','${esc(item.title||'')}','${esc(rowId)}',this,${isRecur})">
         <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>`;
 
       // Body
+      const detailText = item.detail && item.detail !== `⟳ ${recurLabel}` ? item.detail : '';
       html += `<div class="task-body">
         <div class="task-title">${esc(item.title)}</div>
-        ${item.detail ? `<div class="task-detail">${esc(item.detail)}</div>` : ''}
+        ${detailText ? `<div class="task-detail">${esc(detailText)}</div>` : ''}
         ${item.due && item.due !== 'no date' ? `<div class="task-due">${esc(item.due)}</div>` : ''}
       </div>`;
+
+      // Recurring badge
+      if (recurLabel) html += `<span class="recur-badge">⟳ ${esc(recurLabel)}</span>`;
 
       // Tier badge
       if (tierLabel) html += `<span class="tier-badge">${tierLabel}</span>`;
@@ -305,8 +312,8 @@ function renderData(data) {
       // Type pill
       html += `<span class="type-pill ${typeClass}">${item.type === 'personal' ? 'personal' : 'business'}</span>`;
 
-      // Reschedule dropdown (only if we have an id to update)
-      if (hasId) {
+      // Reschedule dropdown (not shown for recurring — they repeat automatically)
+      if (hasId && !isRecur) {
         const selId = 'sel-' + rowId;
         const btnId = 'btn-' + rowId;
         html += `<div class="task-actions">
@@ -349,13 +356,42 @@ function confirmMove(id, selId, title, rowId) {
   sel.nextElementSibling?.classList.remove('visible');
 }
 
-function handleCheck(id, title, rowId, btn) {
+function handleCheck(id, title, rowId, btn, isRecur) {
   btn.classList.add('checked');
   const row = document.getElementById(rowId);
   if (id && id.length > 10) {
-    archiveTask(id, title, row);
+    completeTask(id, title, row, isRecur, btn);
   } else {
-    row.classList.add('done');
+    if (isRecur) { setTimeout(() => btn.classList.remove('checked'), 800); }
+    else { row.classList.add('done'); }
+  }
+}
+
+async function completeTask(id, titleText, rowEl, isRecur, btn) {
+  try {
+    const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+
+    if (data.recurring) {
+      // Recurring — flash reset, stay in list
+      showToast('✓ Done — resets next occurrence', 'success');
+      rowEl.classList.add('reset');
+      setTimeout(() => {
+        btn.classList.remove('checked');
+        rowEl.classList.remove('reset');
+      }, 600);
+    } else {
+      showToast(`Done: "${titleText.slice(0,40)}"`, 'success');
+      rowEl.classList.add('done');
+    }
+  } catch {
+    showToast('Failed — try again', 'error');
+    btn.classList.remove('checked');
   }
 }
 
