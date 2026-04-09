@@ -95,6 +95,7 @@
   .task-body { flex:1; min-width:0; }
   .task-title { font-size:13.5px; color:var(--text); line-height:1.45; }
   .task-detail { font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.4; }
+  .task-source { font-size:11px; color:var(--text-faint); font-style:italic; }
   .task-due { font-size:11px; color:var(--text-faint); margin-top:4px; font-family:'DM Mono',monospace; }
 
   /* Tier badge */
@@ -128,7 +129,16 @@
   .move-btn:hover { background:rgba(43,125,148,0.25); }
   .move-btn.visible { display:block; }
 
-  /* Recurring badge — compact ⟳ w / ⟳ m / ⟳ 2w style */
+  /* Observation groups */
+  .obs-group { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; overflow:hidden; }
+  .obs-group:hover { border-color:var(--border2); }
+  .obs-group-header { padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; cursor:default; }
+  .obs-group-icon { font-size:11px; flex-shrink:0; }
+  .obs-group-title { font-size:12px; font-weight:500; color:var(--text-dim); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .obs-progress { font-size:10px; color:var(--text-faint); font-family:'DM Mono',monospace; flex-shrink:0; }
+  .obs-group .task-item { border:none; border-top:1px solid var(--border); border-radius:0; margin-bottom:0; padding-left:20px; }
+  .obs-group .task-item:hover { background:var(--surface2); border-color:var(--border); }
+  .obs-group .task-item.done { opacity:0.35; }
   .recur-badge { font-size:10px; padding:2px 6px; border-radius:6px; flex-shrink:0; margin-top:2px; white-space:nowrap; background:rgba(37,99,196,0.12); color:#7aaaf0; border:1px solid rgba(37,99,196,0.2); font-family:'DM Mono',monospace; letter-spacing:0.03em; }
   .pill-recurring { background:rgba(37,99,196,0.1); color:#7aaaf0; border:1px solid rgba(37,99,196,0.2); }
   .check-btn.recur:hover { border-color:#7aaaf0; }
@@ -321,6 +331,8 @@ function renderData(data) {
     data.recurring_count ? `<span class="chip">recurring <span>${data.recurring_count}</span></span>` : '',
   ].join('');
 
+  const obsMap = data.observations || {};
+
   const sections = data.synthesized || [];
   if (!sections.length) {
     document.getElementById('main-content').innerHTML =
@@ -341,59 +353,101 @@ function renderData(data) {
       ${sec.priority ? `<span class="section-pill ${pillClass}">${esc(pillLabel)}</span>` : ''}
     </div>`;
 
+    // Split into obs groups and standalone, preserving tier order
+    const obsOrder = []; // obs IDs in order of first appearance
+    const obsGroups = {}; // obs_id → [items]
+    const standaloneItems = [];
     for (const item of (sec.items || [])) {
-      const isRecur = !!item.recurring || isRecurSec;
-      const typeClass = item.type === 'personal' ? 'type-personal' : 'type-business';
-      const tierLabel = item.tier ? `T${item.tier}` : '';
-      const hasId = item.id && item.id.length > 10;
-      const rowId = 'row-' + (item.id || Math.random().toString(36).slice(2));
-      const recurShort = isRecur ? shortRecur(item.recurring) : null;
-      const recurLabel = isRecur ? (typeof item.recurring === 'object'
-        ? `every ${item.recurring.every} ${item.recurring.unit}`
-        : (item.recurring || 'recurring')) : null;
-      const recurJson = item.recurring ? JSON.stringify(item.recurring) : '';
+      if (item.source_observation && obsMap[item.source_observation]) {
+        if (!obsGroups[item.source_observation]) {
+          obsGroups[item.source_observation] = [];
+          obsOrder.push(item.source_observation);
+        }
+        obsGroups[item.source_observation].push(item);
+      } else {
+        standaloneItems.push(item);
+      }
+    }
 
-      // data attrs: id, recur flag, due_date, due_month, recurring value
-      html += `<div class="task-item" id="${esc(rowId)}"
-        data-id="${esc(item.id||'')}"
-        data-recur="${isRecur}"
-        data-due-date="${esc(item.due_date||'')}"
-        data-due-month="${esc(item.due||'')}"
-        data-recurring-val="${esc(recurJson)}">`;
+    // Render obs groups first
+    for (const obsId of obsOrder) {
+      const obs = obsMap[obsId];
+      const tasks = obsGroups[obsId];
+      const remaining = Math.max(0, (obs.tasks_total || tasks.length) - (obs.tasks_done || 0));
+      const obsTitle = obs.content.length > 70 ? obs.content.slice(0, 70) + '…' : obs.content;
 
-      // Checkmark
-      html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
-        onclick="event.stopPropagation();handleCheck('${esc(rowId)}',this)">
-        <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>`;
-
-      // Body — click opens popup
-      const detailText = item.detail && item.detail !== `⟳ ${recurLabel}` ? item.detail : '';
-      html += `<div class="task-body" onclick="${hasId?`openPopup('${esc(rowId)}')`:''}">
-        <div class="task-title" id="title-${esc(rowId)}">${esc(item.title)}</div>
-        ${detailText ? `<div class="task-detail">${esc(detailText)}</div>` : ''}
-        ${item.due && item.due !== 'no date' ? `<div class="task-due">${esc(item.due)}</div>` : ''}
+      html += `<div class="obs-group" id="obsgrp-${esc(obsId)}">`;
+      html += `<div class="obs-group-header">
+        <span class="obs-group-icon">🧠</span>
+        <span class="obs-group-title">${esc(obsTitle)}</span>
+        <span class="obs-progress" id="obsprog-${esc(obsId)}">${remaining > 0 ? `${remaining} left` : '✓ all done'}</span>
       </div>`;
 
-      // Edit button
-      if (hasId) html += `<button class="edit-btn" title="Edit" onclick="event.stopPropagation();startEdit('${esc(rowId)}',this)">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>`;
-
-      // Recurring badge — compact ⟳ w / ⟳ m / ⟳ 2w
-      if (recurShort) html += `<span class="recur-badge" title="${esc(recurLabel||'')}">⟳ ${esc(recurShort)}</span>`;
-
-      // Tier + type
-      if (tierLabel) html += `<span class="tier-badge">${tierLabel}</span>`;
-      html += `<span class="type-pill ${typeClass}">${item.type === 'personal' ? 'personal' : 'business'}</span>`;
-
+      for (const item of tasks) {
+        html += renderTaskItem(item, isRecurSec);
+      }
       html += `</div>`;
     }
+
+    // Render standalone tasks
+    for (const item of standaloneItems) {
+      html += renderTaskItem(item, isRecurSec);
+    }
+
     html += `</div>`;
   }
 
   document.getElementById('main-content').innerHTML = html;
 }
+
+function renderTaskItem(item, isRecurSec) {
+  const isRecur = !!item.recurring || isRecurSec;
+  const typeClass = item.type === 'personal' ? 'type-personal' : 'type-business';
+  const tierLabel = item.tier ? `T${item.tier}` : '';
+  const hasId = item.id && item.id.length > 10;
+  const rowId = 'row-' + (item.id || Math.random().toString(36).slice(2));
+  const recurShort = isRecur ? shortRecur(item.recurring) : null;
+  const recurLabel = isRecur ? (typeof item.recurring === 'object'
+    ? `every ${item.recurring.every} ${item.recurring.unit}`
+    : (item.recurring || 'recurring')) : null;
+  const recurJson = item.recurring ? JSON.stringify(item.recurring) : '';
+
+  let html = `<div class="task-item" id="${esc(rowId)}"
+    data-id="${esc(item.id||'')}"
+    data-recur="${isRecur}"
+    data-due-date="${esc(item.due_date||'')}"
+    data-due-month="${esc(item.due||'')}"
+    data-recurring-val="${esc(recurJson)}"
+    data-obs-id="${esc(item.source_observation||'')}">`;
+
+  // Checkmark
+  html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
+    onclick="event.stopPropagation();handleCheck('${esc(rowId)}',this)">
+    <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>`;
+
+  // Body
+  const detailText = item.detail && item.detail !== `⟳ ${recurLabel}` ? item.detail : '';
+  const dueDisplay = item.due_date
+    ? new Date(item.due_date + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
+    : (item.due && item.due !== 'no date' ? item.due : null);
+
+  html += `<div class="task-body" onclick="${hasId?`openPopup('${esc(rowId)}')`:''}">
+    <div class="task-title" id="title-${esc(rowId)}">${esc(item.title)}</div>
+    ${detailText ? `<div class="task-detail">${esc(detailText)}</div>` : ''}
+    ${dueDisplay ? `<div class="task-due">${esc(dueDisplay)}</div>` : ''}
+  </div>`;
+
+  // Edit button
+  if (hasId) html += `<button class="edit-btn" title="Edit" onclick="event.stopPropagation();startEdit('${esc(rowId)}',this)">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  </button>`;
+
+  if (recurShort) html += `<span class="recur-badge" title="${esc(recurLabel||'')}">⟳ ${esc(recurShort)}</span>`;
+  if (tierLabel)  html += `<span class="tier-badge">${tierLabel}</span>`;
+  html += `<span class="type-pill ${typeClass}">${item.type === 'personal' ? 'personal' : 'business'}</span>`;
+  html += `</div>`;
+  return html;
 
 // ── Recurring short label ─────────────────────────────────────
 function shortRecur(val) {
@@ -650,6 +704,16 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     } else {
       showToast(`Done: "${titleText.slice(0,40)}"`, 'success');
       rowEl.classList.add('done');
+      // Update obs group progress counter
+      const obsId = rowEl.dataset.obsId;
+      if (obsId) {
+        const progEl = document.getElementById('obsprog-' + obsId);
+        if (progEl && progEl.textContent.includes('left')) {
+          const n = parseInt(progEl.textContent) || 1;
+          const remaining = Math.max(0, n - 1);
+          progEl.textContent = remaining > 0 ? `${remaining} left` : '✓ all done';
+        }
+      }
     }
   } catch {
     showToast('Failed — try again', 'error');
