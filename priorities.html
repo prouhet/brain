@@ -26,7 +26,7 @@
     background-size:40px 40px;
   }
   .wrapper { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:0 20px 80px; }
- 
+
   /* ── Header ── */
   header { display:flex; align-items:center; justify-content:space-between; padding:18px 0 16px; border-bottom:1px solid var(--border); margin-bottom:20px; }
   .header-left { display:flex; align-items:center; gap:12px; }
@@ -37,18 +37,18 @@
   #refresh-btn { font-size:12px; padding:6px 12px; border-radius:7px; border:1px solid var(--border2); background:transparent; color:var(--text-dim); cursor:pointer; font-family:inherit; transition:color 0.2s,border-color 0.2s; }
   #refresh-btn:hover { color:var(--teal-light); border-color:var(--teal); }
   #refresh-btn.spinning { color:var(--teal-light); }
- 
+
   /* ── Stats chips ── */
   .stats-row { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
   .chip { font-size:11px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--text-dim); font-family:'DM Mono',monospace; }
   .chip span { color:var(--teal-light); font-weight:500; }
- 
+
   /* ── Toast ── */
   #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--surface3); border:1px solid var(--border2); border-radius:8px; padding:10px 16px; font-size:13px; color:var(--text); z-index:100; display:none; white-space:nowrap; }
   #toast.show { display:block; }
   #toast.success { border-color:rgba(29,158,117,0.5); color:#7ec87e; }
   #toast.error { border-color:rgba(232,132,90,0.5); color:var(--april); }
- 
+
   /* ── Thinking state ── */
   .thinking { display:flex; align-items:center; gap:10px; padding:16px 0; color:var(--text-dim); font-size:13px; }
   .thinking-dots { display:flex; gap:5px; }
@@ -59,7 +59,7 @@
   .skeleton { background:var(--surface2); border-radius:var(--radius); padding:16px; margin-bottom:8px; }
   .skel-line { height:10px; background:var(--surface3); border-radius:4px; margin-bottom:8px; }
   .skel-line.short { width:40%; }
- 
+
   /* ── Section headers ── */
   .section { margin-bottom:24px; }
   .section-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -68,7 +68,7 @@
   .pill-high { background:rgba(232,132,90,0.12); color:var(--april); border:1px solid rgba(232,132,90,0.25); }
   .pill-medium { background:rgba(232,196,90,0.1); color:var(--may); border:1px solid rgba(232,196,90,0.2); }
   .pill-low { background:rgba(126,200,126,0.1); color:var(--june); border:1px solid rgba(126,200,126,0.2); }
- 
+
   /* ── Task item ── */
   .task-item {
     display:flex; align-items:flex-start; gap:10px;
@@ -78,7 +78,7 @@
   }
   .task-item.done { opacity:0.35; pointer-events:none; }
   .task-item:hover { border-color:var(--border2); }
- 
+
   /* Checkmark button */
   .check-btn {
     width:20px; height:20px; min-width:20px; border-radius:50%;
@@ -90,21 +90,21 @@
   .check-btn svg { display:none; }
   .check-btn.checked { background:var(--green); border-color:var(--green); }
   .check-btn.checked svg { display:block; }
- 
+
   /* Task body */
   .task-body { flex:1; min-width:0; }
   .task-title { font-size:13.5px; color:var(--text); line-height:1.45; }
   .task-detail { font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.4; }
   .task-due { font-size:11px; color:var(--text-faint); margin-top:4px; font-family:'DM Mono',monospace; }
- 
+
   /* Tier badge */
   .tier-badge { font-size:10px; padding:2px 6px; border-radius:4px; background:var(--surface3); color:var(--text-faint); font-family:'DM Mono',monospace; flex-shrink:0; margin-top:2px; }
- 
+
   /* Type pill */
   .type-pill { font-size:10px; padding:2px 7px; border-radius:20px; flex-shrink:0; margin-top:2px; white-space:nowrap; }
   .type-business { background:var(--teal-dim); color:var(--teal-light); border:1px solid rgba(43,125,148,0.25); }
   .type-personal { background:rgba(196,126,176,0.1); color:#d49ec8; border:1px solid rgba(196,126,176,0.2); }
- 
+
   /* Reschedule area */
   .task-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; margin-top:1px; }
   select.reschedule {
@@ -127,9 +127,9 @@
   }
   .move-btn:hover { background:rgba(43,125,148,0.25); }
   .move-btn.visible { display:block; }
- 
-  /* Recurring badge */
-  .recur-badge { font-size:10px; padding:2px 7px; border-radius:20px; flex-shrink:0; margin-top:2px; white-space:nowrap; background:rgba(37,99,196,0.12); color:#7aaaf0; border:1px solid rgba(37,99,196,0.25); }
+
+  /* Recurring badge — compact ⟳ w / ⟳ m / ⟳ 2w style */
+  .recur-badge { font-size:10px; padding:2px 6px; border-radius:6px; flex-shrink:0; margin-top:2px; white-space:nowrap; background:rgba(37,99,196,0.12); color:#7aaaf0; border:1px solid rgba(37,99,196,0.2); font-family:'DM Mono',monospace; letter-spacing:0.03em; }
   .pill-recurring { background:rgba(37,99,196,0.1); color:#7aaaf0; border:1px solid rgba(37,99,196,0.2); }
   .check-btn.recur:hover { border-color:#7aaaf0; }
   .check-btn.recur.checked { background:#2563c4; border-color:#2563c4; }
@@ -173,11 +173,11 @@
 </head>
 <body>
 <div class="wrapper">
- 
+
   <div id="no-key" style="display:none;">
     <div class="no-key"><h2>No key in URL</h2><p>Open this page with ?key=YOUR_KEY appended to the URL.</p></div>
   </div>
- 
+
   <div id="dashboard" style="display:none;">
     <header>
       <div class="header-left">
@@ -191,14 +191,14 @@
         <button id="refresh-btn" onclick="load()">↻ Refresh</button>
       </div>
     </header>
- 
+
     <div class="stats-row" id="stats-row"></div>
     <div id="toast"></div>
     <div id="main-content"><div class="state-msg">Loading…</div></div>
   </div><!-- /dashboard -->
- 
+
 </div><!-- /wrapper -->
- 
+
 <!-- Task detail popup -->
 <div class="popup-overlay" id="popup-overlay" style="display:none" onclick="closePopup()">
   <div class="task-popup" onclick="event.stopPropagation()">
@@ -226,26 +226,26 @@
     <button class="popup-save-btn" id="popup-save-btn" onclick="saveCustomRecur()">Set recurrence</button>
   </div>
 </div>
- 
+
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/brain-priorities';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
- 
+
 const OWNER_CFG = {
   dave:   { initials:'D',  bg:'rgba(43,125,148,0.25)',   color:'#3a9ab5' },
   doreen: { initials:'Dr', bg:'rgba(196,126,176,0.2)',   color:'#d49ec8' },
 };
- 
+
 function ownerCfg(o) {
   return OWNER_CFG[o?.toLowerCase()] || { initials:(o||'?')[0].toUpperCase(), bg:'rgba(255,255,255,0.1)', color:'#aaa' };
 }
- 
+
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'show ' + type;
   setTimeout(() => t.className = '', 3000);
 }
- 
+
 // ── Reschedule helpers ────────────────────────────────────────
 function computeDueMonth(val) {
   const now = new Date();
@@ -260,11 +260,11 @@ function computeDueMonth(val) {
   else if (val === '2m') { target.setMonth(now.getMonth() + 2); }
   return target.toLocaleString('default', { month: 'long' }).toLowerCase();
 }
- 
+
 const DAY_LABELS = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday' };
 const VAL_LABELS = { '2w':'2 weeks', '3w':'3 weeks', '1m':'1 month', '2m':'2 months' };
 function valLabel(v) { return DAY_LABELS[v] || VAL_LABELS[v] || v; }
- 
+
 function onSelectChange(sel, moveBtn) {
   if (sel.value) {
     sel.classList.add('active'); moveBtn.classList.add('visible');
@@ -272,7 +272,7 @@ function onSelectChange(sel, moveBtn) {
     sel.classList.remove('active'); moveBtn.classList.remove('visible');
   }
 }
- 
+
 async function reschedule(id, val, titleText, rowEl) {
   const due_month = computeDueMonth(val);
   try {
@@ -289,7 +289,7 @@ async function reschedule(id, val, titleText, rowEl) {
     showToast('Failed to reschedule — try again', 'error');
   }
 }
- 
+
 // ── Render ────────────────────────────────────────────────────
 function renderData(data) {
   const cfg = ownerCfg(data.owner);
@@ -297,30 +297,30 @@ function renderData(data) {
   av.textContent = cfg.initials;
   av.style.background = cfg.bg;
   av.style.color = cfg.color;
- 
+
   document.getElementById('owner-name').textContent =
     data.owner ? data.owner.charAt(0).toUpperCase() + data.owner.slice(1) + "'s Priorities" : 'Priorities';
- 
+
   const ft = data.fetched_at
     ? new Date(data.fetched_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
     : '';
   document.getElementById('owner-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) +
     (ft ? ` · fetched ${ft}` : '');
- 
+
   document.getElementById('stats-row').innerHTML = [
     `<span class="chip">business <span>${data.business_count || 0}</span></span>`,
     `<span class="chip">personal <span>${data.personal_count || 0}</span></span>`,
     data.recurring_count ? `<span class="chip">recurring <span>${data.recurring_count}</span></span>` : '',
   ].join('');
- 
+
   const sections = data.synthesized || [];
   if (!sections.length) {
     document.getElementById('main-content').innerHTML =
       '<div class="state-msg">No tasks found in the brain.</div>';
     return;
   }
- 
+
   let html = '';
   for (const sec of sections) {
     const isRecurSec = sec.priority === 'recurring';
@@ -333,18 +333,19 @@ function renderData(data) {
       <span class="section-name">${esc(sec.section)}</span>
       ${sec.priority ? `<span class="section-pill ${pillClass}">${esc(pillLabel)}</span>` : ''}
     </div>`;
- 
+
     for (const item of (sec.items || [])) {
       const isRecur = !!item.recurring || isRecurSec;
       const typeClass = item.type === 'personal' ? 'type-personal' : 'type-business';
       const tierLabel = item.tier ? `T${item.tier}` : '';
       const hasId = item.id && item.id.length > 10;
       const rowId = 'row-' + (item.id || Math.random().toString(36).slice(2));
+      const recurShort = isRecur ? shortRecur(item.recurring) : null;
       const recurLabel = isRecur ? (typeof item.recurring === 'object'
         ? `every ${item.recurring.every} ${item.recurring.unit}`
         : (item.recurring || 'recurring')) : null;
       const recurJson = item.recurring ? JSON.stringify(item.recurring) : '';
- 
+
       // data attrs: id, recur flag, due_date, due_month, recurring value
       html += `<div class="task-item" id="${esc(rowId)}"
         data-id="${esc(item.id||'')}"
@@ -352,13 +353,13 @@ function renderData(data) {
         data-due-date="${esc(item.due_date||'')}"
         data-due-month="${esc(item.due||'')}"
         data-recurring-val="${esc(recurJson)}">`;
- 
+
       // Checkmark
       html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
         onclick="event.stopPropagation();handleCheck('${esc(rowId)}',this)">
         <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>`;
- 
+
       // Body — click opens popup
       const detailText = item.detail && item.detail !== `⟳ ${recurLabel}` ? item.detail : '';
       html += `<div class="task-body" onclick="${hasId?`openPopup('${esc(rowId)}')`:''}">
@@ -366,30 +367,43 @@ function renderData(data) {
         ${detailText ? `<div class="task-detail">${esc(detailText)}</div>` : ''}
         ${item.due && item.due !== 'no date' ? `<div class="task-due">${esc(item.due)}</div>` : ''}
       </div>`;
- 
+
       // Edit button
       if (hasId) html += `<button class="edit-btn" title="Edit" onclick="event.stopPropagation();startEdit('${esc(rowId)}',this)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>`;
- 
-      // Recurring badge
-      if (recurLabel) html += `<span class="recur-badge">⟳ ${esc(recurLabel)}</span>`;
- 
+
+      // Recurring badge — compact ⟳ w / ⟳ m / ⟳ 2w
+      if (recurShort) html += `<span class="recur-badge" title="${esc(recurLabel||'')}">⟳ ${esc(recurShort)}</span>`;
+
       // Tier + type
       if (tierLabel) html += `<span class="tier-badge">${tierLabel}</span>`;
       html += `<span class="type-pill ${typeClass}">${item.type === 'personal' ? 'personal' : 'business'}</span>`;
- 
+
       html += `</div>`;
     }
     html += `</div>`;
   }
- 
+
   document.getElementById('main-content').innerHTML = html;
 }
- 
+
+// ── Recurring short label ─────────────────────────────────────
+function shortRecur(val) {
+  if (!val) return '';
+  const UNIT = { days:'d', weeks:'w', months:'m', years:'y' };
+  if (typeof val === 'object') {
+    const n = val.every || 1;
+    const u = UNIT[val.unit] || val.unit?.[0] || '?';
+    return `${n}${u}`;
+  }
+  const MAP = { daily:'d', weekly:'w', biweekly:'2w', monthly:'m', yearly:'y' };
+  return MAP[val] || val[0] || '?';
+}
+
 // ── Popup ─────────────────────────────────────────────────────
 let activePopupRowId = null;
- 
+
 const DATE_CHIPS = [
   { label:'Today',      days:0 },
   { label:'Tomorrow',   days:1 },
@@ -401,7 +415,7 @@ const DATE_CHIPS = [
   { label:'In 2 months',months:2 },
   { label:'No date',    clear:true },
 ];
- 
+
 const RECUR_CHIPS = [
   { label:'None',      val:null },
   { label:'Daily',     val:'daily' },
@@ -410,7 +424,7 @@ const RECUR_CHIPS = [
   { label:'Monthly',   val:'monthly' },
   { label:'Custom…',   val:'custom' },
 ];
- 
+
 function chipDate(chip) {
   const d = new Date();
   if (chip.clear) return null;
@@ -423,10 +437,10 @@ function chipDate(chip) {
   }
   return d;
 }
- 
+
 function isoDate(d) { return d ? d.toISOString().split('T')[0] : null; }
 function monthName(d) { return d ? d.toLocaleString('en-US',{month:'long'}).toLowerCase() : null; }
- 
+
 function openPopup(rowId) {
   activePopupRowId = rowId;
   const row = document.getElementById(rowId);
@@ -436,9 +450,9 @@ function openPopup(rowId) {
   const curRecurVal = row?.dataset.recurringVal || '';
   let curRecur = null;
   try { curRecur = curRecurVal ? JSON.parse(curRecurVal) : null; } catch {}
- 
+
   document.getElementById('popup-title').textContent = title;
- 
+
   // Date chips
   const dateWrap = document.getElementById('popup-date-chips');
   dateWrap.innerHTML = DATE_CHIPS.map(chip => {
@@ -448,7 +462,7 @@ function openPopup(rowId) {
       : (curDueDate && curDueDate === iso) || (!curDueDate && curDueMonth && d && monthName(d) === curDueMonth);
     return `<button class="pchip${isCur?' active-date':''}" onclick="pickDate('${chip.label}')">${chip.label}</button>`;
   }).join('');
- 
+
   // Recur chips
   const recurWrap = document.getElementById('popup-recur-chips');
   recurWrap.innerHTML = RECUR_CHIPS.map(chip => {
@@ -457,36 +471,36 @@ function openPopup(rowId) {
       : chip.val === 'custom' && typeof curRecur === 'object';
     return `<button class="pchip${isCur?' active-recur':''}" onclick="pickRecur('${chip.val||''}')">${chip.label}</button>`;
   }).join('');
- 
+
   document.getElementById('popup-custom-recur').classList.remove('show');
   document.getElementById('popup-save-btn').classList.remove('show');
   document.getElementById('popup-overlay').style.display = 'flex';
   document.addEventListener('keydown', onPopupKey);
 }
- 
+
 function closePopup() {
   document.getElementById('popup-overlay').style.display = 'none';
   document.removeEventListener('keydown', onPopupKey);
   activePopupRowId = null;
 }
- 
+
 function onPopupKey(e) { if (e.key === 'Escape') closePopup(); }
- 
+
 async function pickDate(chipLabel) {
   const row = document.getElementById(activePopupRowId);
   const id  = row?.dataset.id || '';
   if (!id) { closePopup(); return; }
- 
+
   const chip = DATE_CHIPS.find(c => c.label === chipLabel);
   if (!chip) return;
- 
+
   let due_date = null, due_month = null;
   if (!chip.clear) {
     const d = chipDate(chip);
     due_date  = isoDate(d);
     due_month = monthName(d);
   }
- 
+
   // Optimistic: update task-due display
   const dueEl = row?.querySelector('.task-due');
   if (dueEl) {
@@ -497,9 +511,9 @@ async function pickDate(chipLabel) {
   }
   if (due_date) { row.dataset.dueDate = due_date; row.dataset.dueMonth = due_month || ''; }
   else { row.dataset.dueDate = ''; row.dataset.dueMonth = ''; }
- 
+
   closePopup();
- 
+
   try {
     const body = { id };
     if (chip.clear) { body.due_month = ''; body.due_date = ''; }
@@ -511,7 +525,7 @@ async function pickDate(chipLabel) {
     showToast(`Due date set: ${chip.clear ? 'cleared' : chipLabel}`, 'success');
   } catch { showToast('Failed to save date', 'error'); }
 }
- 
+
 async function pickRecur(val) {
   if (val === 'custom') {
     document.getElementById('popup-custom-recur').classList.add('show');
@@ -520,32 +534,34 @@ async function pickRecur(val) {
   }
   await saveRecurValue(val || null);
 }
- 
+
 async function saveCustomRecur() {
   const n    = parseInt(document.getElementById('popup-custom-n').value) || 1;
   const unit = document.getElementById('popup-custom-unit').value;
   await saveRecurValue({ every: n, unit });
 }
- 
+
 async function saveRecurValue(recurVal) {
   const row = document.getElementById(activePopupRowId);
   const id  = row?.dataset.id || '';
   if (!id) { closePopup(); return; }
- 
+
   const recurJson = recurVal ? JSON.stringify(recurVal) : '';
   row.dataset.recurringVal = recurJson;
   row.dataset.recur = recurVal ? 'true' : 'false';
- 
+
   // Update recur badge in row
   const badge = row.querySelector('.recur-badge');
   if (recurVal) {
-    const label = typeof recurVal === 'object' ? `every ${recurVal.every} ${recurVal.unit}` : recurVal;
-    if (badge) badge.textContent = `⟳ ${label}`;
-    else row.querySelector('.tier-badge')?.insertAdjacentHTML('beforebegin', `<span class="recur-badge">⟳ ${label}</span>`);
+    const short = shortRecur(recurVal);
+    const long  = typeof recurVal === 'object' ? `every ${recurVal.every} ${recurVal.unit}` : recurVal;
+    if (badge) { badge.textContent = `⟳ ${short}`; badge.title = long; }
+    else row.querySelector('.tier-badge')?.insertAdjacentHTML('beforebegin',
+      `<span class="recur-badge" title="${long}">⟳ ${short}</span>`);
   } else if (badge) badge.remove();
- 
+
   closePopup();
- 
+
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
       method:'PATCH', headers:{'Content-Type':'application/json'},
@@ -555,7 +571,7 @@ async function saveRecurValue(recurVal) {
     showToast(recurVal ? `Repeats: ${typeof recurVal==='object'?`every ${recurVal.every} ${recurVal.unit}`:recurVal}` : 'Recurrence cleared', 'success');
   } catch { showToast('Failed to save recurrence', 'error'); }
 }
- 
+
 function handleCheck(rowId, btn) {
   const row = document.getElementById(rowId);
   const id = row?.dataset.id || '';
@@ -569,7 +585,7 @@ function handleCheck(rowId, btn) {
     else { row.classList.add('done'); }
   }
 }
- 
+
 async function completeTask(id, titleText, rowEl, isRecur, btn) {
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
@@ -579,7 +595,7 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     });
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
- 
+
     if (data.recurring) {
       showToast('✓ Done — resets next occurrence', 'success');
       rowEl.classList.add('reset');
@@ -596,7 +612,7 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     btn.classList.remove('checked');
   }
 }
- 
+
 // ── Inline edit ───────────────────────────────────────────────
 function startEdit(rowId, editBtn) {
   const titleEl = document.getElementById('title-' + rowId);
@@ -613,26 +629,26 @@ function startEdit(rowId, editBtn) {
   });
   input.addEventListener('blur', () => commitEdit(rowId, input, editBtn));
 }
- 
+
 function cancelEdit(rowId, original, editBtn) {
   const titleEl = document.getElementById('title-' + rowId);
   if (titleEl) titleEl.innerHTML = esc(original);
   editBtn.style.opacity = '';
 }
- 
+
 async function commitEdit(rowId, input, editBtn) {
   const newContent = input.value.trim();
   const original = input.dataset.original;
   if (!newContent || newContent === original) { cancelEdit(rowId, original, editBtn); return; }
- 
+
   const row = document.getElementById(rowId);
   const id  = row?.dataset.id || '';
   if (!id) { cancelEdit(rowId, original, editBtn); return; }
- 
+
   const titleEl = document.getElementById('title-' + rowId);
   titleEl.innerHTML = esc(newContent); // optimistic update
   editBtn.style.opacity = '';
- 
+
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
       method: 'PATCH',
@@ -646,12 +662,12 @@ async function commitEdit(rowId, input, editBtn) {
     showToast('Failed to save — try again', 'error');
   }
 }
- 
+
 // ── Load ──────────────────────────────────────────────────────
 async function load() {
   const btn = document.getElementById('refresh-btn');
   btn.classList.add('spinning'); btn.textContent = '↻ Loading…';
- 
+
   document.getElementById('main-content').innerHTML = `
     <div class="thinking">
       <div class="thinking-dots"><span></span><span></span><span></span></div>
@@ -662,7 +678,7 @@ async function load() {
       <div class="skel-line"></div>
       <div class="skel-line short"></div>
     </div>`).join('')}`;
- 
+
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`);
     if (res.status === 401) { showError('Invalid key in URL.'); return; }
@@ -676,16 +692,16 @@ async function load() {
     btn.classList.remove('spinning'); btn.textContent = '↻ Refresh';
   }
 }
- 
+
 function showError(msg) {
   document.getElementById('main-content').innerHTML =
     `<div class="state-msg" style="color:#e8845a;">⚠ ${esc(msg)}</div>`;
 }
- 
+
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
- 
+
 window.addEventListener('DOMContentLoaded', () => {
   if (!KEY) { document.getElementById('no-key').style.display='block'; return; }
   document.getElementById('dashboard').style.display = 'block';
