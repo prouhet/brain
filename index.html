@@ -65,16 +65,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .recurring-row{margin-bottom:16px;transition:opacity 0.2s}
 .recurring-row.hidden{display:none}
 .recur-btns{display:flex;gap:6px;flex-wrap:wrap}
-.recur-btn{font-size:12px;padding:6px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap}
+.recur-btn{font-size:12px;padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap}
 .recur-btn:hover{border-color:var(--border2);color:var(--text)}
 .recur-btn.active{border-color:rgba(37,99,196,0.6);background:var(--blue-dim);color:#7aaaf0;box-shadow:0 0 0 1px rgba(37,99,196,0.2)}
-
-/* Custom recur input */
+/* When row — tighter chips to fit all 7 days on one line */
+.when-btns{gap:4px}
+.when-btns .recur-btn{font-size:11px;padding:4px 7px}
+.when-btns .recur-btn.today-chip{border-color:rgba(255,255,255,0.2);color:var(--text)}
+/* Custom recur/when inputs */
 .custom-recur{display:none;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
 .custom-recur.show{display:flex}
-.custom-recur input[type="number"]{width:60px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Mono',sans-serif;font-size:13px;outline:none;text-align:center}
-.custom-recur input[type="number"]:focus{border-color:var(--teal)}
-.custom-recur select{padding:6px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer}
+.custom-recur input[type="number"]{width:56px;padding:5px 8px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;text-align:center}
+.custom-recur input[type="date"]{padding:5px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;color-scheme:dark}
+.custom-recur input:focus{border-color:var(--teal)}
+.custom-recur select{padding:5px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer}
 .custom-recur select option{background:var(--surface3)}
 .custom-label{font-size:12px;color:var(--text-dim)}
 
@@ -163,14 +167,11 @@ textarea::placeholder{color:var(--text-faint)}
   <!-- When row (only shows when Task selected) -->
   <div class="recurring-row hidden" id="when-row">
     <div class="row-label">When?</div>
-    <div class="recur-btns" id="when-btns">
-      <button class="recur-btn active" data-when="none"     onclick="setWhen('none',this)">No date</button>
-      <button class="recur-btn"        data-when="today"    onclick="setWhen('today',this)">Today</button>
-      <button class="recur-btn"        data-when="tomorrow" onclick="setWhen('tomorrow',this)">Tomorrow</button>
-      <button class="recur-btn"        data-when="this-fri" onclick="setWhen('this-fri',this)">This Fri</button>
-      <button class="recur-btn"        data-when="next-mon" onclick="setWhen('next-mon',this)">Next Mon</button>
-      <button class="recur-btn"        data-when="2w"       onclick="setWhen('2w',this)">In 2 weeks</button>
-      <button class="recur-btn"        data-when="1m"       onclick="setWhen('1m',this)">In 1 month</button>
+    <div class="recur-btns when-btns" id="when-btns">
+      <!-- populated dynamically based on current day of week -->
+    </div>
+    <div class="custom-recur" id="custom-when">
+      <input type="date" id="custom-when-date" onchange="onCustomWhenChange(this)">
     </div>
   </div>
 
@@ -260,34 +261,88 @@ function setScope(scope, btn) {
 }
 
 // ── When ──────────────────────────────────────────────────────
+let whenChipsData = [];
+
+function buildWhenChips() {
+  const now = new Date();
+  now.setHours(12, 0, 0, 0);
+  const DAY = ['Su','M','Tu','W','Th','F','Sa'];
+
+  const chips = [{ label:'None', val:'none', isToday:false }];
+
+  // Today + next 6 days = 7 day chips
+  for (let offset = 0; offset <= 6; offset++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + offset);
+    chips.push({
+      label: DAY[d.getDay()],
+      val: offset === 0 ? 'today' : `+${offset}d`,
+      isToday: offset === 0,
+    });
+  }
+
+  chips.push(
+    { label:'2wk', val:'2w',    isToday:false },
+    { label:'1mo', val:'1m',    isToday:false },
+    { label:'Custom…', val:'custom', isToday:false },
+  );
+  return chips;
+}
+
+function renderWhenChips() {
+  whenChipsData = buildWhenChips();
+  const container = document.getElementById('when-btns');
+  container.innerHTML = whenChipsData.map(chip => {
+    const cls = ['recur-btn'];
+    if (chip.val === 'none') cls.push('active');
+    if (chip.isToday) cls.push('today-chip');
+    return `<button class="${cls.join(' ')}" data-when="${chip.val}" onclick="setWhen('${chip.val}',this)">${chip.label}</button>`;
+  }).join('');
+}
+
 function setWhen(when, btn) {
   currentWhen = when;
-  document.querySelectorAll('#when-btns .recur-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.when-btns .recur-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  const customEl = document.getElementById('custom-when');
+  if (when === 'custom') {
+    customEl.classList.add('show');
+    const today = new Date().toISOString().split('T')[0];
+    const inp = document.getElementById('custom-when-date');
+    inp.min = today;
+    if (!inp.value) inp.value = today;
+  } else {
+    customEl.classList.remove('show');
+  }
 }
+
+function onCustomWhenChange() { currentWhen = 'custom'; }
 
 function getWhenValue() {
   if (currentWhen === 'none') return { due_date: null, due_month: null };
-  const d = new Date();
-  if (currentWhen === 'today')    { /* d is already today */ }
-  else if (currentWhen === 'tomorrow') { d.setDate(d.getDate() + 1); }
-  else if (currentWhen === 'this-fri') {
-    const diff = (5 - d.getDay() + 7) % 7 || 7;
-    d.setDate(d.getDate() + diff);
-  } else if (currentWhen === 'next-mon') {
-    const diff = (1 - d.getDay() + 7) % 7 || 7;
-    d.setDate(d.getDate() + diff);
-  } else if (currentWhen === '2w') { d.setDate(d.getDate() + 14); }
-  else if (currentWhen === '1m')  { d.setMonth(d.getMonth() + 1); }
-  const due_date  = d.toISOString().split('T')[0];
-  const due_month = d.toLocaleString('en-US', { month:'long' }).toLowerCase();
-  return { due_date, due_month };
+  if (currentWhen === 'custom') {
+    const val = document.getElementById('custom-when-date').value;
+    if (!val) return { due_date: null, due_month: null };
+    const d = new Date(val + 'T12:00:00');
+    return { due_date: val, due_month: d.toLocaleString('en-US',{month:'long'}).toLowerCase() };
+  }
+  const d = new Date(); d.setHours(12,0,0,0);
+  if (currentWhen === 'today') { /* d = today */ }
+  else if (currentWhen === '2w') { d.setDate(d.getDate()+14); }
+  else if (currentWhen === '1m') { d.setMonth(d.getMonth()+1); }
+  else if (/^\+\d+d$/.test(currentWhen)) { d.setDate(d.getDate() + parseInt(currentWhen.slice(1,-1))); }
+  return { due_date: d.toISOString().split('T')[0], due_month: d.toLocaleString('en-US',{month:'long'}).toLowerCase() };
 }
 
 function whenLabel() {
-  const labels = { none:'', today:'today', tomorrow:'tomorrow', 'this-fri':'this Friday',
-    'next-mon':'next Monday', '2w':'in 2 weeks', '1m':'in 1 month' };
-  return labels[currentWhen] || '';
+  if (currentWhen === 'none') return '';
+  if (currentWhen === 'custom') {
+    const val = document.getElementById('custom-when-date').value;
+    if (!val) return '';
+    return new Date(val+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  }
+  const chip = whenChipsData.find(c => c.val === currentWhen);
+  return chip ? chip.label : currentWhen;
 }
 
 // ── Recurring ─────────────────────────────────────────────────
@@ -444,7 +499,9 @@ async function capture() {
 
     // Reset after capture
     setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
-    setWhen('none', document.querySelector('.recur-btn[data-when="none"]'));
+    setWhen('none', document.querySelector('.when-btns .recur-btn[data-when="none"]'));
+    document.getElementById('custom-when-date').value = '';
+    document.getElementById('custom-when').classList.remove('show');
 
   } catch(e) {
     showToast('Error: '+e.message,'error');
@@ -478,6 +535,7 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   updatePlaceholder();
+  renderWhenChips(); // build day chips based on today
   loadRecent();
   const ta=document.getElementById('content');
   ta.addEventListener('input',()=>applyKeywordOverrides(ta.value));
