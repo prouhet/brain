@@ -160,6 +160,20 @@ textarea::placeholder{color:var(--text-faint)}
     </button>
   </div>
 
+  <!-- When row (only shows when Task selected) -->
+  <div class="recurring-row hidden" id="when-row">
+    <div class="row-label">When?</div>
+    <div class="recur-btns" id="when-btns">
+      <button class="recur-btn active" data-when="none"     onclick="setWhen('none',this)">No date</button>
+      <button class="recur-btn"        data-when="today"    onclick="setWhen('today',this)">Today</button>
+      <button class="recur-btn"        data-when="tomorrow" onclick="setWhen('tomorrow',this)">Tomorrow</button>
+      <button class="recur-btn"        data-when="this-fri" onclick="setWhen('this-fri',this)">This Fri</button>
+      <button class="recur-btn"        data-when="next-mon" onclick="setWhen('next-mon',this)">Next Mon</button>
+      <button class="recur-btn"        data-when="2w"       onclick="setWhen('2w',this)">In 2 weeks</button>
+      <button class="recur-btn"        data-when="1m"       onclick="setWhen('1m',this)">In 1 month</button>
+    </div>
+  </div>
+
   <!-- Recurring row (only shows when Task selected) -->
   <div class="recurring-row hidden" id="recurring-row">
     <div class="row-label">Repeats?</div>
@@ -219,6 +233,7 @@ const KEY = new URLSearchParams(window.location.search).get('key') || '';
 let currentType  = 'observation';
 let currentScope = 'business';
 let currentRecur = 'none';
+let currentWhen  = 'none';
 let recognition  = null;
 let isRecording  = false;
 
@@ -227,10 +242,13 @@ function setType(type, btn) {
   currentType = type;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  // Show/hide recurring row
-  const row = document.getElementById('recurring-row');
-  if (type === 'task') row.classList.remove('hidden');
-  else { row.classList.add('hidden'); setRecur('none', document.querySelector('.recur-btn[data-recur="none"]')); }
+  const isTask = type === 'task';
+  document.getElementById('when-row').classList.toggle('hidden', !isTask);
+  document.getElementById('recurring-row').classList.toggle('hidden', !isTask);
+  if (!isTask) {
+    setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
+    setWhen('none', document.querySelector('.recur-btn[data-when="none"]'));
+  }
   updatePlaceholder();
 }
 
@@ -239,6 +257,37 @@ function setScope(scope, btn) {
   currentScope = scope;
   document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.scope-btn').forEach(b => { if (b.dataset.scope === scope) b.classList.add('active'); });
+}
+
+// ── When ──────────────────────────────────────────────────────
+function setWhen(when, btn) {
+  currentWhen = when;
+  document.querySelectorAll('#when-btns .recur-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function getWhenValue() {
+  if (currentWhen === 'none') return { due_date: null, due_month: null };
+  const d = new Date();
+  if (currentWhen === 'today')    { /* d is already today */ }
+  else if (currentWhen === 'tomorrow') { d.setDate(d.getDate() + 1); }
+  else if (currentWhen === 'this-fri') {
+    const diff = (5 - d.getDay() + 7) % 7 || 7;
+    d.setDate(d.getDate() + diff);
+  } else if (currentWhen === 'next-mon') {
+    const diff = (1 - d.getDay() + 7) % 7 || 7;
+    d.setDate(d.getDate() + diff);
+  } else if (currentWhen === '2w') { d.setDate(d.getDate() + 14); }
+  else if (currentWhen === '1m')  { d.setMonth(d.getMonth() + 1); }
+  const due_date  = d.toISOString().split('T')[0];
+  const due_month = d.toLocaleString('en-US', { month:'long' }).toLowerCase();
+  return { due_date, due_month };
+}
+
+function whenLabel() {
+  const labels = { none:'', today:'today', tomorrow:'tomorrow', 'this-fri':'this Friday',
+    'next-mon':'next Monday', '2w':'in 2 weeks', '1m':'in 1 month' };
+  return labels[currentWhen] || '';
 }
 
 // ── Recurring ─────────────────────────────────────────────────
@@ -284,10 +333,11 @@ function updatePlaceholder() {
 const TYPE_KW  = ['task','note','observation'];
 const SCOPE_KW = ['me','my'];
 const RECUR_KW = { weekly:'weekly', biweekly:'biweekly', monthly:'monthly', daily:'daily' };
+const WHEN_KW  = { 'today':'today', 'tonight':'today', 'tomorrow':'tomorrow', 'friday':'this-fri', 'monday':'next-mon' };
 
 function detectKeywords(text) {
   const lower = text.toLowerCase().trimStart();
-  let detectedScope = null, detectedType = null, detectedRecur = null;
+  let detectedScope = null, detectedType = null, detectedRecur = null, detectedWhen = null;
   let s = lower;
   for (const sk of SCOPE_KW) {
     if (s.startsWith(sk+' ')||s.startsWith(sk+'\n')) { detectedScope='personal'; s=s.slice(sk.length).trimStart(); break; }
@@ -298,15 +348,19 @@ function detectKeywords(text) {
   for (const [kw, val] of Object.entries(RECUR_KW)) {
     if (s.includes(kw)) { detectedRecur=val; break; }
   }
-  return { detectedScope, detectedType, detectedRecur };
+  for (const [kw, val] of Object.entries(WHEN_KW)) {
+    if (s.includes(kw)) { detectedWhen=val; break; }
+  }
+  return { detectedScope, detectedType, detectedRecur, detectedWhen };
 }
 
 function applyKeywordOverrides(text) {
-  const { detectedScope, detectedType, detectedRecur } = detectKeywords(text);
+  const { detectedScope, detectedType, detectedRecur, detectedWhen } = detectKeywords(text);
   const ind = document.getElementById('override-indicator');
   const parts = [];
   if (detectedScope) { setScope(detectedScope); parts.push('Scope: Me'); }
-  if (detectedType) { setType(detectedType, document.querySelector(`.type-btn[data-type="${detectedType}"]`)); parts.push(`Type: ${detectedType}`); }
+  if (detectedType)  { setType(detectedType, document.querySelector(`.type-btn[data-type="${detectedType}"]`)); parts.push(`Type: ${detectedType}`); }
+  if (detectedWhen && currentType === 'task')  { setWhen(detectedWhen, document.querySelector(`.recur-btn[data-when="${detectedWhen}"]`)); parts.push(`Due: ${detectedWhen}`); }
   if (detectedRecur) { setRecur(detectedRecur, document.querySelector(`.recur-btn[data-recur="${detectedRecur}"]`)); parts.push(`Repeats: ${detectedRecur}`); }
   if (parts.length) { ind.textContent = '⌨ Override — '+parts.join(', '); ind.style.display='block'; }
   else ind.style.display='none';
@@ -355,6 +409,7 @@ async function capture() {
 
   const content = stripKeywordPrefix(rawContent);
   const recurVal = getRecurValue();
+  const { due_date, due_month } = getWhenValue();
 
   const btn = document.getElementById('capture-btn');
   btn.disabled=true;
@@ -362,7 +417,9 @@ async function capture() {
 
   try {
     const body = { content, key: KEY, save_as: currentType, scope: currentScope };
-    if (recurVal) body.recurring = recurVal;
+    if (recurVal)  body.recurring  = recurVal;
+    if (due_date)  body.due_date   = due_date;
+    if (due_month) body.due_month  = due_month;
 
     const res = await fetch(`${API_BASE}/quick-capture`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
@@ -375,7 +432,8 @@ async function capture() {
 
     const typeLabels = { task:'Task saved', note:'Note saved', observation:'Observation saved' };
     let msg = '✓ '+(typeLabels[currentType]||'Saved');
-    if (recurVal) msg += ` — repeats ${recurLabel()}`;
+    if (due_date)  msg += ` — due ${whenLabel()}`;
+    if (recurVal)  msg += ` — repeats ${recurLabel()}`;
     let taskHtml='';
     if (currentType==='observation'&&data.tasks?.length) {
       msg+=` — ${data.tasks_extracted} task${data.tasks_extracted!==1?'s':''} extracted`;
@@ -384,8 +442,9 @@ async function capture() {
     showToast(msg+taskHtml,'success');
     loadRecent();
 
-    // Reset recur to none after capture
+    // Reset after capture
     setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
+    setWhen('none', document.querySelector('.recur-btn[data-when="none"]'));
 
   } catch(e) {
     showToast('Error: '+e.message,'error');
