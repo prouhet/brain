@@ -353,11 +353,20 @@ function renderData(data) {
       ${sec.priority ? `<span class="section-pill ${pillClass}">${esc(pillLabel)}</span>` : ''}
     </div>`;
 
+    // Sort: soonest due_date first, then by tier, undated items last
+    const sortedItems = [...(sec.items || [])].sort((a, b) => {
+      if (a.due_date && b.due_date && a.due_date !== b.due_date)
+        return a.due_date < b.due_date ? -1 : 1;
+      if (a.due_date && !b.due_date) return -1;
+      if (!a.due_date && b.due_date) return 1;
+      return (a.tier || 5) - (b.tier || 5);
+    });
+
     // Split into obs groups and standalone, preserving tier order
     const obsOrder = []; // obs IDs in order of first appearance
     const obsGroups = {}; // obs_id → [items]
     const standaloneItems = [];
-    for (const item of (sec.items || [])) {
+    for (const item of sortedItems) {
       if (item.source_observation && obsMap[item.source_observation] && item.type !== 'personal') {
         if (!obsGroups[item.source_observation]) {
           obsGroups[item.source_observation] = [];
