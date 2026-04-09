@@ -358,7 +358,7 @@ function renderData(data) {
     const obsGroups = {}; // obs_id → [items]
     const standaloneItems = [];
     for (const item of (sec.items || [])) {
-      if (item.source_observation && obsMap[item.source_observation]) {
+      if (item.source_observation && obsMap[item.source_observation] && item.type !== 'personal') {
         if (!obsGroups[item.source_observation]) {
           obsGroups[item.source_observation] = [];
           obsOrder.push(item.source_observation);
