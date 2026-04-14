@@ -17,25 +17,6 @@
     --april: #e8845a; --may: #e8c45a; --june: #7ec87e;
     --green: #1D9E75; --radius: 10px;
   }
- 
-  /* ── Light mode ── */
-  body.light {
-    --black:#ffffff; --surface:#f4f4f4; --surface2:#ebebeb; --surface3:#e0e0e0;
-    --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.16);
-    --text:#1a1a1a; --text-dim:#555; --text-faint:#999;
-  }
-  body.light::before {
-    background-image:linear-gradient(rgba(43,125,148,0.07) 1px,transparent 1px),
-                     linear-gradient(90deg,rgba(43,125,148,0.07) 1px,transparent 1px);
-  }
-  .theme-btn {
-    width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border2);
-    background:var(--surface2); color:var(--text-dim); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    font-size:15px; transition:all 0.15s; flex-shrink:0; line-height:1;
-  }
-  .theme-btn:hover { border-color:var(--teal); color:var(--teal-light); }
- 
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--black); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
   body::before {
@@ -45,7 +26,7 @@
     background-size:40px 40px;
   }
   .wrapper { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:0 20px 80px; }
- 
+
   /* ── Header ── */
   header { display:flex; align-items:center; justify-content:space-between; padding:18px 0 16px; border-bottom:1px solid var(--border); margin-bottom:20px; }
   .header-left { display:flex; align-items:center; gap:12px; }
@@ -56,18 +37,18 @@
   #refresh-btn { font-size:12px; padding:6px 12px; border-radius:7px; border:1px solid var(--border2); background:transparent; color:var(--text-dim); cursor:pointer; font-family:inherit; transition:color 0.2s,border-color 0.2s; }
   #refresh-btn:hover { color:var(--teal-light); border-color:var(--teal); }
   #refresh-btn.spinning { color:var(--teal-light); }
- 
+
   /* ── Stats chips ── */
   .stats-row { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
   .chip { font-size:11px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--text-dim); font-family:'DM Mono',monospace; }
   .chip span { color:var(--teal-light); font-weight:500; }
- 
+
   /* ── Toast ── */
   #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--surface3); border:1px solid var(--border2); border-radius:8px; padding:10px 16px; font-size:13px; color:var(--text); z-index:100; display:none; white-space:nowrap; }
   #toast.show { display:block; }
   #toast.success { border-color:rgba(29,158,117,0.5); color:#7ec87e; }
   #toast.error { border-color:rgba(232,132,90,0.5); color:var(--april); }
- 
+
   /* ── Thinking state ── */
   .thinking { display:flex; align-items:center; gap:10px; padding:16px 0; color:var(--text-dim); font-size:13px; }
   .thinking-dots { display:flex; gap:5px; }
@@ -78,7 +59,7 @@
   .skeleton { background:var(--surface2); border-radius:var(--radius); padding:16px; margin-bottom:8px; }
   .skel-line { height:10px; background:var(--surface3); border-radius:4px; margin-bottom:8px; }
   .skel-line.short { width:40%; }
- 
+
   /* ── Section headers ── */
   .section { margin-bottom:24px; }
   .section-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -87,7 +68,7 @@
   .pill-high { background:rgba(232,132,90,0.12); color:var(--april); border:1px solid rgba(232,132,90,0.25); }
   .pill-medium { background:rgba(232,196,90,0.1); color:var(--may); border:1px solid rgba(232,196,90,0.2); }
   .pill-low { background:rgba(126,200,126,0.1); color:var(--june); border:1px solid rgba(126,200,126,0.2); }
- 
+
   /* ── Task item ── */
   .task-item {
     display:flex; align-items:flex-start; gap:10px;
@@ -97,7 +78,8 @@
   }
   .task-item.done { opacity:0.35; pointer-events:none; }
   .task-item:hover { border-color:var(--border2); }
- 
+
+  /* Checkmark button */
   .check-btn {
     width:20px; height:20px; min-width:20px; border-radius:50%;
     border:1.5px solid var(--border2); background:transparent; cursor:pointer;
@@ -108,19 +90,44 @@
   .check-btn svg { display:none; }
   .check-btn.checked { background:var(--green); border-color:var(--green); }
   .check-btn.checked svg { display:block; }
- 
+
+  /* Task body */
   .task-body { flex:1; min-width:0; }
   .task-title { font-size:13.5px; color:var(--text); line-height:1.45; }
   .task-detail { font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.4; }
   .task-source { font-size:11px; color:var(--text-faint); font-style:italic; }
   .task-due { font-size:11px; color:var(--text-faint); margin-top:4px; font-family:'DM Mono',monospace; }
- 
+
+  /* Tier badge — teal when manually overridden */
   .tier-badge { font-size:10px; padding:2px 6px; border-radius:4px; background:var(--surface3); color:var(--text-faint); font-family:'DM Mono',monospace; flex-shrink:0; margin-top:2px; }
- 
+  .tier-badge.overridden { background:rgba(43,125,148,0.2); color:var(--teal-light); border:1px solid rgba(43,125,148,0.35); }
+  /* Category pill */
+  .cat-pill { font-size:10px; padding:2px 7px; border-radius:20px; flex-shrink:0; margin-top:2px; white-space:nowrap; font-weight:500; }
+  .cat-important  { background:rgba(232,132,90,0.15);  color:#e8845a; border:1px solid rgba(232,132,90,0.3); }
+  .cat-finance    { background:rgba(29,158,117,0.12);  color:#5ecba1; border:1px solid rgba(29,158,117,0.25); }
+  .cat-marketing  { background:rgba(124,92,191,0.12);  color:#a98de8; border:1px solid rgba(124,92,191,0.25); }
+  .cat-operations { background:rgba(43,125,148,0.12);  color:#3a9ab5; border:1px solid rgba(43,125,148,0.25); }
+  .cat-process    { background:rgba(212,160,23,0.12);  color:#e8c05a; border:1px solid rgba(212,160,23,0.25); }
+  .cat-recruiting { background:rgba(196,126,176,0.12); color:#d49ec8; border:1px solid rgba(196,126,176,0.25); }
+  .cat-retention  { background:rgba(37,99,196,0.12);   color:#7aaaf0; border:1px solid rgba(37,99,196,0.25); }
+  .cat-technical  { background:rgba(100,180,100,0.12); color:#7ec87e; border:1px solid rgba(100,180,100,0.25); }
+  .cat-automation { background:rgba(150,100,200,0.12); color:#c09ae8; border:1px solid rgba(150,100,200,0.25); }
+  .cat-health     { background:rgba(220,80,80,0.12);   color:#e08080; border:1px solid rgba(220,80,80,0.25); }
+  .cat-home       { background:rgba(180,140,80,0.12);  color:#d4aa60; border:1px solid rgba(180,140,80,0.25); }
+  /* Popup tier chips */
+  .pchip.active-tier-auto { border-color:rgba(255,255,255,0.3); background:var(--surface); color:var(--text); }
+  .pchip.active-tier-override { border-color:rgba(43,125,148,0.7); background:rgba(43,125,148,0.15); color:var(--teal-light); }
+  /* Popup category select */
+  .popup-cat-select { width:100%; padding:7px 10px; border-radius:8px; border:1.5px solid var(--border2); background:var(--surface3); color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; cursor:pointer; margin-top:2px; }
+  .popup-cat-select:focus { border-color:var(--teal); }
+  .popup-cat-select option { background:var(--surface3); }
+
+  /* Type pill */
   .type-pill { font-size:10px; padding:2px 7px; border-radius:20px; flex-shrink:0; margin-top:2px; white-space:nowrap; }
   .type-business { background:var(--teal-dim); color:var(--teal-light); border:1px solid rgba(43,125,148,0.25); }
   .type-personal { background:rgba(196,126,176,0.1); color:#d49ec8; border:1px solid rgba(196,126,176,0.2); }
- 
+
+  /* Reschedule area */
   .task-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; margin-top:1px; }
   select.reschedule {
     font-size:11px; padding:3px 7px; height:24px;
@@ -142,7 +149,8 @@
   }
   .move-btn:hover { background:rgba(43,125,148,0.25); }
   .move-btn.visible { display:block; }
- 
+
+  /* Observation groups */
   .obs-group { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; overflow:hidden; }
   .obs-group:hover { border-color:var(--border2); }
   .obs-group-header { padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; cursor:default; }
@@ -158,12 +166,15 @@
   .check-btn.recur.checked { background:#2563c4; border-color:#2563c4; }
   @keyframes flash-reset { 0%{opacity:0.3} 50%{opacity:1} 100%{opacity:1} }
   .task-item.reset { animation:flash-reset 0.5s ease; }
+  /* Edit */
   .edit-btn { width:18px; height:18px; flex-shrink:0; margin-top:2px; background:transparent; border:none; cursor:pointer; color:var(--text-faint); padding:0; display:flex; align-items:center; justify-content:center; border-radius:4px; transition:color 0.15s; opacity:0; }
   .task-item:hover .edit-btn { opacity:1; }
   .edit-btn:hover { color:var(--teal-light); }
   .task-title-input { font-size:13.5px; color:var(--text); line-height:1.45; background:var(--surface2); border:1.5px solid var(--teal); border-radius:5px; padding:2px 6px; width:100%; outline:none; font-family:'DM Sans',sans-serif; }
+  /* Task body clickable */
   .task-body { cursor:pointer; }
   .task-body:hover .task-title { color:var(--teal-light); }
+  /* Popup overlay */
   .popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
   .task-popup { background:var(--surface2); border-radius:16px; border:1px solid var(--border2); padding:0; width:100%; max-width:420px; overflow:hidden; }
   .popup-header { padding:16px 18px 12px; border-bottom:1px solid var(--border); }
@@ -187,7 +198,6 @@
   .popup-save-btn.show { display:block; }
   .popup-due-context { font-size:11px; color:var(--teal-light); margin-top:6px; }
   .pchip.today-chip { border-color:rgba(255,255,255,0.2); color:var(--text); }
-  body.light .pchip.today-chip { border-color:rgba(0,0,0,0.2); }
   .no-key { text-align:center; padding:60px 20px; color:var(--text-dim); }
   .no-key h2 { font-size:18px; font-weight:500; margin-bottom:8px; color:var(--text); }
   .state-msg { text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; }
@@ -195,11 +205,11 @@
 </head>
 <body>
 <div class="wrapper">
- 
+
   <div id="no-key" style="display:none;">
     <div class="no-key"><h2>No key in URL</h2><p>Open this page with ?key=YOUR_KEY appended to the URL.</p></div>
   </div>
- 
+
   <div id="dashboard" style="display:none;">
     <header>
       <div class="header-left">
@@ -211,20 +221,19 @@
       </div>
       <div class="header-right">
         <button id="refresh-btn" onclick="load()">↻ Refresh</button>
-        <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
       </div>
     </header>
- 
+
     <div class="stats-row" id="stats-row"></div>
     <div id="toast"></div>
     <div id="main-content"><div class="state-msg">Loading…</div></div>
   </div><!-- /dashboard -->
- 
+
 </div><!-- /wrapper -->
- 
+
 <!-- Task detail popup -->
 <div class="popup-overlay" id="popup-overlay" style="display:none" onclick="closePopup()">
-  <div class="task-popup" onclick="event.stopPropagation()">
+  <div class="task-popup" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
     <div class="popup-header">
       <div class="popup-task-title" id="popup-title"></div>
     </div>
@@ -250,45 +259,50 @@
         <button class="popup-save-btn" id="popup-save-btn" onclick="saveCustomRecur()" style="display:inline-block;width:auto;margin:0;padding:4px 14px;height:auto;font-size:12px">Set</button>
       </div>
     </div>
+    <div class="popup-section">
+      <div class="popup-section-label">Priority</div>
+      <div class="popup-chips" id="popup-tier-chips"></div>
+    </div>
+    <div class="popup-section">
+      <div class="popup-section-label">Category</div>
+      <select class="popup-cat-select" id="popup-cat-select" onchange="pickCategory(this.value)">
+        <option value="">Default (uncategorized)</option>
+        <option value="important">⭐ Important</option>
+        <option value="finance">Finance</option>
+        <option value="marketing">Marketing</option>
+        <option value="operations">Operations</option>
+        <option value="process">Process</option>
+        <option value="recruiting">Recruiting</option>
+        <option value="retention">Retention</option>
+        <option value="technical">Technical</option>
+        <option value="automation">Automation</option>
+        <option value="health">Health</option>
+        <option value="home">Home</option>
+      </select>
+    </div>
     <button onclick="closePopup()" style="width:calc(100% - 36px);margin:0 18px 16px;height:36px;border-radius:8px;border:none;background:var(--surface3);color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;">Done</button>
   </div>
 </div>
- 
+
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/brain-priorities';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
- 
+
 const OWNER_CFG = {
   dave:   { initials:'D',  bg:'rgba(43,125,148,0.25)',   color:'#3a9ab5' },
   doreen: { initials:'Dr', bg:'rgba(196,126,176,0.2)',   color:'#d49ec8' },
 };
- 
+
 function ownerCfg(o) {
   return OWNER_CFG[o?.toLowerCase()] || { initials:(o||'?')[0].toUpperCase(), bg:'rgba(255,255,255,0.1)', color:'#aaa' };
 }
- 
+
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'show ' + type;
   setTimeout(() => t.className = '', 3000);
 }
- 
-// ── Theme ─────────────────────────────────────────────────────
-function toggleTheme() {
-  const isLight = document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent = isLight ? '🌙' : '☀️';
-  localStorage.setItem('ss-theme', isLight ? 'light' : 'dark');
-}
-(function initTheme() {
-  if (localStorage.getItem('ss-theme') === 'light') {
-    document.body.classList.add('light');
-    document.addEventListener('DOMContentLoaded', () => {
-      const btn = document.getElementById('theme-btn');
-      if (btn) btn.textContent = '🌙';
-    });
-  }
-})();
- 
+
 // ── Reschedule helpers ────────────────────────────────────────
 function computeDueMonth(val) {
   const now = new Date();
@@ -303,11 +317,11 @@ function computeDueMonth(val) {
   else if (val === '2m') { target.setMonth(now.getMonth() + 2); }
   return target.toLocaleString('default', { month: 'long' }).toLowerCase();
 }
- 
+
 const DAY_LABELS = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday' };
 const VAL_LABELS = { '2w':'2 weeks', '3w':'3 weeks', '1m':'1 month', '2m':'2 months' };
 function valLabel(v) { return DAY_LABELS[v] || VAL_LABELS[v] || v; }
- 
+
 function onSelectChange(sel, moveBtn) {
   if (sel.value) {
     sel.classList.add('active'); moveBtn.classList.add('visible');
@@ -315,7 +329,7 @@ function onSelectChange(sel, moveBtn) {
     sel.classList.remove('active'); moveBtn.classList.remove('visible');
   }
 }
- 
+
 async function reschedule(id, val, titleText, rowEl) {
   const due_month = computeDueMonth(val);
   try {
@@ -332,7 +346,7 @@ async function reschedule(id, val, titleText, rowEl) {
     showToast('Failed to reschedule — try again', 'error');
   }
 }
- 
+
 // ── Render ────────────────────────────────────────────────────
 function renderData(data) {
   const cfg = ownerCfg(data.owner);
@@ -340,45 +354,126 @@ function renderData(data) {
   av.textContent = cfg.initials;
   av.style.background = cfg.bg;
   av.style.color = cfg.color;
- 
+
   document.getElementById('owner-name').textContent =
     data.owner ? data.owner.charAt(0).toUpperCase() + data.owner.slice(1) + "'s Priorities" : 'Priorities';
- 
+
   const ft = data.fetched_at
     ? new Date(data.fetched_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
     : '';
   document.getElementById('owner-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) +
     (ft ? ` · fetched ${ft}` : '');
- 
+
   document.getElementById('stats-row').innerHTML = [
     `<span class="chip">business <span>${data.business_count || 0}</span></span>`,
     `<span class="chip">personal <span>${data.personal_count || 0}</span></span>`,
     data.recurring_count ? `<span class="chip">recurring <span>${data.recurring_count}</span></span>` : '',
   ].join('');
- 
+
   const obsMap = data.observations || {};
- 
-  const sections = data.synthesized || [];
-  if (!sections.length) {
+
+  const allSections = data.synthesized || [];
+  if (!allSections.length) {
     document.getElementById('main-content').innerHTML =
       '<div class="state-msg">No tasks found in the brain.</div>';
     return;
   }
- 
+
+  // Category order — Process kept as selectable but not a dedicated visible section
+  const CAT_ORDER = ['important','finance','marketing','operations','recruiting','retention','technical','automation','health','home'];
+  const CAT_SECTION_LABELS = {
+    important:'⭐ Important', finance:'Finance', marketing:'Marketing', operations:'Operations',
+    recruiting:'Recruiting', retention:'Retention', technical:'Technical', automation:'Automation',
+    health:'Health', home:'Home',
+  };
+
+  // Identify section types
+  const thisWeekSec = allSections.find(s => s.section === 'This Week');
+  const nextWeekSec = allSections.find(s => s.section === 'Next Week');
+  const balanceSec  = allSections.find(s => s.section?.startsWith('Balance of'));
+  const recurSec    = allSections.find(s => s.priority === 'recurring');
+  const noDateSec   = allSections.find(s => s.section === 'No Date');
+  // Named month sections (May, June/Beyond etc.) — everything else
+  const monthSecs   = allSections.filter(s =>
+    s !== thisWeekSec && s !== nextWeekSec && s !== balanceSec &&
+    s !== recurSec    && s !== noDateSec);
+
+  // Pull categorized items OUT of non-this-week date sections and recurring
+  // This Week always keeps all items (urgency wins)
+  const catBuckets = {};
+  function extractCategories(sec) {
+    const kept = [];
+    for (const item of (sec?.items || [])) {
+      if (item.category && CAT_ORDER.includes(item.category)) {
+        if (!catBuckets[item.category]) catBuckets[item.category] = [];
+        catBuckets[item.category].push(item);
+      } else {
+        kept.push(item);
+      }
+    }
+    return { ...sec, items: kept };
+  }
+
+  const cleanNextWeek  = nextWeekSec ? extractCategories(nextWeekSec) : null;
+  const cleanBalance   = balanceSec  ? extractCategories(balanceSec)  : null;
+  const cleanMonths    = monthSecs.map(extractCategories);
+  const cleanNoDate    = noDateSec   ? extractCategories(noDateSec)   : null;
+
+  // Recurring: tasks with a category move to that category section
+  const cleanRecurItems = [];
+  for (const item of (recurSec?.items || [])) {
+    if (item.category && CAT_ORDER.includes(item.category)) {
+      if (!catBuckets[item.category]) catBuckets[item.category] = [];
+      catBuckets[item.category].push(item);
+    } else {
+      cleanRecurItems.push(item);
+    }
+  }
+  const cleanRecurSec = cleanRecurItems.length
+    ? { section:'Recurring', priority:'recurring', items: cleanRecurItems }
+    : null;
+
+  // Build final section list in specified order
+  const finalSections = [];
+  if (thisWeekSec)                     finalSections.push(thisWeekSec);
+  if (catBuckets['important']?.length) finalSections.push({ section:'Important', priority:'important', items: catBuckets['important'] });
+  if (cleanNextWeek?.items?.length)    finalSections.push(cleanNextWeek);
+  if (cleanBalance?.items?.length)     finalSections.push(cleanBalance);
+  if (cleanRecurSec)                   finalSections.push(cleanRecurSec);
+  // Category sections (Finance → Home)
+  for (const cat of CAT_ORDER.filter(c => c !== 'important')) {
+    if (catBuckets[cat]?.length) finalSections.push({ section: CAT_SECTION_LABELS[cat], priority: `cat-${cat}`, items: catBuckets[cat] });
+  }
+  // Named month sections
+  for (const sec of cleanMonths) {
+    if (sec.items?.length) finalSections.push(sec);
+  }
+  // No Date last
+  if (cleanNoDate?.items?.length) finalSections.push(cleanNoDate);
+
   let html = '';
-  for (const sec of sections) {
+  for (const sec of finalSections) {
     const isRecurSec = sec.priority === 'recurring';
+    const isCatSec   = sec.priority?.startsWith('cat-');
+    const isImportant = sec.priority === 'important';
     const pillClass = isRecurSec ? 'pill-recurring'
+      : isImportant ? 'pill-high'
+      : isCatSec ? 'pill-medium'
       : sec.priority === 'high' ? 'pill-high'
       : sec.priority === 'medium' ? 'pill-medium' : 'pill-low';
-    const pillLabel = isRecurSec ? '⟳ recurring' : sec.priority;
+    const pillLabel = isRecurSec ? '⟳ recurring'
+      : isImportant ? '⭐ important'
+      : isCatSec ? sec.section.toLowerCase()
+      : sec.priority;
+
     html += `<div class="section">`;
     html += `<div class="section-head">
       <span class="section-name">${esc(sec.section)}</span>
       ${sec.priority ? `<span class="section-pill ${pillClass}">${esc(pillLabel)}</span>` : ''}
     </div>`;
- 
+
+    // Sort: soonest due_date first, then by tier, undated items last
     const sortedItems = [...(sec.items || [])].sort((a, b) => {
       if (a.due_date && b.due_date && a.due_date !== b.due_date)
         return a.due_date < b.due_date ? -1 : 1;
@@ -386,7 +481,8 @@ function renderData(data) {
       if (!a.due_date && b.due_date) return 1;
       return (a.tier || 5) - (b.tier || 5);
     });
- 
+
+    // Split into obs groups and standalone
     const obsOrder = [];
     const obsGroups = {};
     const standaloneItems = [];
@@ -401,7 +497,8 @@ function renderData(data) {
         standaloneItems.push(item);
       }
     }
- 
+
+    // Groups with only 1 task → demote to standalone
     for (let i = obsOrder.length - 1; i >= 0; i--) {
       const obsId = obsOrder[i];
       if (obsGroups[obsId].length < 2) {
@@ -410,36 +507,31 @@ function renderData(data) {
         obsOrder.splice(i, 1);
       }
     }
- 
+
+    // Render obs groups first
     for (const obsId of obsOrder) {
       const obs = obsMap[obsId];
       const tasks = obsGroups[obsId];
       const remaining = Math.max(0, (obs.tasks_total || tasks.length) - (obs.tasks_done || 0));
       const obsTitle = obs.content.length > 70 ? obs.content.slice(0, 70) + '…' : obs.content;
- 
       html += `<div class="obs-group" id="obsgrp-${esc(obsId)}">`;
       html += `<div class="obs-group-header">
         <span class="obs-group-icon">🧠</span>
         <span class="obs-group-title">${esc(obsTitle)}</span>
         <span class="obs-progress" id="obsprog-${esc(obsId)}">${remaining > 0 ? `${remaining} left` : '✓ all done'}</span>
       </div>`;
- 
-      for (const item of tasks) {
-        html += renderTaskItem(item, isRecurSec);
-      }
+      for (const item of tasks) html += renderTaskItem(item, isRecurSec);
       html += `</div>`;
     }
- 
-    for (const item of standaloneItems) {
-      html += renderTaskItem(item, isRecurSec);
-    }
- 
+    for (const item of standaloneItems) html += renderTaskItem(item, isRecurSec);
     html += `</div>`;
   }
- 
+
   document.getElementById('main-content').innerHTML = html;
 }
- 
+
+const CAT_LABELS = { important:'⭐ Important', finance:'Finance', marketing:'Marketing', operations:'Operations', process:'Process', recruiting:'Recruiting', retention:'Retention', technical:'Technical', automation:'Automation', health:'Health', home:'Home' };
+
 function renderTaskItem(item, isRecurSec) {
   const isRecur = !!item.recurring || isRecurSec;
   const typeClass = item.type === 'personal' ? 'type-personal' : 'type-business';
@@ -451,42 +543,50 @@ function renderTaskItem(item, isRecurSec) {
     ? `every ${item.recurring.every} ${item.recurring.unit}`
     : (item.recurring || 'recurring')) : null;
   const recurJson = item.recurring ? JSON.stringify(item.recurring) : '';
- 
+
   let html = `<div class="task-item" id="${esc(rowId)}"
     data-id="${esc(item.id||'')}"
     data-recur="${isRecur}"
     data-due-date="${esc(item.due_date||'')}"
     data-due-month="${esc(item.due||'')}"
     data-recurring-val="${esc(recurJson)}"
-    data-obs-id="${esc(item.source_observation||'')}">`;
- 
+    data-obs-id="${esc(item.source_observation||'')}"
+    data-tier="${item.tier||5}"
+    data-tier-overridden="${item.tier_overridden||false}"
+    data-category="${esc(item.category||'')}">`;
+
+  // Checkmark
   html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
     onclick="event.stopPropagation();handleCheck('${esc(rowId)}',this)">
     <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>`;
- 
+
+  // Body
   const detailText = item.detail && item.detail !== `⟳ ${recurLabel}` ? item.detail : '';
   const dueDisplay = item.due_date
     ? new Date(item.due_date + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
     : (item.due && item.due !== 'no date' ? item.due : null);
- 
+
   html += `<div class="task-body" onclick="${hasId?`openPopup('${esc(rowId)}')`:''}">
     <div class="task-title" id="title-${esc(rowId)}">${esc(item.title)}</div>
     ${detailText ? `<div class="task-detail">${esc(detailText)}</div>` : ''}
     ${dueDisplay ? `<div class="task-due">${esc(dueDisplay)}</div>` : ''}
   </div>`;
- 
+
+  // Edit button
   if (hasId) html += `<button class="edit-btn" title="Edit" onclick="event.stopPropagation();startEdit('${esc(rowId)}',this)">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
   </button>`;
- 
+
   if (recurShort) html += `<span class="recur-badge" title="${esc(recurLabel||'')}">⟳ ${esc(recurShort)}</span>`;
-  if (tierLabel)  html += `<span class="tier-badge">${tierLabel}</span>`;
+  if (tierLabel)  html += `<span class="tier-badge${item.tier_overridden?' overridden':''}">${tierLabel}</span>`;
   html += `<span class="type-pill ${typeClass}">${item.type === 'personal' ? 'personal' : 'business'}</span>`;
+  if (item.category) html += `<span class="cat-pill cat-${esc(item.category)}">${esc(CAT_LABELS[item.category]||item.category)}</span>`;
   html += `</div>`;
   return html;
 }
- 
+
+// ── Recurring short label ─────────────────────────────────────
 function shortRecur(val) {
   if (!val) return '';
   const UNIT = { days:'d', weeks:'w', months:'m', years:'y' };
@@ -498,11 +598,11 @@ function shortRecur(val) {
   const MAP = { daily:'d', weekly:'w', biweekly:'2w', monthly:'m', yearly:'y' };
   return MAP[val] || val[0] || '?';
 }
- 
+
 // ── Popup ─────────────────────────────────────────────────────
 let activePopupRowId = null;
 let popupDateChips = [];
- 
+
 function buildPopupDateChips() {
   const now = new Date(); now.setHours(12,0,0,0);
   const DAY = ['Su','M','Tu','W','Th','F','Sa'];
@@ -518,7 +618,7 @@ function buildPopupDateChips() {
   );
   return chips;
 }
- 
+
 const RECUR_CHIPS = [
   { label:'None',      val:null },
   { label:'Daily',     val:'daily' },
@@ -527,23 +627,27 @@ const RECUR_CHIPS = [
   { label:'Monthly',   val:'monthly' },
   { label:'Custom…',   val:'custom' },
 ];
- 
+
 function isoDate(d) { return d ? d.toISOString().split('T')[0] : null; }
 function monthName(d) { return d ? d.toLocaleString('en-US',{month:'long'}).toLowerCase() : null; }
- 
+
 function openPopup(rowId) {
   activePopupRowId = rowId;
   popupDateChips = buildPopupDateChips();
   const row = document.getElementById(rowId);
-  const title      = row?.querySelector('.task-title')?.textContent || '';
-  const curDueDate  = row?.dataset.dueDate  || '';
-  const curDueMonth = row?.dataset.dueMonth || '';
-  const curRecurVal = row?.dataset.recurringVal || '';
+  const title        = row?.querySelector('.task-title')?.textContent || '';
+  const curDueDate   = row?.dataset.dueDate       || '';
+  const curDueMonth  = row?.dataset.dueMonth       || '';
+  const curRecurVal  = row?.dataset.recurringVal   || '';
+  const curTier      = parseInt(row?.dataset.tier  || '0') || 0;
+  const tierOverridden = row?.dataset.tierOverridden === 'true';
+  const curCategory  = row?.dataset.category       || '';
   let curRecur = null;
   try { curRecur = curRecurVal ? JSON.parse(curRecurVal) : null; } catch {}
- 
+
   document.getElementById('popup-title').textContent = title;
- 
+
+  // Show current due context only when month known but no exact date
   const header = document.getElementById('popup-title').parentElement;
   const existing = header.querySelector('.popup-due-context');
   if (existing) existing.remove();
@@ -553,7 +657,8 @@ function openPopup(rowId) {
     ctx.textContent = `Currently: ${curDueMonth.charAt(0).toUpperCase()+curDueMonth.slice(1)} (no exact date — pick one below)`;
     header.appendChild(ctx);
   }
- 
+
+  // Date chips
   const dateWrap = document.getElementById('popup-date-chips');
   dateWrap.innerHTML = popupDateChips.map(chip => {
     const isCur = chip.clear
@@ -562,7 +667,8 @@ function openPopup(rowId) {
     const cls = ['pchip', isCur?'active-date':'', chip.isToday?'today-chip':''].filter(Boolean).join(' ');
     return `<button class="${cls}" onclick="pickDateChip('${chip.val}')">${chip.label}</button>`;
   }).join('');
- 
+
+  // Recur chips
   const recurWrap = document.getElementById('popup-recur-chips');
   recurWrap.innerHTML = RECUR_CHIPS.map(chip => {
     const isCur = chip.val === null ? !curRecur
@@ -570,53 +676,72 @@ function openPopup(rowId) {
       : chip.val === 'custom' && typeof curRecur === 'object';
     return `<button class="pchip${isCur?' active-recur':''}" onclick="pickRecur('${chip.val||''}')">${chip.label}</button>`;
   }).join('');
- 
+
+  // Tier chips T1–T5 — grey if auto, teal if overridden
+  const tierWrap = document.getElementById('popup-tier-chips');
+  tierWrap.innerHTML = [1,2,3,4,5].map(t => {
+    const isCur = curTier === t;
+    const cls = isCur ? (tierOverridden ? 'pchip active-tier-override' : 'pchip active-tier-auto') : 'pchip';
+    const labels = {1:'T1 Opportunity',2:'T2 Strategy',3:'T3 Consequence',4:'T4 Operations',5:'T5 Maintenance'};
+    return `<button class="${cls}" onclick="pickTier(${t})">${labels[t]}</button>`;
+  }).join('');
+
+  // Category dropdown
+  document.getElementById('popup-cat-select').value = curCategory || '';
+
   document.getElementById('popup-custom-recur').classList.remove('show');
   document.getElementById('popup-save-btn').classList.remove('show');
   document.getElementById('popup-custom-date-row').classList.remove('show');
   document.getElementById('popup-overlay').style.display = 'flex';
   document.addEventListener('keydown', onPopupKey);
 }
- 
+
 function closePopup() {
   document.getElementById('popup-overlay').style.display = 'none';
   document.removeEventListener('keydown', onPopupKey);
+  // Clean up context line
   document.querySelector('.popup-due-context')?.remove();
   activePopupRowId = null;
 }
- 
+
 function onPopupKey(e) { if (e.key === 'Escape') closePopup(); }
- 
+
 async function pickDateChip(val) {
   const row = document.getElementById(activePopupRowId);
   const id  = row?.dataset.id || '';
   if (!id) { closePopup(); return; }
- 
+
   const chip = popupDateChips.find(c => c.val === val);
   if (!chip) return;
- 
+
   if (val === 'custom') {
+    // Show the When custom date row — separate from Repeats custom
     const wrap = document.getElementById('popup-custom-date-row');
     wrap.classList.add('show');
     const inp = document.getElementById('popup-custom-date');
     inp.min = isoDate(new Date());
-    inp.onchange = () => { if (inp.value) saveExactDate(inp.value); };
+    inp.onchange = () => {
+      if (inp.value) saveExactDate(inp.value);
+    };
     return;
   }
- 
+
   const due_date  = chip.clear ? null : chip.iso;
   const due_month = due_date ? monthName(new Date(due_date+'T12:00:00')) : null;
- 
+
+  // Optimistic update
   const dueEl = row?.querySelector('.task-due');
   const label = chip.clear ? '' : chip.label;
   if (dueEl) { dueEl.textContent = label; }
   else if (label) { row?.querySelector('.task-body')?.insertAdjacentHTML('beforeend', `<div class="task-due">${label}</div>`); }
   row.dataset.dueDate  = due_date  || '';
   row.dataset.dueMonth = due_month || '';
- 
+
+  // Highlight selected chip
   document.querySelectorAll('#popup-date-chips .pchip').forEach(b => b.classList.remove('active-date'));
   document.querySelector(`#popup-date-chips .pchip[onclick="pickDateChip('${val}')"]`)?.classList.add('active-date');
- 
+
+  // Save but keep popup open so user can also set Repeats
   try {
     const body = due_date
       ? { id, due_date, due_month }
@@ -626,7 +751,7 @@ async function pickDateChip(val) {
     }).then(r => { if (!r.ok) showToast('Failed to save date', 'error'); });
   } catch { showToast('Failed to save date', 'error'); }
 }
- 
+
 async function saveExactDate(dateVal) {
   if (!dateVal) return;
   const row = document.getElementById(activePopupRowId);
@@ -638,10 +763,12 @@ async function saveExactDate(dateVal) {
   const label = new Date(dateVal+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
   if (dueEl) dueEl.textContent = label;
   else row?.querySelector('.task-body')?.insertAdjacentHTML('beforeend',`<div class="task-due">${label}</div>`);
- 
+
+  // Highlight custom chip
   document.querySelectorAll('#popup-date-chips .pchip').forEach(b => b.classList.remove('active-date'));
   document.querySelector(`#popup-date-chips .pchip[onclick="pickDateChip('custom')"]`)?.classList.add('active-date');
- 
+
+  // Save but keep popup open
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
       method:'PATCH', headers:{'Content-Type':'application/json'},
@@ -650,7 +777,7 @@ async function saveExactDate(dateVal) {
     if (!res.ok) throw new Error();
   } catch { showToast('Failed to save date', 'error'); }
 }
- 
+
 async function pickRecur(val) {
   if (val === 'custom') {
     document.getElementById('popup-custom-recur').classList.add('show');
@@ -659,22 +786,23 @@ async function pickRecur(val) {
   }
   await saveRecurValue(val || null);
 }
- 
+
 async function saveCustomRecur() {
   const n    = parseInt(document.getElementById('popup-custom-n').value) || 1;
   const unit = document.getElementById('popup-custom-unit').value;
   await saveRecurValue({ every: n, unit });
 }
- 
+
 async function saveRecurValue(recurVal) {
   const row = document.getElementById(activePopupRowId);
   const id  = row?.dataset.id || '';
   if (!id) { closePopup(); return; }
- 
+
   const recurJson = recurVal ? JSON.stringify(recurVal) : '';
   row.dataset.recurringVal = recurJson;
   row.dataset.recur = recurVal ? 'true' : 'false';
- 
+
+  // Update recur badge in row
   const badge = row.querySelector('.recur-badge');
   if (recurVal) {
     const short = shortRecur(recurVal);
@@ -683,7 +811,8 @@ async function saveRecurValue(recurVal) {
     else row.querySelector('.tier-badge')?.insertAdjacentHTML('beforebegin',
       `<span class="recur-badge" title="${long}">⟳ ${short}</span>`);
   } else if (badge) badge.remove();
- 
+
+  // Save but keep popup open so user can adjust date too
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
       method:'PATCH', headers:{'Content-Type':'application/json'},
@@ -692,7 +821,56 @@ async function saveRecurValue(recurVal) {
     if (!res.ok) throw new Error();
   } catch { showToast('Failed to save recurrence', 'error'); }
 }
- 
+
+async function pickTier(tier) {
+  const row = document.getElementById(activePopupRowId);
+  const id  = row?.dataset.id || '';
+  if (!id) return;
+
+  row.dataset.tier = tier;
+  row.dataset.tierOverridden = 'true';
+
+  // Update tier badge to teal
+  const badge = row.querySelector('.tier-badge');
+  if (badge) { badge.textContent = `T${tier}`; badge.classList.add('overridden'); }
+
+  // Highlight the selected chip in teal
+  document.querySelectorAll('#popup-tier-chips .pchip').forEach((b,i) => {
+    b.className = (i+1) === tier ? 'pchip active-tier-override' : 'pchip';
+  });
+
+  try {
+    fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ id, tier_override: tier }),
+    });
+  } catch { showToast('Failed to save tier', 'error'); }
+}
+
+async function pickCategory(val) {
+  const row = document.getElementById(activePopupRowId);
+  const id  = row?.dataset.id || '';
+  if (!id) return;
+
+  row.dataset.category = val;
+
+  // Update or remove category pill on card
+  const existingPill = row.querySelector('.cat-pill');
+  if (val) {
+    const label = CAT_LABELS[val] || val;
+    const cls = `cat-pill cat-${val}`;
+    if (existingPill) { existingPill.className = cls; existingPill.textContent = label; }
+    else row.querySelector('.type-pill')?.insertAdjacentHTML('afterend', `<span class="${cls}">${label}</span>`);
+  } else if (existingPill) existingPill.remove();
+
+  try {
+    fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ id, category: val }),
+    });
+  } catch { showToast('Failed to save category', 'error'); }
+}
+
 function handleCheck(rowId, btn) {
   const row = document.getElementById(rowId);
   const id = row?.dataset.id || '';
@@ -706,7 +884,7 @@ function handleCheck(rowId, btn) {
     else { row.classList.add('done'); }
   }
 }
- 
+
 async function completeTask(id, titleText, rowEl, isRecur, btn) {
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
@@ -716,7 +894,7 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     });
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
- 
+
     if (data.recurring) {
       showToast('✓ Done — resets next occurrence', 'success');
       rowEl.classList.add('reset');
@@ -727,6 +905,7 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     } else {
       showToast(`Done: "${titleText.slice(0,40)}"`, 'success');
       rowEl.classList.add('done');
+      // Update obs group progress counter
       const obsId = rowEl.dataset.obsId;
       if (obsId) {
         const progEl = document.getElementById('obsprog-' + obsId);
@@ -742,15 +921,16 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     btn.classList.remove('checked');
   }
 }
- 
+
+// ── Inline edit ───────────────────────────────────────────────
 function startEdit(rowId, editBtn) {
   const titleEl = document.getElementById('title-' + rowId);
-  if (!titleEl || titleEl.querySelector('input')) return;
+  if (!titleEl || titleEl.querySelector('input')) return; // already editing
   const current = titleEl.textContent;
   editBtn.style.opacity = '0';
   titleEl.innerHTML = `<input class="task-title-input" value="${esc(current)}" data-original="${esc(current)}">`;
   const input = titleEl.querySelector('input');
-  input.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('click', e => e.stopPropagation()); // prevent bubbling to task-body → openPopup
   input.focus();
   input.select();
   input.addEventListener('keydown', (e) => {
@@ -759,26 +939,26 @@ function startEdit(rowId, editBtn) {
   });
   input.addEventListener('blur', () => commitEdit(rowId, input, editBtn));
 }
- 
+
 function cancelEdit(rowId, original, editBtn) {
   const titleEl = document.getElementById('title-' + rowId);
   if (titleEl) titleEl.innerHTML = esc(original);
   editBtn.style.opacity = '';
 }
- 
+
 async function commitEdit(rowId, input, editBtn) {
   const newContent = input.value.trim();
   const original = input.dataset.original;
   if (!newContent || newContent === original) { cancelEdit(rowId, original, editBtn); return; }
- 
+
   const row = document.getElementById(rowId);
   const id  = row?.dataset.id || '';
   if (!id) { cancelEdit(rowId, original, editBtn); return; }
- 
+
   const titleEl = document.getElementById('title-' + rowId);
-  titleEl.innerHTML = esc(newContent);
+  titleEl.innerHTML = esc(newContent); // optimistic update
   editBtn.style.opacity = '';
- 
+
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
       method: 'PATCH',
@@ -788,16 +968,16 @@ async function commitEdit(rowId, input, editBtn) {
     if (!res.ok) throw new Error('Server error');
     showToast('✓ Task updated', 'success');
   } catch {
-    titleEl.innerHTML = esc(original);
+    titleEl.innerHTML = esc(original); // revert
     showToast('Failed to save — try again', 'error');
   }
 }
- 
+
 // ── Load ──────────────────────────────────────────────────────
 async function load() {
   const btn = document.getElementById('refresh-btn');
   btn.classList.add('spinning'); btn.textContent = '↻ Loading…';
- 
+
   document.getElementById('main-content').innerHTML = `
     <div class="thinking">
       <div class="thinking-dots"><span></span><span></span><span></span></div>
@@ -808,7 +988,7 @@ async function load() {
       <div class="skel-line"></div>
       <div class="skel-line short"></div>
     </div>`).join('')}`;
- 
+
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`);
     if (res.status === 401) { showError('Invalid key in URL.'); return; }
@@ -822,28 +1002,23 @@ async function load() {
     btn.classList.remove('spinning'); btn.textContent = '↻ Refresh';
   }
 }
- 
+
 function showError(msg) {
   document.getElementById('main-content').innerHTML =
     `<div class="state-msg" style="color:#e8845a;">⚠ ${esc(msg)}</div>`;
 }
- 
+
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
- 
+
 window.addEventListener('DOMContentLoaded', () => {
   if (!KEY) { document.getElementById('no-key').style.display='block'; return; }
   document.getElementById('dashboard').style.display = 'block';
-  // Apply saved theme
-  if (localStorage.getItem('ss-theme') === 'light') {
-    document.body.classList.add('light');
-    document.getElementById('theme-btn').textContent = '🌙';
-  }
   document.getElementById('owner-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
   load();
-  setInterval(load, 15 * 60 * 1000);
+  setInterval(load, 15 * 60 * 1000); // auto-refresh every 15 min
 });
 </script>
 </body>
