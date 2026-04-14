@@ -68,9 +68,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .recur-btn{font-size:12px;padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap}
 .recur-btn:hover{border-color:var(--border2);color:var(--text)}
 .recur-btn.active{border-color:rgba(37,99,196,0.6);background:var(--blue-dim);color:#7aaaf0;box-shadow:0 0 0 1px rgba(37,99,196,0.2)}
+/* When row — tighter chips to fit all 7 days on one line */
 .when-btns{gap:4px}
 .when-btns .recur-btn{font-size:11px;padding:4px 7px}
 .when-btns .recur-btn.today-chip{border-color:rgba(255,255,255,0.2);color:var(--text)}
+/* Custom recur/when inputs */
 .custom-recur{display:none;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
 .custom-recur.show{display:flex}
 .custom-recur input[type="number"]{width:56px;padding:5px 8px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;text-align:center}
@@ -91,31 +93,11 @@ textarea::placeholder{color:var(--text-faint)}
 .mic-btn{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
 .mic-btn:hover{border-color:var(--teal);color:var(--teal-light)}
 .mic-btn.recording{background:rgba(220,50,50,0.15);border-color:rgba(220,50,50,0.6);color:#e06060;animation:pulse-mic 1.2s ease-in-out infinite}
-.mic-btn.transcribing{background:rgba(43,125,148,0.15);border-color:rgba(43,125,148,0.6);color:var(--teal-light);animation:pulse-mic 0.8s ease-in-out infinite}
 @keyframes pulse-mic{0%,100%{opacity:1}50%{opacity:0.5}}
 .capture-btn{flex:1;height:44px;border-radius:10px;border:none;background:var(--teal);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .capture-btn:hover{background:var(--teal-light)}
 .capture-btn:active{transform:scale(0.98)}
 .capture-btn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
-
-
-/* ── Light mode ── */
-body.light {
-  --black:#ffffff; --surface:#f4f4f4; --surface2:#ebebeb; --surface3:#e0e0e0;
-  --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.16);
-  --text:#1a1a1a; --text-dim:#555; --text-faint:#999;
-}
-body.light::before {
-  background-image:linear-gradient(rgba(43,125,148,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(43,125,148,0.07) 1px,transparent 1px);
-}
-.theme-btn {
-  width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border2);
-  background:var(--surface2); color:var(--text-dim); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:15px; transition:all 0.15s; flex-shrink:0;
-  line-height:1;
-}
-.theme-btn:hover { border-color:var(--teal); color:var(--teal-light); }
 
 /* Toast */
 .toast{margin-top:16px;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.5;display:none;border:1px solid transparent}
@@ -157,7 +139,6 @@ body.light::before {
       <button class="scope-btn active" data-scope="business" onclick="setScope('business',this)">Business</button>
       <button class="scope-btn" data-scope="personal" onclick="setScope('personal',this)">Me</button>
     </div>
-    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
   </div>
 
   <!-- Override indicator -->
@@ -186,7 +167,9 @@ body.light::before {
   <!-- When row (only shows when Task selected) -->
   <div class="recurring-row hidden" id="when-row">
     <div class="row-label">When?</div>
-    <div class="recur-btns when-btns" id="when-btns"></div>
+    <div class="recur-btns when-btns" id="when-btns">
+      <!-- populated dynamically based on current day of week -->
+    </div>
     <div class="custom-recur" id="custom-when">
       <input type="date" id="custom-when-date" onchange="onCustomWhenChange(this)">
     </div>
@@ -196,12 +179,12 @@ body.light::before {
   <div class="recurring-row hidden" id="recurring-row">
     <div class="row-label">Repeats?</div>
     <div class="recur-btns">
-      <button class="recur-btn active" data-recur="none"     onclick="setRecur('none',this)">None</button>
-      <button class="recur-btn"        data-recur="daily"    onclick="setRecur('daily',this)">Daily</button>
-      <button class="recur-btn"        data-recur="weekly"   onclick="setRecur('weekly',this)">Weekly</button>
+      <button class="recur-btn active" data-recur="none"    onclick="setRecur('none',this)">None</button>
+      <button class="recur-btn"        data-recur="daily"   onclick="setRecur('daily',this)">Daily</button>
+      <button class="recur-btn"        data-recur="weekly"  onclick="setRecur('weekly',this)">Weekly</button>
       <button class="recur-btn"        data-recur="biweekly" onclick="setRecur('biweekly',this)">Biweekly</button>
-      <button class="recur-btn"        data-recur="monthly"  onclick="setRecur('monthly',this)">Monthly</button>
-      <button class="recur-btn"        data-recur="custom"   onclick="setRecur('custom',this)">Custom…</button>
+      <button class="recur-btn"        data-recur="monthly" onclick="setRecur('monthly',this)">Monthly</button>
+      <button class="recur-btn"        data-recur="custom"  onclick="setRecur('custom',this)">Custom…</button>
     </div>
     <div class="custom-recur" id="custom-recur">
       <span class="custom-label">Every</span>
@@ -213,6 +196,37 @@ body.light::before {
         <option value="years">years</option>
       </select>
     </div>
+  </div>
+
+  <!-- Priority row (only shows when Task selected) -->
+  <div class="recurring-row hidden" id="priority-row">
+    <div class="row-label">Priority (auto-assigned — override if needed)</div>
+    <div class="recur-btns">
+      <button class="recur-btn" data-tier="1" onclick="setTier(1,this)">T1 Opportunity</button>
+      <button class="recur-btn" data-tier="2" onclick="setTier(2,this)">T2 Strategy</button>
+      <button class="recur-btn" data-tier="3" onclick="setTier(3,this)">T3 Consequence</button>
+      <button class="recur-btn" data-tier="4" onclick="setTier(4,this)">T4 Operations</button>
+      <button class="recur-btn" data-tier="5" onclick="setTier(5,this)">T5 Maintenance</button>
+    </div>
+  </div>
+
+  <!-- Category row (only shows when Task selected) -->
+  <div class="recurring-row hidden" id="category-row">
+    <div class="row-label">Category</div>
+    <select id="category-select" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;width:100%">
+      <option value="">Default (uncategorized)</option>
+      <option value="important">⭐ Important</option>
+      <option value="finance">Finance</option>
+      <option value="marketing">Marketing</option>
+      <option value="operations">Operations</option>
+      <option value="process">Process</option>
+      <option value="recruiting">Recruiting</option>
+      <option value="retention">Retention</option>
+      <option value="technical">Technical</option>
+      <option value="automation">Automation</option>
+      <option value="health">Health</option>
+      <option value="home">Home</option>
+    </select>
   </div>
 
   <!-- Text input -->
@@ -245,105 +259,17 @@ body.light::before {
 
 </div>
 <script>
-const API_BASE    = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
-const DEEPGRAM_KEY = 'PASTE_YOUR_DEEPGRAM_KEY_HERE'; // ← replace after regenerating
+const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
 
-let currentType  = 'observation';
-let currentScope = 'business';
-let currentRecur = 'none';
-let currentWhen  = 'none';
-
-// ── Voice (Deepgram Nova-2) ───────────────────────────────────
-let mediaRecorder = null;
-let audioChunks   = [];
-let isRecording   = false;
-
-async function toggleMic() {
-  if (isRecording) {
-    mediaRecorder?.stop();
-    return;
-  }
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    // Pick a format Deepgram handles well
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/ogg';
-
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
-    audioChunks   = [];
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioChunks.push(e.data);
-    };
-
-    mediaRecorder.onstart = () => {
-      isRecording = true;
-      const btn = document.getElementById('mic-btn');
-      btn.classList.add('recording');
-      btn.title = 'Tap to stop';
-    };
-
-    mediaRecorder.onstop = async () => {
-      // Stop all tracks so browser mic indicator clears
-      stream.getTracks().forEach(t => t.stop());
-
-      isRecording = false;
-      const btn = document.getElementById('mic-btn');
-      btn.classList.remove('recording');
-      btn.classList.add('transcribing');
-      btn.title = 'Transcribing…';
-
-      try {
-        const blob = new Blob(audioChunks, { type: mimeType });
-        const transcript = await transcribeWithDeepgram(blob, mimeType);
-        if (transcript) {
-          const ta = document.getElementById('content');
-          const existing = ta.value.trim();
-          ta.value = existing ? existing + ' ' + transcript : transcript;
-          applyKeywordOverrides(ta.value);
-        }
-      } catch (err) {
-        showToast('Transcription error: ' + err.message, 'error');
-      } finally {
-        btn.classList.remove('transcribing');
-        btn.title = 'Voice input';
-      }
-    };
-
-    mediaRecorder.start();
-
-  } catch (err) {
-    showToast('Mic access denied or unavailable.', 'error');
-  }
-}
-
-async function transcribeWithDeepgram(blob, mimeType) {
-  const res = await fetch(
-    'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en-US',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Token ' + DEEPGRAM_KEY,
-        'Content-Type': mimeType,
-      },
-      body: blob,
-    }
-  );
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.err_msg || `Deepgram ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() || '';
-}
+let currentType     = 'observation';
+let currentScope    = 'business';
+let currentRecur    = 'none';
+let currentWhen     = 'none';
+let currentTier     = 0;
+let currentCategory = '';
+let recognition     = null;
+let isRecording     = false;
 
 // ── Type ──────────────────────────────────────────────────────
 function setType(type, btn) {
@@ -353,11 +279,30 @@ function setType(type, btn) {
   const isTask = type === 'task';
   document.getElementById('when-row').classList.toggle('hidden', !isTask);
   document.getElementById('recurring-row').classList.toggle('hidden', !isTask);
+  document.getElementById('priority-row').classList.toggle('hidden', !isTask);
+  document.getElementById('category-row').classList.toggle('hidden', !isTask);
   if (!isTask) {
     setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
-    setWhen('none', document.querySelector('.recur-btn[data-when="none"]'));
+    setWhen('none', document.querySelector('.when-btns .recur-btn[data-when="none"]'));
+    document.getElementById('custom-when').classList.remove('show');
+    currentTier = 0; currentCategory = '';
+    document.querySelectorAll('#priority-row .recur-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('category-select').value = '';
   }
   updatePlaceholder();
+}
+
+// ── Tier override ─────────────────────────────────────────────
+function setTier(tier, btn) {
+  // Toggle off if already selected
+  if (currentTier === tier) {
+    currentTier = 0;
+    document.querySelectorAll('#priority-row .recur-btn').forEach(b => b.classList.remove('active'));
+  } else {
+    currentTier = tier;
+    document.querySelectorAll('#priority-row .recur-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
 }
 
 // ── Scope ─────────────────────────────────────────────────────
@@ -374,15 +319,23 @@ function buildWhenChips() {
   const now = new Date();
   now.setHours(12, 0, 0, 0);
   const DAY = ['Su','M','Tu','W','Th','F','Sa'];
+
   const chips = [{ label:'None', val:'none', isToday:false }];
+
+  // Today + next 6 days = 7 day chips
   for (let offset = 0; offset <= 6; offset++) {
     const d = new Date(now);
     d.setDate(now.getDate() + offset);
-    chips.push({ label: DAY[d.getDay()], val: offset === 0 ? 'today' : `+${offset}d`, isToday: offset === 0 });
+    chips.push({
+      label: DAY[d.getDay()],
+      val: offset === 0 ? 'today' : `+${offset}d`,
+      isToday: offset === 0,
+    });
   }
+
   chips.push(
-    { label:'2wk', val:'2w',      isToday:false },
-    { label:'1mo', val:'1m',      isToday:false },
+    { label:'2wk', val:'2w',    isToday:false },
+    { label:'1mo', val:'1m',    isToday:false },
     { label:'Custom…', val:'custom', isToday:false },
   );
   return chips;
@@ -532,6 +485,29 @@ function stripKeywordPrefix(text) {
   return t.trim();
 }
 
+// ── Voice ─────────────────────────────────────────────────────
+function toggleMic() {
+  if (!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)) { showToast('Speech recognition not supported.','error'); return; }
+  if (isRecording) { recognition?.stop(); return; }
+  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
+  let final = document.getElementById('content').value;
+  recognition.onstart = () => { isRecording=true; document.getElementById('mic-btn').classList.add('recording'); };
+  recognition.onresult = (e) => {
+    let interim='';
+    for (let i=e.resultIndex;i<e.results.length;i++) {
+      if (e.results[i].isFinal) final+=e.results[i][0].transcript+' ';
+      else interim+=e.results[i][0].transcript;
+    }
+    document.getElementById('content').value=final+interim;
+    applyKeywordOverrides(document.getElementById('content').value);
+  };
+  recognition.onend = () => { isRecording=false; document.getElementById('mic-btn').classList.remove('recording'); document.getElementById('content').value=final.trim(); };
+  recognition.onerror = () => { isRecording=false; document.getElementById('mic-btn').classList.remove('recording'); };
+  recognition.start();
+}
+
 // ── Capture ───────────────────────────────────────────────────
 async function capture() {
   const rawContent = document.getElementById('content').value.trim();
@@ -548,9 +524,12 @@ async function capture() {
 
   try {
     const body = { content, key: KEY, save_as: currentType, scope: currentScope };
-    if (recurVal)  body.recurring  = recurVal;
-    if (due_date)  body.due_date   = due_date;
-    if (due_month) body.due_month  = due_month;
+    if (recurVal)       body.recurring     = recurVal;
+    if (due_date)       body.due_date      = due_date;
+    if (due_month)      body.due_month     = due_month;
+    if (currentTier)    body.tier_override = currentTier;
+    const cat = document.getElementById('category-select').value;
+    if (cat)            body.category      = cat;
 
     const res = await fetch(`${API_BASE}/quick-capture`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
@@ -573,10 +552,14 @@ async function capture() {
     showToast(msg+taskHtml,'success');
     loadRecent();
 
+    // Reset after capture
     setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
     setWhen('none', document.querySelector('.when-btns .recur-btn[data-when="none"]'));
     document.getElementById('custom-when-date').value = '';
     document.getElementById('custom-when').classList.remove('show');
+    currentTier = 0;
+    document.querySelectorAll('#priority-row .recur-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('category-select').value = '';
 
   } catch(e) {
     showToast('Error: '+e.message,'error');
@@ -610,28 +593,12 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   updatePlaceholder();
-  renderWhenChips();
+  renderWhenChips(); // build day chips based on today
   loadRecent();
   const ta=document.getElementById('content');
   ta.addEventListener('input',()=>applyKeywordOverrides(ta.value));
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();capture();} });
 });
-
-// ── Theme ─────────────────────────────────────────────────────
-function toggleTheme() {
-  const isLight = document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent = isLight ? '🌙' : '☀️';
-  localStorage.setItem('ss-theme', isLight ? 'light' : 'dark');
-}
-(function initTheme() {
-  if (localStorage.getItem('ss-theme') === 'light') {
-    document.body.classList.add('light');
-    document.addEventListener('DOMContentLoaded', () => {
-      const btn = document.getElementById('theme-btn');
-      if (btn) btn.textContent = '🌙';
-    });
-  }
-})();
 </script>
 </body>
 </html>
