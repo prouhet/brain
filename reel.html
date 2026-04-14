@@ -12,9 +12,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    html, body { margin: 0; padding: 0; min-height: 100vh; background: #07090F; }
+    html, body { margin: 0; padding: 0; min-height: 100vh; background: #F8F9FC; }
     #root { min-height: 100vh; }
-    .reel{--bg:#07090F;--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--b2:#263550;--acc:#4B8BF5;--acc-lo:rgba(75,139,245,.12);--acc-mid:rgba(75,139,245,.28);--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--text:#DDE4F5;--t2:#7B8FAD;--t3:#3D5070;--yt:#FF4444;font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--text);min-height:100vh}
+    .reel{--bg:#F8F9FC;--s1:#FFFFFF;--s2:#EEF2F8;--s3:#E4EAF4;--b:#D2DAEA;--b2:#C0CCDE;--acc:#2563EB;--acc-lo:rgba(37,99,235,.08);--acc-mid:rgba(37,99,235,.22);--ok:#059669;--ok-lo:rgba(5,150,105,.08);--ok-mid:rgba(5,150,105,.22);--warn:#B45309;--warn-lo:rgba(180,83,9,.08);--warn-mid:rgba(180,83,9,.22);--red:#DC2626;--red-lo:rgba(220,38,38,.08);--red-mid:rgba(220,38,38,.22);--text:#0F1729;--t2:#4A5B78;--t3:#8B97AE;--yt:#CC0000;font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--text);min-height:100vh}
+    .reel.dark{--bg:#07090F;--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--b2:#263550;--acc:#4B8BF5;--acc-lo:rgba(75,139,245,.12);--acc-mid:rgba(75,139,245,.28);--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--text:#DDE4F5;--t2:#7B8FAD;--t3:#3D5070;--yt:#FF4444}
     .reel *{box-sizing:border-box;margin:0;padding:0}
     .reel h1,.reel h2,.reel h3,.reel h4{font-family:'Syne',sans-serif}
     .reel input,.reel textarea{font-family:'Figtree',system-ui,sans-serif;background:var(--s2);border:1px solid var(--b);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;outline:none;width:100%;transition:border-color .15s}
@@ -49,6 +50,8 @@
     .sknown{background:rgba(75,139,245,.14);color:var(--acc);border:1px solid rgba(75,139,245,.3);padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
     .sknown.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}
     @media(max-width:480px){.rvcard{grid-template-columns:110px 1fr}.rvcard img{width:110px;height:62px}}
+    .theme-btn{position:fixed;bottom:20px;right:20px;z-index:999;width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.12);transition:all .2s;font-family:system-ui}
+    .theme-btn:hover{border-color:var(--acc);color:var(--acc);transform:scale(1.08)}
   </style>
 </head>
 <body>
@@ -137,39 +140,98 @@
     function LibraryView({ videos, onSelect, onDelete, onAddNew, onCrossQuery, onPaste }) {
       const [search, setSearch] = useState("");
       const [activeTag, setActiveTag] = useState(null);
+      const [activeChannel, setActiveChannel] = useState(null);
+      const [urlInput, setUrlInput] = useState("");
+
       const allTags = [...new Set(videos.flatMap((v) => v.tags || []))].sort();
+      const allChannels = [...new Set(videos.map((v) => v.channel).filter(Boolean))].sort();
+
       const filtered = videos.filter((v) => {
         const q = search.toLowerCase();
-        return (!q || [v.title, v.channel, v.summary].some((s) => s?.toLowerCase().includes(q))) && (!activeTag || v.tags?.includes(activeTag));
+        return (!q || [v.title, v.channel, v.summary].some((s) => s?.toLowerCase().includes(q)))
+          && (!activeTag || v.tags?.includes(activeTag))
+          && (!activeChannel || v.channel === activeChannel);
       });
+
+      function handleAnalyze() {
+        const u = urlInput.trim();
+        if (!u) return;
+        onAddNew(u);
+      }
+
+      const hasFilters = allTags.length > 0 || allChannels.length > 0;
+
       return (
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 20px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <div>
-              <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "#fff" }}>REEL</h1>
+              <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)" }}>REEL</h1>
               <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · personal knowledge base</p>
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              {videos.length >= 2 && <button className="rbtn-g" onClick={onCrossQuery}>✦ Cross-Query</button>}
-              <button className="rbtn-g" onClick={onPaste} title="Add from transcript">📋 Paste</button>
-              <button className="rbtn-p" onClick={onAddNew}>+ Add Video</button>
-            </div>
+            {videos.length >= 2 && <button className="rbtn-g" onClick={onCrossQuery}>✦ Cross-Query</button>}
           </div>
-          {videos.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <input placeholder="Search titles, channels, summaries..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 12 }} />
-              {allTags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{allTags.map((t) => <Tag key={t} label={t} active={activeTag === t} onClick={() => setActiveTag(activeTag === t ? null : t)} />)}</div>}
+
+          {/* URL input — always visible */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+            <input
+              placeholder="Paste YouTube URL to analyze..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+            />
+            <button className="rbtn-p" onClick={handleAnalyze} disabled={!urlInput.trim()} style={{ flexShrink: 0 }}>
+              Analyze
+            </button>
+            <button className="rbtn-g" onClick={onPaste} style={{ flexShrink: 0 }} title="Paste a transcript instead">
+              📋 Paste
+            </button>
+          </div>
+
+          {/* Channel + Tag filters */}
+          {hasFilters && (
+            <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+              {allChannels.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", flexShrink: 0 }}>Channel</span>
+                  {allChannels.map((c) => (
+                    <button key={c} onClick={() => setActiveChannel(activeChannel === c ? null : c)}
+                      style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", transition: "all .15s", background: activeChannel === c ? "var(--acc-lo)" : "var(--s3)", color: activeChannel === c ? "var(--acc)" : "var(--t2)", border: `1px solid ${activeChannel === c ? "var(--acc-mid)" : "var(--b)"}` }}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {allTags.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", flexShrink: 0 }}>Tags</span>
+                  {allTags.map((t) => <Tag key={t} label={t} active={activeTag === t} onClick={() => setActiveTag(activeTag === t ? null : t)} />)}
+                </div>
+              )}
             </div>
           )}
+
+          {/* Search — only shown when there are videos */}
+          {videos.length > 0 && (
+            <input placeholder="Search titles, channels, summaries..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 16 }} />
+          )}
+
+          {/* Active filters indicator */}
+          {(activeChannel || activeTag) && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
+              <span style={{ fontSize: 13, color: "var(--t2)" }}>Filtered by:</span>
+              {activeChannel && <span style={{ fontSize: 12, background: "var(--acc-lo)", color: "var(--acc)", border: "1px solid var(--acc-mid)", borderRadius: 6, padding: "2px 10px" }}>{activeChannel} ×</span>}
+              {activeTag && <Tag label={activeTag} onRemove={() => setActiveTag(null)} />}
+              <button onClick={() => { setActiveChannel(null); setActiveTag(null); }} style={{ fontSize: 12, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Figtree,system-ui" }}>Clear all</button>
+            </div>
+          )}
+
+          {/* Video list */}
           {videos.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "72px 20px", color: "var(--t2)" }}>
-              <div style={{ fontSize: 52, marginBottom: 16, opacity: .35 }}>▶</div>
-              <p style={{ fontSize: 18, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>Your knowledge base is empty</p>
-              <p style={{ fontSize: 14, marginBottom: 28 }}>Add a YouTube video or paste a transcript to get started.</p>
-              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-                <button className="rbtn-p" onClick={onAddNew}>+ Add Video URL</button>
-                <button className="rbtn-g" onClick={onPaste}>📋 Paste Transcript</button>
-              </div>
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--t2)" }}>
+              <div style={{ fontSize: 48, marginBottom: 16, opacity: .25 }}>▶</div>
+              <p style={{ fontSize: 17, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>Your knowledge base is empty</p>
+              <p style={{ fontSize: 14 }}>Paste a YouTube URL above to get started, or use 📋 Paste for a transcript.</p>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px", color: "var(--t2)" }}>No videos match your filter.</div>
@@ -377,8 +439,8 @@ Return ONLY valid JSON (no markdown fences):
     }
 
     // ─── Add Video View ────────────────────────────────────────────────────────
-    function AddVideoView({ onSave, onBack, existingVideos }) {
-      const [url, setUrl] = useState("");
+    function AddVideoView({ onSave, onBack, existingVideos, prefillUrl = "" }) {
+      const [url, setUrl] = useState(prefillUrl);
       const [meta, setMeta] = useState(null);
       const [step, setStep] = useState("idle");
       const [result, setResult] = useState(null);
@@ -721,78 +783,185 @@ Return ONLY valid JSON (no markdown fences):
 
     // ─── Cross-Query ───────────────────────────────────────────────────────────
     function CrossQueryView({ videos, onBack }) {
-      const [sel, setSel] = useState(new Set(videos.map((v) => v.id)));
+      const [activeChannel, setActiveChannel] = useState(null);
+      const [activeTag, setActiveTag] = useState(null);
       const [query, setQuery] = useState("");
+      const [qa, setQa] = useState([]);
       const [loading, setLoading] = useState(false);
-      const [result, setResult] = useState(null);
-      const [errMsg, setErrMsg] = useState("");
       const [captureStatus, setCaptureStatus] = useState("idle");
-      const selVideos = videos.filter((v) => sel.has(v.id));
+      const qaEndRef = useRef(null);
 
-      async function synthesize() {
-        if (!query.trim() || !selVideos.length) return;
-        setLoading(true); setResult(null); setErrMsg("");
+      const allChannels = [...new Set(videos.map((v) => v.channel).filter(Boolean))].sort();
+      const allTags = [...new Set(videos.flatMap((v) => v.tags || []))].sort();
+
+      const scoped = videos.filter((v) =>
+        (!activeChannel || v.channel === activeChannel) &&
+        (!activeTag || (v.tags || []).includes(activeTag))
+      );
+
+      useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
+
+      async function ask() {
+        const q = query.trim();
+        if (!q || loading || !scoped.length) return;
+        setQuery(""); setLoading(true);
+        const withUser = [...qa, { id: genId(), role: "user", content: q }];
+        setQa(withUser);
         try {
-          const ctx = selVideos.map((v, i) => `VIDEO ${i + 1}: "${v.title}" — ${v.channel}\n\nSummary: ${v.summary}\n\nKey Points:\n${(v.keyPoints || []).map((p) => `• ${p}`).join("\n")}`).join("\n\n---\n\n");
+          const ctx = scoped.map((v, i) =>
+            `[${i + 1}] "${v.title}" — ${v.channel || "unknown channel"}\nSummary: ${v.summary}\nKey Points: ${(v.keyPoints || []).join("; ")}`
+          ).join("\n\n---\n\n");
+
+          const scopeLabel = activeChannel ? ` from ${activeChannel}` : activeTag ? ` tagged "${activeTag}"` : "";
+
           const data = await callClaude({
-            system: `You are synthesizing insights across ${selVideos.length} YouTube videos in Dave's knowledge base.\n\n${ctx}\n\nDraw connections, patterns, compare perspectives. Reference video titles. Use web_search if helpful.`,
-            messages: [{ role: "user", content: query }],
+            system: `You are Dave's personal YouTube knowledge base assistant. You have access to ${scoped.length} video${scoped.length !== 1 ? "s" : ""}${scopeLabel}.
+
+${ctx}
+
+Instructions:
+- Identify which videos are most relevant to each question — do not use videos that aren't relevant
+- Synthesize insights across relevant videos into a clear, direct answer
+- Always cite video titles in brackets e.g. ["Video Title"] when referencing specific content
+- If no videos address the question, say so clearly and suggest what to search for
+- Keep answers focused and actionable
+- Use web_search only if you need to verify a specific factual claim from a video`,
+            messages: withUser.map((m) => ({ role: m.role, content: m.content })),
             maxTokens: 1500, tools: WEB_SEARCH,
           });
-          setResult(getText(data));
-        } catch (e) { setErrMsg(e.message); }
-        finally { setLoading(false); }
+          setQa([...withUser, { id: genId(), role: "assistant", content: getText(data) }]);
+        } catch (e) {
+          setQa([...withUser, { id: genId(), role: "assistant", content: `Error: ${e.message}` }]);
+        } finally { setLoading(false); }
       }
 
-      async function captureResult() {
-        if (!result) return; setCaptureStatus("loading");
+      async function captureTooBrain() {
+        if (!qa.length) return;
+        setCaptureStatus("loading");
+        const lastPair = qa.slice(-2);
+        const content = lastPair.map((m) => `${m.role === "user" ? "Q" : "A"}: ${m.content}`).join("\n\n");
         try {
-          await callClaude({ system: `Capture for owner "dave" (personal scope) as a note using capture_thought.`, messages: [{ role: "user", content: `Cross-video synthesis (scope personal, owner dave):\nQuery: ${query}\n\n${result}` }], maxTokens: 400, mcp: BRAIN_MCP });
+          await callClaude({
+            system: `Capture for owner "dave" (personal scope) as a note using capture_thought.`,
+            messages: [{ role: "user", content: `REEL library query note (scope personal, owner dave):\n\n${content}` }],
+            maxTokens: 400, mcp: BRAIN_MCP,
+          });
           setCaptureStatus("done"); setTimeout(() => setCaptureStatus("idle"), 3000);
         } catch { setCaptureStatus("error"); }
       }
 
+      const scopeLabel = activeChannel ? activeChannel : activeTag ? `#${activeTag}` : `all ${videos.length} videos`;
+
       return (
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px" }}>
           <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
-          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Cross-Video Synthesis</h2>
-          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Ask a question across your library. Claude finds connections and patterns.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Query Your Library</h2>
+          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 20 }}>
+            Ask anything — Claude finds the relevant videos automatically.
+          </p>
+
+          {/* Scope filters */}
           <div className="rcard" style={{ padding: 16, marginBottom: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em" }}>{selVideos.length} selected</span>
-              <button className="rbtn-g" style={{ fontSize: 12, padding: "4px 10px" }} onClick={() => setSel(sel.size === videos.length ? new Set() : new Set(videos.map((v) => v.id)))}>
-                {sel.size === videos.length ? "Deselect All" : "Select All"}
-              </button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {videos.map((v) => (
-                <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "8px 10px", borderRadius: 8, background: sel.has(v.id) ? "var(--acc-lo)" : "transparent", border: `1px solid ${sel.has(v.id) ? "var(--acc-mid)" : "transparent"}`, transition: "all .15s" }}>
-                  <input type="checkbox" checked={sel.has(v.id)} onChange={() => { const n = new Set(sel); n.has(v.id) ? n.delete(v.id) : n.add(v.id); setSel(n); }} style={{ width: 15, height: 15, accentColor: "var(--acc)", cursor: "pointer" }} />
-                  <img src={v.videoId ? thumb(v.videoId) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='27' fill='%231A2438'%3E%3Crect width='48' height='27'/%3E%3C/svg%3E"} style={{ width: 48, height: 27, objectFit: "cover", borderRadius: 4, background: "var(--s2)", flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.title}</p>
-                    <p style={{ fontSize: 12, color: "var(--t2)" }}>{v.channel}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 12 }}>
+              Scope — <span style={{ color: "var(--acc)", fontWeight: 600 }}>{scoped.length} video{scoped.length !== 1 ? "s" : ""}</span>
+              {(activeChannel || activeTag) && (
+                <button onClick={() => { setActiveChannel(null); setActiveTag(null); }} style={{ marginLeft: 10, fontSize: 11, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>
+                  clear ×
+                </button>
+              )}
+            </p>
+
+            {allChannels.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", flexShrink: 0 }}>Channel</span>
+                <button onClick={() => setActiveChannel(null)}
+                  style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: !activeChannel ? "var(--acc-lo)" : "var(--s3)", color: !activeChannel ? "var(--acc)" : "var(--t2)", border: `1px solid ${!activeChannel ? "var(--acc-mid)" : "var(--b)"}` }}>
+                  All
+                </button>
+                {allChannels.map((c) => (
+                  <button key={c} onClick={() => { setActiveChannel(activeChannel === c ? null : c); setActiveTag(null); }}
+                    style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: activeChannel === c ? "var(--acc-lo)" : "var(--s3)", color: activeChannel === c ? "var(--acc)" : "var(--t2)", border: `1px solid ${activeChannel === c ? "var(--acc-mid)" : "var(--b)"}` }}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {allTags.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", flexShrink: 0 }}>Tags</span>
+                <button onClick={() => setActiveTag(null)}
+                  style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: !activeTag ? "var(--s3)" : "var(--s3)", color: "var(--t2)", border: `1px solid var(--b)` }}>
+                  All
+                </button>
+                {allTags.map((t) => (
+                  <Tag key={t} label={t} active={activeTag === t} onClick={() => { setActiveTag(activeTag === t ? null : t); setActiveChannel(null); }} />
+                ))}
+              </div>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-            <input placeholder="What common themes exist? Compare approaches to...?" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && synthesize()} disabled={loading} />
-            <button className="rbtn-p" onClick={synthesize} disabled={loading || !query.trim() || !selVideos.length} style={{ flexShrink: 0, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8 }}>
-              {loading ? <Spinner size={15} /> : "Synthesize"}
+
+          {/* Conversation history */}
+          {qa.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 16 }}>
+              {qa.map((m) => (
+                <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
+                  <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>
+                    {m.role === "user" ? `You · ${scopeLabel}` : "REEL"}
+                  </p>
+                  <p style={{ lineHeight: 1.7, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+                </div>
+              ))}
+              {loading && (
+                <div className="rqa-a">
+                  <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 8, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>REEL</p>
+                  <Dots />
+                </div>
+              )}
+              <div ref={qaEndRef} />
+            </div>
+          )}
+
+          {/* Empty state */}
+          {qa.length === 0 && scoped.length > 0 && (
+            <div style={{ background: "var(--s2)", borderRadius: 12, padding: "20px 24px", marginBottom: 20, border: "1px solid var(--b)" }}>
+              <p style={{ fontSize: 13, color: "var(--t2)", marginBottom: 8 }}>
+                <strong style={{ color: "var(--text)" }}>Querying {scopeLabel}</strong>
+              </p>
+              <p style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>
+                Try: "What are the common themes?" · "What should I act on?" · "Summarize the key arguments about X" · "What do these videos disagree on?"
+              </p>
+            </div>
+          )}
+
+          {scoped.length === 0 && (
+            <div style={{ textAlign: "center", padding: "32px", color: "var(--t2)", fontSize: 14 }}>
+              No videos match this scope. Clear the filters to query your full library.
+            </div>
+          )}
+
+          {/* Input */}
+          <div style={{ display: "flex", gap: 10, marginBottom: qa.length > 0 ? 14 : 0 }}>
+            <input
+              placeholder={`Ask anything across ${scoped.length} video${scoped.length !== 1 ? "s" : ""}...`}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()}
+              disabled={loading || !scoped.length}
+            />
+            <button className="rbtn-p" onClick={ask} disabled={loading || !query.trim() || !scoped.length} style={{ flexShrink: 0, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8 }}>
+              {loading ? <Spinner size={15} /> : "Ask"}
             </button>
           </div>
-          {errMsg && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
-          {loading && <div className="rcard" style={{ padding: 32, textAlign: "center" }}><Spinner size={26} /><p style={{ color: "var(--t2)", fontSize: 14, marginTop: 14 }}>Synthesizing across {selVideos.length} videos...</p></div>}
-          {result && (
-            <div className="rfade">
-              <div className="rcard" style={{ padding: 20, marginBottom: 14 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 14 }}>Synthesis</p>
-                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{result}</p>
-              </div>
-              <button className="rbtn-ok" onClick={captureResult} disabled={captureStatus === "loading"}>
-                {captureStatus === "loading" ? "Saving..." : captureStatus === "done" ? "Captured ✓" : "Capture to Brain as Note"}
+
+          {/* Actions */}
+          {qa.length > 0 && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="rbtn-ok" onClick={captureTooBrain} disabled={captureStatus === "loading"} style={{ fontSize: 13 }}>
+                {captureStatus === "loading" ? "Saving..." : captureStatus === "done" ? "Captured ✓" : "Capture Last Answer to Brain"}
+              </button>
+              <button className="rbtn-g" onClick={() => setQa([])} style={{ fontSize: 13 }}>
+                Clear
               </button>
             </div>
           )}
@@ -807,32 +976,42 @@ Return ONLY valid JSON (no markdown fences):
       const [selected, setSelected] = useState(null);
       const [loaded, setLoaded] = useState(false);
       const [loadErr, setLoadErr] = useState("");
+      const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
+
+      useEffect(() => {
+        localStorage.setItem("reel-theme", dark ? "dark" : "light");
+        document.body.style.background = dark ? "#07090F" : "#F8F9FC";
+      }, [dark]);
 
       useEffect(() => {
         sbLoad().then((rows) => setVideos((rows || []).map(fromDb))).catch((e) => setLoadErr(e.message)).finally(() => setLoaded(true));
       }, []);
 
+      const [prefillUrl, setPrefillUrl] = useState("");
       const upsertVideo = useCallback((v) => setVideos((prev) => { const i = prev.findIndex((x) => x.id === v.id); return i >= 0 ? prev.map((x, j) => j === i ? v : x) : [v, ...prev]; }), []);
       const removeVideo = useCallback(async (id) => { setVideos((prev) => prev.filter((v) => v.id !== id)); await sbDelete(id); }, []);
       const currentVideo = videos.find((v) => v.id === selected?.id) || selected;
 
       if (!loaded) return (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", color: "#4A5D7A", fontFamily: "system-ui", gap: 12 }}>
-          <div style={{ width: 20, height: 20, border: "2px solid #1E2D48", borderTopColor: "#4B8BF5", borderRadius: "50%", animation: "rspin .7s linear infinite" }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: dark ? "#07090F" : "#F8F9FC", color: dark ? "#4A5D7A" : "#8B97AE", fontFamily: "system-ui", gap: 12 }}>
+          <div style={{ width: 20, height: 20, border: `2px solid ${dark ? "#1E2D48" : "#D2DAEA"}`, borderTopColor: dark ? "#4B8BF5" : "#2563EB", borderRadius: "50%", animation: "rspin .7s linear infinite" }} />
           Connecting...
         </div>
       );
 
       if (loadErr) return (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", color: "#F07070", fontFamily: "system-ui", textAlign: "center", padding: 40 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: dark ? "#07090F" : "#F8F9FC", color: dark ? "#F07070" : "#DC2626", fontFamily: "system-ui", textAlign: "center", padding: 40 }}>
           <div><p style={{ fontSize: 16, marginBottom: 8 }}>Failed to connect to Supabase</p><p style={{ fontSize: 13, opacity: .7 }}>{loadErr}</p></div>
         </div>
       );
 
       return (
-        <div className="reel">
-          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); setView("detail"); }} onDelete={removeVideo} onAddNew={() => setView("add")} onCrossQuery={() => setView("query")} onPaste={() => setView("paste")} />}
-          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} />}
+        <div className={`reel${dark ? " dark" : ""}`}>
+          <button className="theme-btn" onClick={() => setDark(!dark)} title={dark ? "Light mode" : "Dark mode"}>
+            {dark ? "☀" : "🌙"}
+          </button>
+          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); setView("detail"); }} onDelete={removeVideo} onAddNew={(url) => { setPrefillUrl(url || ""); setView("add"); }} onCrossQuery={() => setView("query")} onPaste={() => setView("paste")} />}
+          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} />}
           {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); setView("library"); }} onBack={() => setView("library")} />}
           {view === "query" && <CrossQueryView videos={videos} onBack={() => setView("library")} />}
