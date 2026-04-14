@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="REEL">
+  <meta name="theme-color" content="#07090F">
+  <title>REEL — YouTube Knowledge Base</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100vh; background: #07090F; }
+    #root { min-height: 100vh; }
+    .reel{--bg:#07090F;--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--b2:#263550;--acc:#4B8BF5;--acc-lo:rgba(75,139,245,.12);--acc-mid:rgba(75,139,245,.28);--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--text:#DDE4F5;--t2:#7B8FAD;--t3:#3D5070;--yt:#FF4444;font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--text);min-height:100vh}
+    .reel *{box-sizing:border-box;margin:0;padding:0}
+    .reel h1,.reel h2,.reel h3,.reel h4{font-family:'Syne',sans-serif}
+    .reel input,.reel textarea{font-family:'Figtree',system-ui,sans-serif;background:var(--s2);border:1px solid var(--b);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;outline:none;width:100%;transition:border-color .15s}
+    .reel input:focus,.reel textarea:focus{border-color:var(--acc)}
+    .reel input::placeholder,.reel textarea::placeholder{color:var(--t3)}
+    .reel button{font-family:'Figtree',system-ui,sans-serif;cursor:pointer;border:none;border-radius:8px;font-size:14px;font-weight:500;transition:all .15s}
+    .reel button:active:not(:disabled){transform:scale(.97)}
+    .reel ::-webkit-scrollbar{width:4px}.reel ::-webkit-scrollbar-track{background:transparent}.reel ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+    .rbtn-p{background:var(--acc);color:#fff;padding:10px 22px}.rbtn-p:hover:not(:disabled){background:#5E9CF8}.rbtn-p:disabled{opacity:.45;cursor:not-allowed}
+    .rbtn-g{background:transparent;color:var(--t2);padding:8px 14px;border:1px solid var(--b)}.rbtn-g:hover{background:var(--s2);color:var(--text)}
+    .rbtn-ok{background:var(--ok-lo);color:var(--ok);padding:8px 16px;border:1px solid var(--ok-mid)}.rbtn-ok:hover{background:rgba(52,211,153,.18)}.rbtn-ok:disabled{opacity:.5;cursor:not-allowed}
+    .rbtn-w{background:var(--warn-lo);color:var(--warn);padding:8px 14px;border:1px solid var(--warn-mid)}.rbtn-w:hover{background:rgba(251,176,64,.2)}
+    .rbtn-d{background:var(--red-lo);color:var(--red);padding:8px 14px;border:1px solid var(--red-mid)}.rbtn-d:hover{background:rgba(240,112,112,.18)}
+    .rbtn-a{background:var(--acc-lo);color:var(--acc);padding:8px 14px;border:1px solid var(--acc-mid)}.rbtn-a:hover{background:rgba(75,139,245,.2)}
+    .rcard{background:var(--s1);border:1px solid var(--b);border-radius:12px}
+    .rtag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap;cursor:default;background:var(--s3);color:var(--t2);border:1px solid var(--b)}
+    .rtag.clk{cursor:pointer}.rtag.clk:hover{opacity:.8}
+    .rtag.rm:hover{border-color:var(--red)!important;color:var(--red)!important;cursor:pointer}
+    .rspin{border:2px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:rspin .7s linear infinite;flex-shrink:0}
+    @keyframes rspin{to{transform:rotate(360deg)}}
+    .rfade{animation:rfade .3s ease}@keyframes rfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .rqa-u{background:var(--acc-lo);border:1px solid var(--acc-mid);border-radius:10px 10px 4px 10px;padding:10px 14px;margin-left:20px;font-size:14px}
+    .rqa-a{background:var(--s2);border:1px solid var(--b);border-radius:10px 10px 10px 4px;padding:10px 14px;font-size:14px}
+    .rdot{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:rdot 1.4s ease infinite;display:inline-block}.rdot:nth-child(2){animation-delay:.2s}.rdot:nth-child(3){animation-delay:.4s}
+    @keyframes rdot{0%,60%,100%{opacity:.25;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+    .rvcard{display:grid;grid-template-columns:152px 1fr;background:var(--s1);border:1px solid var(--b);border-radius:12px;overflow:hidden;transition:border-color .15s,background .15s}
+    .rvcard:hover{background:var(--s2);border-color:var(--b2)}
+    .rvcard img{width:152px;height:86px;object-fit:cover;display:block;background:var(--s2)}
+    .rmono{font-family:'JetBrains Mono',monospace;font-size:12px}
+    .snew{background:rgba(52,211,153,.14);color:var(--ok);border:1px solid rgba(52,211,153,.3);padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
+    .snew.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}
+    .sknown{background:rgba(75,139,245,.14);color:var(--acc);border:1px solid rgba(75,139,245,.3);padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
+    .sknown.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}
+    @media(max-width:480px){.rvcard{grid-template-columns:110px 1fr}.rvcard img{width:110px;height:62px}}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // ─── Config ───────────────────────────────────────────────────────────────
+    const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+    const OWNER = "dave";
+    const BRAIN_MCP = { type: "url", url: `${SB_URL}/functions/v1/open-brain-mcp`, name: "studio-strong-brain" };
+    const WEB_SEARCH = [{ type: "web_search_20250305", name: "web_search" }];
+
+    // ─── Supabase ─────────────────────────────────────────────────────────────
+    const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+    async function sbReq(path, opts = {}) {
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: { ...SBH, ...opts.headers } });
+      if (!r.ok) throw new Error(await r.text());
+      if (r.status === 204) return null;
+      return r.json();
+    }
+    const sbLoad = () => sbReq(`youtube_videos?select=*&owner=eq.${OWNER}&order=date_added.desc`);
+    const sbInsert = (row) => sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
+    const sbPatch = (id, up) => sbReq(`youtube_videos?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(up) });
+    const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
+
+    // ─── Data mapping ─────────────────────────────────────────────────────────
+    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], dateAdded: r.date_added });
+    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, date_added: v.dateAdded, owner: OWNER });
+
+    // ─── Utilities ────────────────────────────────────────────────────────────
+    const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const extractVid = (url) => url.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/)?.[1] || null;
+    const thumb = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+    const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    async function callClaude({ system, messages, maxTokens = 1000, tools, mcp }) {
+      const body = { model: "claude-sonnet-4-20250514", max_tokens: maxTokens, system, messages };
+      if (tools?.length) body.tools = tools;
+      if (mcp) body.mcp_servers = [mcp];
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(`API ${r.status}`);
+      return r.json();
+    }
+    const getText = (d) => (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("") || "";
+    const parseJSON = (s) => { try { return JSON.parse(s.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim()); } catch { return null; } };
+    async function fetchOEmbed(url) { try { const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`); return r.ok ? r.json() : null; } catch { return null; } }
+
+    const TAG_COLORS = { fitness:"#4ade80",nutrition:"#fb923c",business:"#60a5fa",mindset:"#c084fc",marketing:"#f472b6",training:"#34d399",recovery:"#38bdf8",lifestyle:"#facc15",technology:"#818cf8",productivity:"#a78bfa",health:"#4ade80",motivation:"#fb923c",coaching:"#60a5fa",science:"#38bdf8",research:"#818cf8",investment:"#fbbf24",macro:"#e879f9",finance:"#67e8f9" };
+    const tagColor = (t) => TAG_COLORS[t?.toLowerCase()] || "#6B7A99";
+
+    // ─── Micro components ─────────────────────────────────────────────────────
+    const Spinner = ({ size = 18 }) => <div className="rspin" style={{ width: size, height: size }} />;
+    const Dots = () => <div style={{ display: "flex", gap: 5, padding: "6px 0" }}><div className="rdot" /><div className="rdot" /><div className="rdot" /></div>;
+
+    function Tag({ label, active, onClick, onRemove }) {
+      return (
+        <span className={`rtag${onClick ? " clk" : ""}${onRemove ? " rm" : ""}`}
+          style={{ color: tagColor(label), borderColor: `${tagColor(label)}33`, background: `${tagColor(label)}14` }}
+          onClick={onClick || onRemove}>
+          {label}{onRemove && <span style={{ marginLeft: 2, opacity: .7 }}>×</span>}
+        </span>
+      );
+    }
+
+    function Sec({ title, subtitle, children, accent, action }) {
+      return (
+        <div className="rcard" style={{ padding: 20, marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div>
+              <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: accent ? "var(--acc)" : "var(--t2)" }}>{title}</h3>
+              {subtitle && <p style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{subtitle}</p>}
+            </div>
+            {action}
+          </div>
+          {children}
+        </div>
+      );
+    }
+
+    // ─── Library ──────────────────────────────────────────────────────────────
+    function LibraryView({ videos, onSelect, onDelete, onAddNew, onCrossQuery, onPaste }) {
+      const [search, setSearch] = useState("");
+      const [activeTag, setActiveTag] = useState(null);
+      const allTags = [...new Set(videos.flatMap((v) => v.tags || []))].sort();
+      const filtered = videos.filter((v) => {
+        const q = search.toLowerCase();
+        return (!q || [v.title, v.channel, v.summary].some((s) => s?.toLowerCase().includes(q))) && (!activeTag || v.tags?.includes(activeTag));
+      });
+      return (
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+            <div>
+              <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "#fff" }}>REEL</h1>
+              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · personal knowledge base</p>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {videos.length >= 2 && <button className="rbtn-g" onClick={onCrossQuery}>✦ Cross-Query</button>}
+              <button className="rbtn-g" onClick={onPaste} title="Add from transcript">📋 Paste</button>
+              <button className="rbtn-p" onClick={onAddNew}>+ Add Video</button>
+            </div>
+          </div>
+          {videos.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <input placeholder="Search titles, channels, summaries..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 12 }} />
+              {allTags.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{allTags.map((t) => <Tag key={t} label={t} active={activeTag === t} onClick={() => setActiveTag(activeTag === t ? null : t)} />)}</div>}
+            </div>
+          )}
+          {videos.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "72px 20px", color: "var(--t2)" }}>
+              <div style={{ fontSize: 52, marginBottom: 16, opacity: .35 }}>▶</div>
+              <p style={{ fontSize: 18, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>Your knowledge base is empty</p>
+              <p style={{ fontSize: 14, marginBottom: 28 }}>Add a YouTube video or paste a transcript to get started.</p>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                <button className="rbtn-p" onClick={onAddNew}>+ Add Video URL</button>
+                <button className="rbtn-g" onClick={onPaste}>📋 Paste Transcript</button>
+              </div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--t2)" }}>No videos match your filter.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {filtered.map((v) => <VideoCard key={v.id} video={v} onSelect={onSelect} onDelete={onDelete} />)}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function VideoCard({ video, onSelect, onDelete }) {
+      const [showCapture, setShowCapture] = useState(false);
+      const [captureType, setCaptureType] = useState("note");
+      const [captureText, setCaptureText] = useState("");
+      const [status, setStatus] = useState("idle");
+      async function doCapture() {
+        if (!captureText.trim()) return;
+        setStatus("loading");
+        try {
+          await callClaude({ system: `Capture for owner "dave" (personal scope) using capture_thought.`, messages: [{ role: "user", content: `Capture as ${captureType} (scope personal, owner dave):\n${captureText.trim()}\n\n[From: "${video.title}" — ${video.channel}]` }], maxTokens: 400, mcp: BRAIN_MCP });
+          setStatus("done"); setCaptureText("");
+          setTimeout(() => { setStatus("idle"); setShowCapture(false); }, 2000);
+        } catch { setStatus("error"); setTimeout(() => setStatus("idle"), 2000); }
+      }
+      return (
+        <div className="rfade">
+          <div className="rvcard">
+            <img src={video.videoId ? thumb(video.videoId) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='152' height='86' fill='%231A2438'%3E%3Crect width='152' height='86'/%3E%3Ctext x='50%25' y='50%25' fill='%233D5070' font-size='24' text-anchor='middle' dominant-baseline='middle'%3E▶%3C/text%3E%3C/svg%3E"} alt="" loading="lazy" onClick={() => onSelect(video)} style={{ cursor: "pointer" }} />
+            <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6, overflow: "hidden" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <h3 onClick={() => onSelect(video)} style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35, color: "#fff", cursor: "pointer", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{video.title}</h3>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button title="Quick capture to brain" onClick={() => setShowCapture(!showCapture)} style={{ padding: "3px 9px", fontSize: 13, borderRadius: 6, background: showCapture ? "var(--ok-lo)" : "transparent", border: `1px solid ${showCapture ? "var(--ok-mid)" : "var(--b)"}`, color: showCapture ? "var(--ok)" : "var(--t3)", cursor: "pointer" }}>⊕</button>
+                  <button className="rbtn-d" style={{ padding: "3px 9px", fontSize: 12, borderRadius: 6 }} onClick={() => onDelete(video.id)}>✕</button>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--t2)", flexWrap: "wrap" }}>
+                {video.channel && <span style={{ fontWeight: 500 }}>{video.channel}</span>}
+                {video.channel && <span>·</span>}
+                <span className="rmono">{fmtDate(video.dateAdded)}</span>
+                {video.whatsNew && <span style={{ fontSize: 11, background: "var(--warn-lo)", color: "var(--warn)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--warn-mid)" }}>insights</span>}
+                {!video.videoId && <span style={{ fontSize: 11, background: "var(--s3)", color: "var(--t3)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--b)" }}>transcript</span>}
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{(video.tags || []).slice(0, 4).map((t) => <Tag key={t} label={t} />)}</div>
+            </div>
+          </div>
+          {showCapture && (
+            <div className="rfade" style={{ background: "var(--s1)", border: "1px solid var(--ok-mid)", borderTop: "none", borderRadius: "0 0 12px 12px", padding: "12px 16px" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                {["note", "task"].map((t) => (
+                  <button key={t} onClick={() => setCaptureType(t)} style={{ padding: "4px 12px", fontSize: 12, borderRadius: 6, background: captureType === t ? "var(--ok-lo)" : "transparent", border: `1px solid ${captureType === t ? "var(--ok-mid)" : "var(--b)"}`, color: captureType === t ? "var(--ok)" : "var(--t2)", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>
+                    {t === "note" ? "📝 Note" : "✅ Task"}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input placeholder={`Quick ${captureType}...`} value={captureText} onChange={(e) => setCaptureText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doCapture()} style={{ fontSize: 13 }} />
+                <button className="rbtn-ok" onClick={doCapture} disabled={status === "loading" || !captureText.trim()} style={{ flexShrink: 0, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6 }}>
+                  {status === "loading" ? <Spinner size={14} /> : status === "done" ? "✓" : "Send"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── Paste Transcript View ─────────────────────────────────────────────────
+    function PasteTranscriptView({ onSave, onBack, existingVideos }) {
+      const [title, setTitle] = useState("");
+      const [channel, setChannel] = useState("");
+      const [url, setUrl] = useState("");
+      const [transcript, setTranscript] = useState("");
+      const [step, setStep] = useState("idle");
+      const [result, setResult] = useState(null);
+      const [tags, setTags] = useState([]);
+      const [tagInput, setTagInput] = useState("");
+      const [errMsg, setErrMsg] = useState("");
+      const [stepLabel, setStepLabel] = useState("");
+
+      async function analyze() {
+        if (!transcript.trim()) return;
+        setStep("analyzing"); setErrMsg("");
+        const labels = ["Reading transcript...", "Checking prior library...", "Generating analysis..."];
+        let si = 0; setStepLabel(labels[0]);
+        const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
+        try {
+          const prior = existingVideos.filter((v) => channel && v.channel?.toLowerCase() === channel.toLowerCase());
+          const priorCtx = prior.length > 0
+            ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured.`
+            : "";
+
+          const data = await callClaude({
+            system: `You are analyzing a YouTube video transcript for Dave's personal knowledge base.${priorCtx}
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "title": "${title || "derive from transcript"}",
+  "channel": "${channel || "derive from transcript if possible"}",
+  "summary": "3-4 paragraph comprehensive summary",
+  "keyPoints": ["specific point 1", "...up to 8"],
+  "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "whatsNew": "${prior.length > 0 ? "what this adds beyond prior videos" : "First entry from this source."}",
+  "actionSuggestions": ["specific action 1", "...up to 3"]
+}`,
+            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}` }],
+            maxTokens: 1600,
+          });
+          clearInterval(ticker);
+          const parsed = parseJSON(getText(data));
+          if (!parsed?.summary) throw new Error("Could not parse — try again");
+          setResult(parsed); setTags(parsed.tags || []); setStep("done");
+        } catch (e) { clearInterval(ticker); setErrMsg(e.message); setStep("error"); }
+      }
+
+      function addTag() { const t = tagInput.trim().toLowerCase(); if (t && !tags.includes(t)) setTags([...tags, t]); setTagInput(""); }
+
+      async function save() {
+        if (!result) return;
+        const videoId = url ? extractVid(url) : null;
+        const video = { id: genId(), videoId, url: url || null, title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], dateAdded: new Date().toISOString() };
+        const rows = await sbInsert(toDb(video));
+        onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
+      }
+
+      return (
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
+          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Paste Transcript</h2>
+          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>No YouTube link needed — paste the transcript text and optionally add metadata.</p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <input placeholder="Video title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input placeholder="Channel name (optional)" value={channel} onChange={(e) => setChannel(e.target.value)} />
+          </div>
+          <input placeholder="YouTube URL (optional — for thumbnail)" value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 12 }} />
+          <textarea placeholder="Paste the full transcript here..." value={transcript} onChange={(e) => setTranscript(e.target.value)} rows={10} style={{ marginBottom: 16, resize: "vertical", fontFamily: "JetBrains Mono, monospace", fontSize: 13 }} />
+
+          {step === "analyzing" && (
+            <div className="rcard rfade" style={{ padding: 28, textAlign: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Spinner size={26} /></div>
+              <p style={{ color: "var(--t2)", fontSize: 14 }}>{stepLabel}</p>
+            </div>
+          )}
+          {step === "error" && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
+
+          {step === "done" && result && (
+            <div className="rfade">
+              {result.whatsNew && (
+                <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
+                  <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7 }}>{result.whatsNew}</p>
+                </div>
+              )}
+              {result.actionSuggestions?.length > 0 && (
+                <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--ok)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Suggested Actions</p>
+                  {result.actionSuggestions.map((a, i) => (
+                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: i < result.actionSuggestions.length - 1 ? 8 : 0 }}>
+                      <span style={{ color: "var(--ok)", fontWeight: 700 }}>✦</span>
+                      <span style={{ fontSize: 14, color: "var(--t2)" }}>{a}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rcard" style={{ padding: 18, marginBottom: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Summary</p>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.75 }}>{result.summary}</p>
+              </div>
+              {result.keyPoints?.length > 0 && (
+                <div className="rcard" style={{ padding: 18, marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Key Points</p>
+                  <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {result.keyPoints.map((p, i) => (
+                      <li key={i} style={{ fontSize: 14, display: "flex", gap: 10 }}>
+                        <span style={{ color: "var(--acc)", fontWeight: 700, flexShrink: 0 }}>→</span>
+                        <span style={{ color: "var(--t2)" }}>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="rcard" style={{ padding: 18, marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Tags</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>{tags.map((t) => <Tag key={t} label={t} onRemove={() => setTags(tags.filter((x) => x !== t))} />)}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTag()} style={{ maxWidth: 200 }} />
+                  <button className="rbtn-g" onClick={addTag}>Add</button>
+                </div>
+              </div>
+              <button className="rbtn-p" onClick={save} style={{ width: "100%" }}>Save to Knowledge Base</button>
+            </div>
+          )}
+
+          {(step === "idle" || step === "error") && transcript.trim().length > 100 && (
+            <button className="rbtn-p" onClick={analyze} style={{ width: "100%" }}>Analyze Transcript</button>
+          )}
+          {transcript.trim().length <= 100 && step !== "done" && (
+            <button className="rbtn-p" disabled style={{ width: "100%" }}>Paste transcript above to analyze</button>
+          )}
+        </div>
+      );
+    }
+
+    // ─── Add Video View ────────────────────────────────────────────────────────
+    function AddVideoView({ onSave, onBack, existingVideos }) {
+      const [url, setUrl] = useState("");
+      const [meta, setMeta] = useState(null);
+      const [step, setStep] = useState("idle");
+      const [result, setResult] = useState(null);
+      const [tags, setTags] = useState([]);
+      const [tagInput, setTagInput] = useState("");
+      const [errMsg, setErrMsg] = useState("");
+      const [stepLabel, setStepLabel] = useState("");
+      const videoId = extractVid(url);
+
+      useEffect(() => {
+        setMeta(null); setResult(null); setStep("idle"); setErrMsg("");
+        if (!videoId) return;
+        fetchOEmbed(url).then((d) => setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId }));
+      }, [videoId]);
+
+      async function analyze() {
+        if (!videoId) return;
+        setStep("analyzing"); setErrMsg("");
+        const labels = ["Searching for transcript...", "Reading video content...", "Checking prior library...", "Generating analysis..."];
+        let si = 0; setStepLabel(labels[0]);
+        const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
+        try {
+          const prior = existingVideos.filter((v) => meta?.channel && v.channel?.toLowerCase() === meta.channel.toLowerCase());
+          const priorCtx = prior.length > 0
+            ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL IN DAVE'S LIBRARY:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured above.`
+            : "\n\nNo prior videos from this channel in the library yet.";
+
+          const data = await callClaude({
+            system: `You are analyzing a YouTube video for Dave's personal knowledge base. Use web_search to find the video transcript or detailed content.${priorCtx}
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "title": "exact video title",
+  "channel": "channel/creator name",
+  "summary": "3-4 paragraph comprehensive summary covering main arguments, key insights, and practical takeaways",
+  "keyPoints": ["specific actionable point 1", "...up to 8"],
+  "tags": ["tag1", "...up to 5, choose from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "whatsNew": "${prior.length > 0 ? "2-3 sentences on what this adds beyond prior videos. Be specific." : "First video from this channel."}",
+  "actionSuggestions": ["Specific concrete action Dave could take", "...up to 3"]
+}`,
+            messages: [{ role: "user", content: `Analyze: ${url}\nMetadata: "${meta?.title || "unknown"}" by ${meta?.channel || "unknown"}` }],
+            maxTokens: 1600, tools: WEB_SEARCH,
+          });
+          clearInterval(ticker);
+          const parsed = parseJSON(getText(data));
+          if (!parsed?.summary) throw new Error("Could not parse response — please try again");
+          setResult(parsed); setTags(parsed.tags || []); setStep("done");
+        } catch (e) { clearInterval(ticker); setErrMsg(e.message); setStep("error"); }
+      }
+
+      function addTag() { const t = tagInput.trim().toLowerCase(); if (t && !tags.includes(t)) setTags([...tags, t]); setTagInput(""); }
+
+      async function save() {
+        if (!result || !videoId) return;
+        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], dateAdded: new Date().toISOString() };
+        const rows = await sbInsert(toDb(video));
+        onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
+      }
+
+      const priorCount = meta?.channel ? existingVideos.filter((v) => v.channel?.toLowerCase() === meta.channel.toLowerCase()).length : 0;
+
+      return (
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
+          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Add YouTube Video</h2>
+          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Paste a URL — Claude finds the transcript and analyzes it against your existing library.</p>
+          <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 16 }} autoFocus />
+
+          {videoId && meta && (
+            <div className="rcard rfade" style={{ padding: 16, marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 16 }}>
+                <img src={thumb(videoId)} style={{ width: 152, height: 86, objectFit: "cover", borderRadius: 8, background: "var(--s2)", flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>{meta.title || "Video found"}</p>
+                  {meta.channel && <p style={{ fontSize: 13, color: "var(--t2)", marginBottom: 8 }}>{meta.channel}</p>}
+                  {priorCount > 0 && <span style={{ fontSize: 12, background: "var(--acc-lo)", color: "var(--acc)", borderRadius: 6, padding: "3px 10px", border: "1px solid var(--acc-mid)" }}>{priorCount} prior video{priorCount !== 1 ? "s" : ""} from this channel</span>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "analyzing" && (
+            <div className="rcard rfade" style={{ padding: 28, textAlign: "center" }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Spinner size={26} /></div>
+              <p style={{ color: "var(--t2)", fontSize: 14 }}>{stepLabel}</p>
+            </div>
+          )}
+          {step === "error" && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
+
+          {step === "done" && result && (
+            <div className="rfade">
+              {result.whatsNew && (
+                <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
+                  <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7 }}>{result.whatsNew}</p>
+                </div>
+              )}
+              {result.actionSuggestions?.length > 0 && (
+                <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--ok)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Suggested Actions</p>
+                  {result.actionSuggestions.map((a, i) => (
+                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: i < result.actionSuggestions.length - 1 ? 8 : 0 }}>
+                      <span style={{ color: "var(--ok)", fontWeight: 700 }}>✦</span>
+                      <span style={{ fontSize: 14, color: "var(--t2)" }}>{a}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rcard" style={{ padding: 18, marginBottom: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Summary</p>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.75 }}>{result.summary}</p>
+              </div>
+              {result.keyPoints?.length > 0 && (
+                <div className="rcard" style={{ padding: 18, marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Key Points</p>
+                  <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {result.keyPoints.map((p, i) => (
+                      <li key={i} style={{ fontSize: 14, display: "flex", gap: 10 }}>
+                        <span style={{ color: "var(--acc)", fontWeight: 700, flexShrink: 0 }}>→</span>
+                        <span style={{ color: "var(--t2)" }}>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="rcard" style={{ padding: 18, marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 10 }}>Tags</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>{tags.map((t) => <Tag key={t} label={t} onRemove={() => setTags(tags.filter((x) => x !== t))} />)}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTag()} style={{ maxWidth: 200 }} />
+                  <button className="rbtn-g" onClick={addTag}>Add</button>
+                </div>
+              </div>
+              <button className="rbtn-p" onClick={save} style={{ width: "100%" }}>Save to Knowledge Base</button>
+            </div>
+          )}
+
+          {(step === "idle" || step === "meta" || step === "error") && videoId && (
+            <button className="rbtn-p" onClick={analyze} style={{ width: "100%" }}>Analyze Video</button>
+          )}
+        </div>
+      );
+    }
+
+    // ─── Video Detail ──────────────────────────────────────────────────────────
+    function VideoDetailView({ video, onUpdate, onDelete, onBack }) {
+      const [qaInput, setQaInput] = useState("");
+      const [qaLoading, setQaLoading] = useState(false);
+      const [captureText, setCaptureText] = useState("");
+      const [captureType, setCaptureType] = useState("note");
+      const [captureStatus, setCaptureStatus] = useState("idle");
+      const [captureMsg, setCaptureMsg] = useState("");
+      const [tagInput, setTagInput] = useState("");
+      const [showTagEdit, setShowTagEdit] = useState(false);
+      const qaEndRef = useRef(null);
+      useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [video.qa?.length]);
+
+      const ps = video.pointStatus?.length === video.keyPoints?.length ? video.pointStatus : (video.keyPoints || []).map(() => null);
+      const newCount = ps.filter((s) => s === "new").length;
+      const knownCount = ps.filter((s) => s === "known").length;
+
+      async function updatePoint(idx, val) {
+        const next = [...ps]; next[idx] = next[idx] === val ? null : val;
+        const updated = { ...video, pointStatus: next }; onUpdate(updated);
+        await sbPatch(video.id, { point_status: next });
+      }
+
+      async function askQuestion() {
+        const q = qaInput.trim(); if (!q || qaLoading) return;
+        setQaInput(""); setQaLoading(true);
+        const withUser = [...(video.qa || []), { id: genId(), role: "user", content: q }];
+        onUpdate({ ...video, qa: withUser });
+        try {
+          const data = await callClaude({
+            system: `You are helping Dave understand a YouTube video.\nVideo: "${video.title}" by ${video.channel}\n${video.url ? `URL: ${video.url}\n` : ""}\nSummary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nUse web_search for additional details if needed.`,
+            messages: withUser.map((m) => ({ role: m.role, content: m.content })),
+            maxTokens: 1000, tools: WEB_SEARCH,
+          });
+          const withAi = [...withUser, { id: genId(), role: "assistant", content: getText(data) }];
+          onUpdate({ ...video, qa: withAi }); await sbPatch(video.id, { qa: withAi });
+        } catch (e) {
+          const withErr = [...withUser, { id: genId(), role: "assistant", content: `Error: ${e.message}` }];
+          onUpdate({ ...video, qa: withErr }); await sbPatch(video.id, { qa: withErr });
+        } finally { setQaLoading(false); }
+      }
+
+      async function captureContent() {
+        if (!captureText.trim()) return;
+        setCaptureStatus("loading"); setCaptureMsg("");
+        try {
+          await callClaude({ system: `Capture for owner "dave" (personal scope) using capture_thought.`, messages: [{ role: "user", content: `Capture as ${captureType} (scope personal, owner dave):\n\n${captureText.trim()}\n\n[YouTube: "${video.title}" — ${video.channel}]` }], maxTokens: 400, mcp: BRAIN_MCP });
+          setCaptureStatus("done"); setCaptureMsg("Captured ✓"); setCaptureText("");
+          setTimeout(() => { setCaptureStatus("idle"); setCaptureMsg(""); }, 3000);
+        } catch (e) { setCaptureStatus("error"); setCaptureMsg(e.message); }
+      }
+
+      async function captureAction(suggestion) {
+        await callClaude({ system: `Capture for owner "dave" (personal scope) as a task using capture_thought.`, messages: [{ role: "user", content: `Task (scope personal, owner dave):\n${suggestion}\n[From: "${video.title}" — ${video.channel}]` }], maxTokens: 400, mcp: BRAIN_MCP });
+      }
+
+      async function addTag() {
+        const t = tagInput.trim().toLowerCase(); if (!t || (video.tags || []).includes(t)) { setTagInput(""); return; }
+        const newTags = [...(video.tags || []), t]; onUpdate({ ...video, tags: newTags }); setTagInput("");
+        await sbPatch(video.id, { tags: newTags });
+      }
+
+      async function removeTag(t) {
+        const newTags = (video.tags || []).filter((x) => x !== t); onUpdate({ ...video, tags: newTags });
+        await sbPatch(video.id, { tags: newTags });
+      }
+
+      function ActionBtn({ onCapture }) {
+        const [st, setSt] = useState("idle");
+        async function go() { setSt("loading"); try { await onCapture(); setSt("done"); setTimeout(() => setSt("idle"), 2500); } catch { setSt("error"); setTimeout(() => setSt("idle"), 2000); } }
+        return <button onClick={go} disabled={st === "loading" || st === "done"} style={{ padding: "3px 10px", fontSize: 11, flexShrink: 0, borderRadius: 6, background: st === "done" ? "var(--ok-lo)" : "transparent", border: `1px solid ${st === "done" ? "var(--ok-mid)" : "var(--b)"}`, color: st === "done" ? "var(--ok)" : "var(--t3)", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "Figtree,system-ui" }}>{st === "loading" ? "..." : st === "done" ? "✓ Sent" : "→ Brain"}</button>;
+      }
+
+      return (
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+            <button className="rbtn-g" onClick={onBack}>← Back</button>
+            <div style={{ display: "flex", gap: 10 }}>
+              {video.url && <a href={video.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}><button className="rbtn-g" style={{ color: "var(--yt)", borderColor: "rgba(255,68,68,.3)" }}>▶ YouTube</button></a>}
+              <button className="rbtn-d" onClick={onDelete}>Delete</button>
+            </div>
+          </div>
+
+          <div className="rcard rfade" style={{ marginBottom: 14, overflow: "hidden" }}>
+            {video.videoId
+              ? <img src={thumb(video.videoId)} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", background: "var(--s2)" }} />
+              : <div style={{ width: "100%", aspectRatio: "16/9", background: "var(--s2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, opacity: .3 }}>▶</div>
+            }
+            <div style={{ padding: "18px 20px" }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, marginBottom: 8 }}>{video.title}</h2>
+              <div style={{ display: "flex", gap: 10, fontSize: 13, color: "var(--t2)", flexWrap: "wrap", alignItems: "center" }}>
+                {video.channel && <span style={{ fontWeight: 500 }}>{video.channel}</span>}
+                {video.channel && <span>·</span>}
+                <span className="rmono">{fmtDate(video.dateAdded)}</span>
+                {newCount > 0 && <span style={{ background: "var(--ok-lo)", color: "var(--ok)", border: "1px solid var(--ok-mid)", borderRadius: 6, padding: "1px 8px", fontSize: 12 }}>{newCount} new</span>}
+                {knownCount > 0 && <span style={{ background: "var(--acc-lo)", color: "var(--acc)", border: "1px solid var(--acc-mid)", borderRadius: 6, padding: "1px 8px", fontSize: 12 }}>{knownCount} known</span>}
+              </div>
+            </div>
+          </div>
+
+          {video.whatsNew && (
+            <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 12, padding: "16px 20px", marginBottom: 14 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
+              <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7 }}>{video.whatsNew}</p>
+            </div>
+          )}
+
+          {video.actionSuggestions?.length > 0 && (
+            <Sec title="Suggested Actions" subtitle="Tap → Brain to capture as a task">
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {video.actionSuggestions.map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ color: "var(--ok)", fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✦</span>
+                    <span style={{ flex: 1, fontSize: 14, color: "var(--t2)" }}>{a}</span>
+                    <ActionBtn onCapture={() => captureAction(a)} />
+                  </div>
+                ))}
+              </div>
+            </Sec>
+          )}
+
+          <Sec title="Summary" accent>
+            <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.8 }}>{video.summary}</p>
+          </Sec>
+
+          {video.keyPoints?.length > 0 && (
+            <Sec title="Key Points" subtitle="Mark each point — New to you or Already Known">
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {video.keyPoints.map((p, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ color: "var(--acc)", fontWeight: 700, flexShrink: 0, marginTop: 3, fontSize: 13 }}>→</span>
+                    <span style={{ flex: 1, fontSize: 14, color: ps[i] === "known" ? "var(--t3)" : "var(--t2)", textDecoration: ps[i] === "known" ? "line-through" : "none", lineHeight: 1.6 }}>{p}</span>
+                    <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                      <button className={`snew${ps[i] === "new" ? "" : " off"}`} onClick={() => updatePoint(i, "new")}>New</button>
+                      <button className={`sknown${ps[i] === "known" ? "" : " off"}`} onClick={() => updatePoint(i, "known")}>Known</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Sec>
+          )}
+
+          <Sec title="Tags" action={<button className="rbtn-g" style={{ fontSize: 12, padding: "4px 10px" }} onClick={() => setShowTagEdit(!showTagEdit)}>{showTagEdit ? "Done" : "Edit"}</button>}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(video.tags || []).map((t) => <Tag key={t} label={t} onRemove={showTagEdit ? () => removeTag(t) : undefined} />)}
+              {!(video.tags || []).length && <span style={{ fontSize: 13, color: "var(--t3)" }}>No tags</span>}
+            </div>
+            {showTagEdit && (
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <input placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTag()} style={{ maxWidth: 200 }} />
+                <button className="rbtn-g" onClick={addTag}>Add</button>
+              </div>
+            )}
+          </Sec>
+
+          <Sec title="Ask Questions">
+            {video.qa?.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
+                {video.qa.map((m) => (
+                  <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
+                    <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 5, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>{m.role === "user" ? "You" : "AI"}</p>
+                    <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+                  </div>
+                ))}
+                {qaLoading && <div className="rqa-a"><p style={{ fontSize: 11, fontWeight: 700, marginBottom: 8, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>AI</p><Dots /></div>}
+                <div ref={qaEndRef} />
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <input placeholder="Ask anything about this video..." value={qaInput} onChange={(e) => setQaInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && askQuestion()} disabled={qaLoading} />
+              <button className="rbtn-p" onClick={askQuestion} disabled={qaLoading || !qaInput.trim()} style={{ flexShrink: 0, padding: "10px 18px", display: "flex", alignItems: "center", gap: 6 }}>
+                {qaLoading ? <Spinner size={15} /> : "Ask"}
+              </button>
+            </div>
+          </Sec>
+
+          <Sec title="Capture to Brain" subtitle="Personal scope — notes or tasks from this video">
+            <textarea placeholder="Write a note or task idea..." value={captureText} onChange={(e) => setCaptureText(e.target.value)} rows={3} style={{ marginBottom: 12, resize: "vertical" }} />
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["note", "task"].map((t) => (
+                  <button key={t} onClick={() => setCaptureType(t)} style={{ padding: "7px 16px", fontSize: 13, background: captureType === t ? "var(--ok-lo)" : "transparent", border: `1px solid ${captureType === t ? "var(--ok-mid)" : "var(--b)"}`, color: captureType === t ? "var(--ok)" : "var(--t2)", borderRadius: 8, cursor: "pointer", fontFamily: "Figtree,system-ui" }}>
+                    {t === "note" ? "📝 Note" : "✅ Task"}
+                  </button>
+                ))}
+              </div>
+              <button className="rbtn-ok" onClick={captureContent} disabled={captureStatus === "loading" || !captureText.trim()} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                {captureStatus === "loading" ? <><Spinner size={14} />Saving...</> : "Capture"}
+              </button>
+            </div>
+            {captureMsg && <p style={{ fontSize: 13, marginTop: 10, color: captureStatus === "done" ? "var(--ok)" : "var(--red)" }}>{captureMsg}</p>}
+          </Sec>
+        </div>
+      );
+    }
+
+    // ─── Cross-Query ───────────────────────────────────────────────────────────
+    function CrossQueryView({ videos, onBack }) {
+      const [sel, setSel] = useState(new Set(videos.map((v) => v.id)));
+      const [query, setQuery] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [result, setResult] = useState(null);
+      const [errMsg, setErrMsg] = useState("");
+      const [captureStatus, setCaptureStatus] = useState("idle");
+      const selVideos = videos.filter((v) => sel.has(v.id));
+
+      async function synthesize() {
+        if (!query.trim() || !selVideos.length) return;
+        setLoading(true); setResult(null); setErrMsg("");
+        try {
+          const ctx = selVideos.map((v, i) => `VIDEO ${i + 1}: "${v.title}" — ${v.channel}\n\nSummary: ${v.summary}\n\nKey Points:\n${(v.keyPoints || []).map((p) => `• ${p}`).join("\n")}`).join("\n\n---\n\n");
+          const data = await callClaude({
+            system: `You are synthesizing insights across ${selVideos.length} YouTube videos in Dave's knowledge base.\n\n${ctx}\n\nDraw connections, patterns, compare perspectives. Reference video titles. Use web_search if helpful.`,
+            messages: [{ role: "user", content: query }],
+            maxTokens: 1500, tools: WEB_SEARCH,
+          });
+          setResult(getText(data));
+        } catch (e) { setErrMsg(e.message); }
+        finally { setLoading(false); }
+      }
+
+      async function captureResult() {
+        if (!result) return; setCaptureStatus("loading");
+        try {
+          await callClaude({ system: `Capture for owner "dave" (personal scope) as a note using capture_thought.`, messages: [{ role: "user", content: `Cross-video synthesis (scope personal, owner dave):\nQuery: ${query}\n\n${result}` }], maxTokens: 400, mcp: BRAIN_MCP });
+          setCaptureStatus("done"); setTimeout(() => setCaptureStatus("idle"), 3000);
+        } catch { setCaptureStatus("error"); }
+      }
+
+      return (
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px" }}>
+          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Cross-Video Synthesis</h2>
+          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Ask a question across your library. Claude finds connections and patterns.</p>
+          <div className="rcard" style={{ padding: 16, marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em" }}>{selVideos.length} selected</span>
+              <button className="rbtn-g" style={{ fontSize: 12, padding: "4px 10px" }} onClick={() => setSel(sel.size === videos.length ? new Set() : new Set(videos.map((v) => v.id)))}>
+                {sel.size === videos.length ? "Deselect All" : "Select All"}
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {videos.map((v) => (
+                <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "8px 10px", borderRadius: 8, background: sel.has(v.id) ? "var(--acc-lo)" : "transparent", border: `1px solid ${sel.has(v.id) ? "var(--acc-mid)" : "transparent"}`, transition: "all .15s" }}>
+                  <input type="checkbox" checked={sel.has(v.id)} onChange={() => { const n = new Set(sel); n.has(v.id) ? n.delete(v.id) : n.add(v.id); setSel(n); }} style={{ width: 15, height: 15, accentColor: "var(--acc)", cursor: "pointer" }} />
+                  <img src={v.videoId ? thumb(v.videoId) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='27' fill='%231A2438'%3E%3Crect width='48' height='27'/%3E%3C/svg%3E"} style={{ width: 48, height: 27, objectFit: "cover", borderRadius: 4, background: "var(--s2)", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.title}</p>
+                    <p style={{ fontSize: 12, color: "var(--t2)" }}>{v.channel}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+            <input placeholder="What common themes exist? Compare approaches to...?" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && synthesize()} disabled={loading} />
+            <button className="rbtn-p" onClick={synthesize} disabled={loading || !query.trim() || !selVideos.length} style={{ flexShrink: 0, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8 }}>
+              {loading ? <Spinner size={15} /> : "Synthesize"}
+            </button>
+          </div>
+          {errMsg && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
+          {loading && <div className="rcard" style={{ padding: 32, textAlign: "center" }}><Spinner size={26} /><p style={{ color: "var(--t2)", fontSize: 14, marginTop: 14 }}>Synthesizing across {selVideos.length} videos...</p></div>}
+          {result && (
+            <div className="rfade">
+              <div className="rcard" style={{ padding: 20, marginBottom: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 14 }}>Synthesis</p>
+                <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{result}</p>
+              </div>
+              <button className="rbtn-ok" onClick={captureResult} disabled={captureStatus === "loading"}>
+                {captureStatus === "loading" ? "Saving..." : captureStatus === "done" ? "Captured ✓" : "Capture to Brain as Note"}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── App ──────────────────────────────────────────────────────────────────
+    function App() {
+      const [view, setView] = useState("library");
+      const [videos, setVideos] = useState([]);
+      const [selected, setSelected] = useState(null);
+      const [loaded, setLoaded] = useState(false);
+      const [loadErr, setLoadErr] = useState("");
+
+      useEffect(() => {
+        sbLoad().then((rows) => setVideos((rows || []).map(fromDb))).catch((e) => setLoadErr(e.message)).finally(() => setLoaded(true));
+      }, []);
+
+      const upsertVideo = useCallback((v) => setVideos((prev) => { const i = prev.findIndex((x) => x.id === v.id); return i >= 0 ? prev.map((x, j) => j === i ? v : x) : [v, ...prev]; }), []);
+      const removeVideo = useCallback(async (id) => { setVideos((prev) => prev.filter((v) => v.id !== id)); await sbDelete(id); }, []);
+      const currentVideo = videos.find((v) => v.id === selected?.id) || selected;
+
+      if (!loaded) return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", color: "#4A5D7A", fontFamily: "system-ui", gap: 12 }}>
+          <div style={{ width: 20, height: 20, border: "2px solid #1E2D48", borderTopColor: "#4B8BF5", borderRadius: "50%", animation: "rspin .7s linear infinite" }} />
+          Connecting...
+        </div>
+      );
+
+      if (loadErr) return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", color: "#F07070", fontFamily: "system-ui", textAlign: "center", padding: 40 }}>
+          <div><p style={{ fontSize: 16, marginBottom: 8 }}>Failed to connect to Supabase</p><p style={{ fontSize: 13, opacity: .7 }}>{loadErr}</p></div>
+        </div>
+      );
+
+      return (
+        <div className="reel">
+          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); setView("detail"); }} onDelete={removeVideo} onAddNew={() => setView("add")} onCrossQuery={() => setView("query")} onPaste={() => setView("paste")} />}
+          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} />}
+          {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} />}
+          {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); setView("library"); }} onBack={() => setView("library")} />}
+          {view === "query" && <CrossQueryView videos={videos} onBack={() => setView("library")} />}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+</body>
+</html>
