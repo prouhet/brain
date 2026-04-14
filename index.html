@@ -26,7 +26,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:linear-gradient(rgba(43,125,148,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(43,125,148,0.025) 1px,transparent 1px);
   background-size:44px 44px}
 .wrapper{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:24px 20px 48px;width:100%}
- 
+
 /* Header */
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
 .logo{display:flex;align-items:center;gap:10px}
@@ -37,13 +37,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .scope-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px;border:1px solid var(--border)}
 .scope-btn{font-size:11px;padding:4px 12px;border-radius:6px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all 0.15s}
 .scope-btn.active{background:var(--surface3);color:var(--text)}
- 
+
 /* Override indicator */
 .override-indicator{font-size:11px;color:var(--teal-light);margin-bottom:10px;padding:6px 12px;background:var(--teal-dim);border-radius:6px;border:1px solid rgba(43,125,148,0.25)}
- 
+
 /* Row labels */
 .row-label{font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px}
- 
+
 /* Type selector */
 .type-selector{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
 .type-btn{border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface);padding:14px 12px 12px;cursor:pointer;text-align:left;transition:all 0.15s;display:flex;flex-direction:column;gap:6px}
@@ -60,7 +60,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .type-icon{font-size:18px;line-height:1}
 .type-name{font-size:13px;font-weight:500;color:var(--text)}
 .type-desc{font-size:10px;color:var(--text-faint);line-height:1.4}
- 
+
 /* Recurring row */
 .recurring-row{margin-bottom:16px;transition:opacity 0.2s}
 .recurring-row.hidden{display:none}
@@ -79,13 +79,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .custom-recur select{padding:5px 10px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer}
 .custom-recur select option{background:var(--surface3)}
 .custom-label{font-size:12px;color:var(--text-dim)}
- 
+
 /* Textarea */
 .input-area{position:relative;margin-bottom:12px}
 textarea{width:100%;min-height:120px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;padding:16px;resize:none;outline:none;transition:border-color 0.15s}
 textarea:focus{border-color:var(--border2)}
 textarea::placeholder{color:var(--text-faint)}
- 
+
 /* Controls */
 .controls{display:flex;gap:10px;align-items:center}
 .mic-btn{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
@@ -97,7 +97,26 @@ textarea::placeholder{color:var(--text-faint)}
 .capture-btn:hover{background:var(--teal-light)}
 .capture-btn:active{transform:scale(0.98)}
 .capture-btn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
- 
+
+
+/* ── Light mode ── */
+body.light {
+  --black:#ffffff; --surface:#f4f4f4; --surface2:#ebebeb; --surface3:#e0e0e0;
+  --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.16);
+  --text:#1a1a1a; --text-dim:#555; --text-faint:#999;
+}
+body.light::before {
+  background-image:linear-gradient(rgba(43,125,148,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(43,125,148,0.07) 1px,transparent 1px);
+}
+.theme-btn {
+  width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border2);
+  background:var(--surface2); color:var(--text-dim); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; transition:all 0.15s; flex-shrink:0;
+  line-height:1;
+}
+.theme-btn:hover { border-color:var(--teal); color:var(--teal-light); }
+
 /* Toast */
 .toast{margin-top:16px;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.5;display:none;border:1px solid transparent}
 .toast.show{display:block}
@@ -106,7 +125,7 @@ textarea::placeholder{color:var(--text-faint)}
 .toast .task-list{margin-top:8px;padding-left:4px}
 .toast .task-list li{color:rgba(255,255,255,0.5);font-size:12px;margin-top:4px;list-style:none;padding-left:12px;position:relative}
 .toast .task-list li::before{content:'•';position:absolute;left:0;color:rgba(255,255,255,0.3)}
- 
+
 /* Recent */
 .recent-label{font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-faint);margin:24px 0 10px}
 .recent-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
@@ -119,7 +138,7 @@ textarea::placeholder{color:var(--text-faint)}
 </head>
 <body>
 <div class="wrapper">
- 
+
   <!-- Header -->
   <div class="header">
     <div class="logo">
@@ -137,12 +156,12 @@ textarea::placeholder{color:var(--text-faint)}
     <div class="scope-toggle">
       <button class="scope-btn active" data-scope="business" onclick="setScope('business',this)">Business</button>
       <button class="scope-btn" data-scope="personal" onclick="setScope('personal',this)">Me</button>
-    </div>
+        <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
   </div>
- 
+
   <!-- Override indicator -->
   <div id="override-indicator" class="override-indicator" style="display:none;"></div>
- 
+
   <!-- Type selector -->
   <div class="row-label">What are you capturing?</div>
   <div class="type-selector">
@@ -162,7 +181,7 @@ textarea::placeholder{color:var(--text-faint)}
       <span class="type-desc">To-do — shows in priorities</span>
     </button>
   </div>
- 
+
   <!-- When row (only shows when Task selected) -->
   <div class="recurring-row hidden" id="when-row">
     <div class="row-label">When?</div>
@@ -171,7 +190,7 @@ textarea::placeholder{color:var(--text-faint)}
       <input type="date" id="custom-when-date" onchange="onCustomWhenChange(this)">
     </div>
   </div>
- 
+
   <!-- Recurring row (only shows when Task selected) -->
   <div class="recurring-row hidden" id="recurring-row">
     <div class="row-label">Repeats?</div>
@@ -194,12 +213,12 @@ textarea::placeholder{color:var(--text-faint)}
       </select>
     </div>
   </div>
- 
+
   <!-- Text input -->
   <div class="input-area">
     <textarea id="content" placeholder="What's on your mind?"></textarea>
   </div>
- 
+
   <!-- Controls -->
   <div class="controls">
     <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice input">
@@ -217,68 +236,68 @@ textarea::placeholder{color:var(--text-faint)}
       Capture
     </button>
   </div>
- 
+
   <div class="toast" id="toast"></div>
- 
+
   <div class="recent-label">Recent captures</div>
   <div id="recent-list"><div style="font-size:12px;color:var(--text-faint);padding:8px 0;">Loading…</div></div>
- 
+
 </div>
 <script>
 const API_BASE    = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
-const DEEPGRAM_KEY = 'a8e4ccb211370631e8b084973a9dd8bc070d45db'; // ← replace after regenerating
+const DEEPGRAM_KEY = 'PASTE_YOUR_DEEPGRAM_KEY_HERE'; // ← replace after regenerating
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
- 
+
 let currentType  = 'observation';
 let currentScope = 'business';
 let currentRecur = 'none';
 let currentWhen  = 'none';
- 
+
 // ── Voice (Deepgram Nova-2) ───────────────────────────────────
 let mediaRecorder = null;
 let audioChunks   = [];
 let isRecording   = false;
- 
+
 async function toggleMic() {
   if (isRecording) {
     mediaRecorder?.stop();
     return;
   }
- 
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
- 
+
     // Pick a format Deepgram handles well
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
         : 'audio/ogg';
- 
+
     mediaRecorder = new MediaRecorder(stream, { mimeType });
     audioChunks   = [];
- 
+
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
- 
+
     mediaRecorder.onstart = () => {
       isRecording = true;
       const btn = document.getElementById('mic-btn');
       btn.classList.add('recording');
       btn.title = 'Tap to stop';
     };
- 
+
     mediaRecorder.onstop = async () => {
       // Stop all tracks so browser mic indicator clears
       stream.getTracks().forEach(t => t.stop());
- 
+
       isRecording = false;
       const btn = document.getElementById('mic-btn');
       btn.classList.remove('recording');
       btn.classList.add('transcribing');
       btn.title = 'Transcribing…';
- 
+
       try {
         const blob = new Blob(audioChunks, { type: mimeType });
         const transcript = await transcribeWithDeepgram(blob, mimeType);
@@ -295,14 +314,14 @@ async function toggleMic() {
         btn.title = 'Voice input';
       }
     };
- 
+
     mediaRecorder.start();
- 
+
   } catch (err) {
     showToast('Mic access denied or unavailable.', 'error');
   }
 }
- 
+
 async function transcribeWithDeepgram(blob, mimeType) {
   const res = await fetch(
     'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en-US',
@@ -315,16 +334,16 @@ async function transcribeWithDeepgram(blob, mimeType) {
       body: blob,
     }
   );
- 
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.err_msg || `Deepgram ${res.status}`);
   }
- 
+
   const data = await res.json();
   return data?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() || '';
 }
- 
+
 // ── Type ──────────────────────────────────────────────────────
 function setType(type, btn) {
   currentType = type;
@@ -339,17 +358,17 @@ function setType(type, btn) {
   }
   updatePlaceholder();
 }
- 
+
 // ── Scope ─────────────────────────────────────────────────────
 function setScope(scope, btn) {
   currentScope = scope;
   document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.scope-btn').forEach(b => { if (b.dataset.scope === scope) b.classList.add('active'); });
 }
- 
+
 // ── When ──────────────────────────────────────────────────────
 let whenChipsData = [];
- 
+
 function buildWhenChips() {
   const now = new Date();
   now.setHours(12, 0, 0, 0);
@@ -367,7 +386,7 @@ function buildWhenChips() {
   );
   return chips;
 }
- 
+
 function renderWhenChips() {
   whenChipsData = buildWhenChips();
   const container = document.getElementById('when-btns');
@@ -378,7 +397,7 @@ function renderWhenChips() {
     return `<button class="${cls.join(' ')}" data-when="${chip.val}" onclick="setWhen('${chip.val}',this)">${chip.label}</button>`;
   }).join('');
 }
- 
+
 function setWhen(when, btn) {
   currentWhen = when;
   document.querySelectorAll('.when-btns .recur-btn').forEach(b => b.classList.remove('active'));
@@ -394,9 +413,9 @@ function setWhen(when, btn) {
     customEl.classList.remove('show');
   }
 }
- 
+
 function onCustomWhenChange() { currentWhen = 'custom'; }
- 
+
 function getWhenValue() {
   if (currentWhen === 'none') return { due_date: null, due_month: null };
   if (currentWhen === 'custom') {
@@ -412,7 +431,7 @@ function getWhenValue() {
   else if (/^\+\d+d$/.test(currentWhen)) { d.setDate(d.getDate() + parseInt(currentWhen.slice(1,-1))); }
   return { due_date: d.toISOString().split('T')[0], due_month: d.toLocaleString('en-US',{month:'long'}).toLowerCase() };
 }
- 
+
 function whenLabel() {
   if (currentWhen === 'none') return '';
   if (currentWhen === 'custom') {
@@ -423,7 +442,7 @@ function whenLabel() {
   const chip = whenChipsData.find(c => c.val === currentWhen);
   return chip ? chip.label : currentWhen;
 }
- 
+
 // ── Recurring ─────────────────────────────────────────────────
 function setRecur(recur, btn) {
   currentRecur = recur;
@@ -431,7 +450,7 @@ function setRecur(recur, btn) {
   if (btn) btn.classList.add('active');
   document.getElementById('custom-recur').classList.toggle('show', recur === 'custom');
 }
- 
+
 function getRecurValue() {
   if (currentRecur === 'none') return null;
   if (currentRecur === 'custom') {
@@ -441,7 +460,7 @@ function getRecurValue() {
   }
   return currentRecur;
 }
- 
+
 function recurLabel() {
   if (currentRecur === 'none') return null;
   if (currentRecur === 'custom') {
@@ -451,7 +470,7 @@ function recurLabel() {
   }
   return currentRecur;
 }
- 
+
 // ── Placeholder ───────────────────────────────────────────────
 function updatePlaceholder() {
   const ta = document.getElementById('content');
@@ -462,13 +481,13 @@ function updatePlaceholder() {
   };
   ta.placeholder = ph[currentType] || "What's on your mind?";
 }
- 
+
 // ── Keyword detection ─────────────────────────────────────────
 const TYPE_KW  = ['task','note','observation'];
 const SCOPE_KW = ['me','my'];
 const RECUR_KW = { weekly:'weekly', biweekly:'biweekly', monthly:'monthly', daily:'daily' };
 const WHEN_KW  = { 'today':'today', 'tonight':'today', 'tomorrow':'tomorrow', 'friday':'this-fri', 'monday':'next-mon' };
- 
+
 function detectKeywords(text) {
   const lower = text.toLowerCase().trimStart();
   let detectedScope = null, detectedType = null, detectedRecur = null, detectedWhen = null;
@@ -487,7 +506,7 @@ function detectKeywords(text) {
   }
   return { detectedScope, detectedType, detectedRecur, detectedWhen };
 }
- 
+
 function applyKeywordOverrides(text) {
   const { detectedScope, detectedType, detectedRecur, detectedWhen } = detectKeywords(text);
   const ind = document.getElementById('override-indicator');
@@ -499,7 +518,7 @@ function applyKeywordOverrides(text) {
   if (parts.length) { ind.textContent = '⌨ Override — '+parts.join(', '); ind.style.display='block'; }
   else ind.style.display='none';
 }
- 
+
 function stripKeywordPrefix(text) {
   let t = text.trimStart();
   for (const sk of SCOPE_KW) {
@@ -511,36 +530,36 @@ function stripKeywordPrefix(text) {
   }
   return t.trim();
 }
- 
+
 // ── Capture ───────────────────────────────────────────────────
 async function capture() {
   const rawContent = document.getElementById('content').value.trim();
   if (!rawContent) { showToast('Please enter something first.','error'); return; }
   if (!KEY) { showToast('No key in URL — add ?key=YOUR_KEY','error'); return; }
- 
+
   const content = stripKeywordPrefix(rawContent);
   const recurVal = getRecurValue();
   const { due_date, due_month } = getWhenValue();
- 
+
   const btn = document.getElementById('capture-btn');
   btn.disabled=true;
   btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32"><animate attributeName="stroke-dashoffset" values="32;0;32" dur="1.2s" repeatCount="indefinite"/></circle></svg> Saving…';
- 
+
   try {
     const body = { content, key: KEY, save_as: currentType, scope: currentScope };
     if (recurVal)  body.recurring  = recurVal;
     if (due_date)  body.due_date   = due_date;
     if (due_month) body.due_month  = due_month;
- 
+
     const res = await fetch(`${API_BASE}/quick-capture`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error||'Server error');
- 
+
     document.getElementById('content').value='';
     document.getElementById('override-indicator').style.display='none';
- 
+
     const typeLabels = { task:'Task saved', note:'Note saved', observation:'Observation saved' };
     let msg = '✓ '+(typeLabels[currentType]||'Saved');
     if (due_date)  msg += ` — due ${whenLabel()}`;
@@ -552,12 +571,12 @@ async function capture() {
     }
     showToast(msg+taskHtml,'success');
     loadRecent();
- 
+
     setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
     setWhen('none', document.querySelector('.when-btns .recur-btn[data-when="none"]'));
     document.getElementById('custom-when-date').value = '';
     document.getElementById('custom-when').classList.remove('show');
- 
+
   } catch(e) {
     showToast('Error: '+e.message,'error');
   } finally {
@@ -565,7 +584,7 @@ async function capture() {
     btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Capture';
   }
 }
- 
+
 // ── Recent ────────────────────────────────────────────────────
 async function loadRecent() {
   try {
@@ -578,15 +597,15 @@ async function loadRecent() {
     }
   } catch { /* silent */ }
 }
- 
+
 function showToast(msg, type) {
   const t=document.getElementById('toast');
   t.innerHTML=msg; t.className=`toast show ${type}`;
   if (type==='success') setTimeout(()=>t.classList.remove('show'),5000);
 }
- 
+
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
- 
+
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   updatePlaceholder();
@@ -596,6 +615,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   ta.addEventListener('input',()=>applyKeywordOverrides(ta.value));
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();capture();} });
 });
+
+// ── Theme ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '🌙' : '☀️';
+  localStorage.setItem('ss-theme', isLight ? 'light' : 'dark');
+}
+(function initTheme() {
+  if (localStorage.getItem('ss-theme') === 'light') {
+    document.body.classList.add('light');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('theme-btn');
+      if (btn) btn.textContent = '🌙';
+    });
+  }
+})();
 </script>
 </body>
 </html>
