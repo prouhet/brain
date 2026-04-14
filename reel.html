@@ -83,8 +83,8 @@
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
 
     // ─── Data mapping ─────────────────────────────────────────────────────────
-    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], dateAdded: r.date_added });
-    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, date_added: v.dateAdded, owner: OWNER });
+    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], transcript: r.transcript || null, dateAdded: r.date_added });
+    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, transcript: v.transcript || null, date_added: v.dateAdded, owner: OWNER });
 
     // ─── Utilities ────────────────────────────────────────────────────────────
     const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -358,7 +358,7 @@ Return ONLY valid JSON (no markdown fences):
       async function save() {
         if (!result) return;
         const videoId = url ? extractVid(url) : null;
-        const video = { id: genId(), videoId, url: url || null, title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url: url || null, title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: transcript || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
@@ -463,34 +463,61 @@ Return ONLY valid JSON (no markdown fences):
       async function analyze() {
         if (!videoId) return;
         setStep("analyzing"); setErrMsg("");
-        const labels = ["Searching for transcript...", "Reading video content...", "Checking prior library...", "Generating analysis..."];
-        let si = 0; setStepLabel(labels[0]);
+        let si = 0;
+        const labels = ["Fetching YouTube transcript...", "Reading transcript...", "Checking prior library...", "Generating analysis..."];
+        setStepLabel(labels[0]);
         const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
         try {
-          const prior = existingVideos.filter((v) => meta?.channel && v.channel?.toLowerCase() === meta.channel.toLowerCase());
+          // Step 1: get real transcript
+          const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+            body: JSON.stringify({ videoId }),
+          });
+          const txData = await txRes.json();
+          if (txData.error && !txData.transcript) throw new Error(`Transcript: ${txData.error}`);
+
+          const transcript = txData.transcript || null;
+          const titleResolved = txData.title || meta?.title || "";
+          const channelResolved = txData.channel || meta?.channel || "";
+
+          // Step 2: prior context
+          const prior = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase());
           const priorCtx = prior.length > 0
-            ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL IN DAVE'S LIBRARY:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured above.`
-            : "\n\nNo prior videos from this channel in the library yet.";
+            ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured.`
+            : "\n\nNo prior videos from this channel yet.";
 
-          const data = await callClaude({
-            system: `You are analyzing a YouTube video for Dave's personal knowledge base. Use web_search to find the video transcript or detailed content.${priorCtx}
+          // Step 3: Claude analyzes real transcript
+          const system = transcript
+            ? `You are analyzing a YouTube video transcript for Dave's personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.${priorCtx}
 
-Return ONLY valid JSON (no markdown fences):
+TRANSCRIPT:
+${transcript.slice(0, 14000)}
+
+Return ONLY valid JSON (no markdown fences, no extra text):
 {
   "title": "exact video title",
   "channel": "channel/creator name",
-  "summary": "3-4 paragraph comprehensive summary covering main arguments, key insights, and practical takeaways",
-  "keyPoints": ["specific actionable point 1", "...up to 8"],
-  "tags": ["tag1", "...up to 5, choose from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
-  "whatsNew": "${prior.length > 0 ? "2-3 sentences on what this adds beyond prior videos. Be specific." : "First video from this channel."}",
-  "actionSuggestions": ["Specific concrete action Dave could take", "...up to 3"]
-}`,
-            messages: [{ role: "user", content: `Analyze: ${url}\nMetadata: "${meta?.title || "unknown"}" by ${meta?.channel || "unknown"}` }],
-            maxTokens: 1600, tools: WEB_SEARCH,
+  "summary": "3-4 paragraph summary based strictly on the transcript",
+  "keyPoints": ["specific point from transcript", "...up to 8"],
+  "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "whatsNew": "${prior.length > 0 ? "2-3 sentences on what this adds beyond prior videos." : "First video from this channel."}",
+  "actionSuggestions": ["Specific action based on transcript content", "...up to 3"]
+}`
+            : `No transcript was available for this video.${priorCtx}
+Note: No transcript — base summary on title/channel, start summary with "NOTE: No transcript available."
+Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelResolved}", "summary": "NOTE: No transcript available...", "keyPoints": [], "tags": [], "whatsNew": "No transcript.", "actionSuggestions": [] }`;
+
+          const data = await callClaude({
+            system,
+            messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}` }],
+            maxTokens: 1600,
           });
           clearInterval(ticker);
           const parsed = parseJSON(getText(data));
           if (!parsed?.summary) throw new Error("Could not parse response — please try again");
+          if (txData.warning) parsed.whatsNew = `⚠️ ${txData.warning}`;
+          parsed._transcript = transcript; // carry through to save()
           setResult(parsed); setTags(parsed.tags || []); setStep("done");
         } catch (e) { clearInterval(ticker); setErrMsg(e.message); setStep("error"); }
       }
@@ -499,7 +526,7 @@ Return ONLY valid JSON (no markdown fences):
 
       async function save() {
         if (!result || !videoId) return;
-        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: result._transcript || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
@@ -619,9 +646,9 @@ Return ONLY valid JSON (no markdown fences):
         onUpdate({ ...video, qa: withUser });
         try {
           const data = await callClaude({
-            system: `You are helping Dave understand a YouTube video.\nVideo: "${video.title}" by ${video.channel}\n${video.url ? `URL: ${video.url}\n` : ""}\nSummary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nUse web_search for additional details if needed.`,
+            system: `You are helping Dave understand a YouTube video.\nVideo: "${video.title}" by ${video.channel}\n${video.url ? `URL: ${video.url}\n` : ""}\nSummary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nAnswer questions using the summary and key points above as your primary source. Be concise and specific.`,
             messages: withUser.map((m) => ({ role: m.role, content: m.content })),
-            maxTokens: 1000, tools: WEB_SEARCH,
+            maxTokens: 1000,
           });
           const withAi = [...withUser, { id: genId(), role: "assistant", content: getText(data) }];
           onUpdate({ ...video, qa: withAi }); await sbPatch(video.id, { qa: withAi });
@@ -828,10 +855,9 @@ Instructions:
 - Synthesize insights across relevant videos into a clear, direct answer
 - Always cite video titles in brackets e.g. ["Video Title"] when referencing specific content
 - If no videos address the question, say so clearly and suggest what to search for
-- Keep answers focused and actionable
-- Use web_search only if you need to verify a specific factual claim from a video`,
+- Keep answers focused and actionable`,
             messages: withUser.map((m) => ({ role: m.role, content: m.content })),
-            maxTokens: 1500, tools: WEB_SEARCH,
+            maxTokens: 1500,
           });
           setQa([...withUser, { id: genId(), role: "assistant", content: getText(data) }]);
         } catch (e) {
