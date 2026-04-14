@@ -103,6 +103,7 @@ textarea::placeholder{color:var(--text-faint)}
 .mic-btn{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
 .mic-btn:hover{border-color:var(--teal);color:var(--teal-light)}
 .mic-btn.recording{background:rgba(220,50,50,0.15);border-color:rgba(220,50,50,0.6);color:#e06060;animation:pulse-mic 1.2s ease-in-out infinite}
+.mic-btn.processing{background:rgba(43,125,148,0.15);border-color:rgba(43,125,148,0.6);color:var(--teal-light);animation:pulse-mic 0.8s ease-in-out infinite}
 @keyframes pulse-mic{0%,100%{opacity:1}50%{opacity:0.5}}
 .capture-btn{flex:1;height:44px;border-radius:10px;border:none;background:var(--teal);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .capture-btn:hover{background:var(--teal-light)}
@@ -293,7 +294,8 @@ let currentRecur    = 'none';
 let currentWhen     = 'none';
 let currentTier     = 0;
 let currentCategory = '';
-let recognition     = null;
+let mediaRecorder   = null;
+let audioChunks     = [];
 let isRecording     = false;
 
 // ── Type ──────────────────────────────────────────────────────
@@ -510,27 +512,70 @@ function stripKeywordPrefix(text) {
   return t.trim();
 }
 
-// ── Voice ─────────────────────────────────────────────────────
-function toggleMic() {
-  if (!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)) { showToast('Speech recognition not supported.','error'); return; }
-  if (isRecording) { recognition?.stop(); return; }
-  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition = new SR();
-  recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
-  let final = document.getElementById('content').value;
-  recognition.onstart = () => { isRecording=true; document.getElementById('mic-btn').classList.add('recording'); };
-  recognition.onresult = (e) => {
-    let interim='';
-    for (let i=e.resultIndex;i<e.results.length;i++) {
-      if (e.results[i].isFinal) final+=e.results[i][0].transcript+' ';
-      else interim+=e.results[i][0].transcript;
-    }
-    document.getElementById('content').value=final+interim;
-    applyKeywordOverrides(document.getElementById('content').value);
-  };
-  recognition.onend = () => { isRecording=false; document.getElementById('mic-btn').classList.remove('recording'); document.getElementById('content').value=final.trim(); };
-  recognition.onerror = () => { isRecording=false; document.getElementById('mic-btn').classList.remove('recording'); };
-  recognition.start();
+// ── Voice (Deepgram Nova-2) ───────────────────────────────────
+async function toggleMic() {
+  const micBtn = document.getElementById('mic-btn');
+
+  // Stop recording if active
+  if (isRecording) {
+    mediaRecorder?.stop();
+    return;
+  }
+
+  if (!KEY) { showToast('No key in URL','error'); return; }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+
+    // Pick best supported MIME type
+    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/ogg','audio/mp4']
+      .find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      micBtn.classList.add('processing');
+      stream.getTracks().forEach(t => t.stop());
+
+      try {
+        const blob = new Blob(audioChunks, { type: mimeType });
+        const res  = await fetch(`${API_BASE}/transcribe?key=${encodeURIComponent(KEY)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': mimeType },
+          body: blob,
+        });
+        const data = await res.json();
+        if (data.transcript) {
+          const ta = document.getElementById('content');
+          const existing = ta.value.trim();
+          ta.value = existing ? existing + ' ' + data.transcript : data.transcript;
+          applyKeywordOverrides(ta.value);
+        } else {
+          showToast('No speech detected — try again','error');
+        }
+      } catch {
+        showToast('Transcription failed — try again','error');
+      } finally {
+        micBtn.classList.remove('processing');
+      }
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    micBtn.classList.add('recording');
+
+  } catch {
+    showToast('Microphone access denied','error');
+    isRecording = false;
+    micBtn.classList.remove('recording');
+  }
 }
 
 // ── Capture ───────────────────────────────────────────────────
