@@ -19,6 +19,16 @@
   --blue:#2563c4; --blue-dim:rgba(37,99,196,0.12);
   --radius:12px;
 }
+body.light {
+  --black:#f5f5f5; --surface:#ffffff; --surface2:#f0f0f0; --surface3:#e8e8e8;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a; --text-dim:#555; --text-faint:#999;
+  --teal-dim:rgba(43,125,148,0.1);
+  --green-dim:rgba(29,158,117,0.08); --amber-dim:rgba(212,160,23,0.08);
+  --purple-dim:rgba(124,92,191,0.08); --blue-dim:rgba(37,99,196,0.08);
+}
+#theme-btn{font-size:16px;width:32px;height:32px;border-radius:8px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+#theme-btn:hover{background:var(--surface2)}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{background:var(--black);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
@@ -135,9 +145,12 @@ textarea::placeholder{color:var(--text-faint)}
         <div class="logo-sub">Open Brain</div>
       </div>
     </div>
-    <div class="scope-toggle">
-      <button class="scope-btn active" data-scope="business" onclick="setScope('business',this)">Business</button>
-      <button class="scope-btn" data-scope="personal" onclick="setScope('personal',this)">Me</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark"></button>
+      <div class="scope-toggle">
+        <button class="scope-btn active" data-scope="business" onclick="setScope('business',this)">Business</button>
+        <button class="scope-btn" data-scope="personal" onclick="setScope('personal',this)">Me</button>
+      </div>
     </div>
   </div>
 
@@ -261,6 +274,18 @@ textarea::placeholder{color:var(--text-faint)}
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
+
+// ── Theme ─────────────────────────────────────────────────────
+function applyTheme(light) {
+  document.body.classList.toggle('light', light);
+  document.getElementById('theme-btn').textContent = light ? '🌙' : '☀️';
+}
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  localStorage.setItem('brain-theme', isLight ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = isLight ? '🌙' : '☀️';
+}
+applyTheme(localStorage.getItem('brain-theme') === 'light');
 
 let currentType     = 'observation';
 let currentScope    = 'business';
