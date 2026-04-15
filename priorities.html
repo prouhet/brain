@@ -126,6 +126,8 @@
   /* Popup tier chips */
   .pchip.active-tier-auto { border-color:rgba(255,255,255,0.3); background:var(--surface); color:var(--text); }
   .pchip.active-tier-override { border-color:rgba(43,125,148,0.7); background:rgba(43,125,148,0.15); color:var(--teal-light); }
+  .pchip.active-scope-business { border-color:rgba(43,125,148,0.7); background:rgba(43,125,148,0.12); color:var(--teal-light); }
+  .pchip.active-scope-personal { border-color:rgba(196,126,176,0.7); background:rgba(196,126,176,0.1); color:#d49ec8; }
   /* Popup category select */
   .popup-cat-select { width:100%; padding:7px 10px; border-radius:8px; border:1.5px solid var(--border2); background:var(--surface3); color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; cursor:pointer; margin-top:2px; }
   .popup-cat-select:focus { border-color:var(--teal); }
@@ -289,6 +291,10 @@
         <option value="health">Health</option>
         <option value="home">Home</option>
       </select>
+    </div>
+    <div class="popup-section">
+      <div class="popup-section-label">Scope</div>
+      <div class="popup-chips" id="popup-scope-chips"></div>
     </div>
     <button onclick="closePopup()" style="width:calc(100% - 36px);margin:0 18px 16px;height:36px;border-radius:8px;border:none;background:var(--surface3);color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;">Done</button>
   </div>
@@ -576,7 +582,8 @@ function renderTaskItem(item, isRecurSec) {
     data-obs-id="${esc(item.source_observation||'')}"
     data-tier="${item.tier||5}"
     data-tier-overridden="${item.tier_overridden||false}"
-    data-category="${esc(item.category||'')}">`;
+    data-category="${esc(item.category||'')}"
+    data-type="${esc(item.type||'business')}">`;
 
   // Checkmark
   html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
@@ -715,6 +722,19 @@ function openPopup(rowId) {
   document.getElementById('popup-custom-recur').classList.remove('show');
   document.getElementById('popup-save-btn').classList.remove('show');
   document.getElementById('popup-custom-date-row').classList.remove('show');
+
+  // Scope chips
+  const curType = row?.dataset.type || 'business';
+  const curScope = curType === 'personal' ? 'personal' : 'business';
+  document.getElementById('popup-scope-chips').innerHTML = [
+    { val:'business', label:'Business' },
+    { val:'personal', label:'Personal / Me' },
+  ].map(chip => {
+    const isCur = curScope === chip.val;
+    const cls = isCur ? `pchip active-scope-${chip.val}` : 'pchip';
+    return `<button class="${cls}" onclick="pickScope('${chip.val}')">${chip.label}</button>`;
+  }).join('');
+
   document.getElementById('popup-overlay').style.display = 'flex';
   document.addEventListener('keydown', onPopupKey);
 }
@@ -892,6 +912,35 @@ async function pickCategory(val) {
       body:JSON.stringify({ id, category: val }),
     });
   } catch { showToast('Failed to save category', 'error'); }
+}
+
+async function pickScope(scope) {
+  const row = document.getElementById(activePopupRowId);
+  const id  = row?.dataset.id || '';
+  if (!id) return;
+
+  // Update type pill on card
+  const typePill = row.querySelector('.type-pill');
+  if (typePill) {
+    typePill.className = scope === 'personal' ? 'type-pill type-personal' : 'type-pill type-business';
+    typePill.textContent = scope === 'personal' ? 'personal' : 'business';
+  }
+  row.dataset.type = scope === 'personal' ? 'personal' : 'business';
+
+  // Update scope chip highlights
+  document.querySelectorAll('#popup-scope-chips .pchip').forEach(b => {
+    b.className = 'pchip';
+  });
+  document.querySelector(`#popup-scope-chips .pchip[onclick="pickScope('${scope}')"]`)
+    ?.classList.add(`active-scope-${scope}`);
+
+  try {
+    fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ id, scope }),
+    });
+    showToast(`Moved to ${scope === 'personal' ? 'Personal' : 'Business'}`, 'success');
+  } catch { showToast('Failed to update scope', 'error'); }
 }
 
 function handleCheck(rowId, btn) {
