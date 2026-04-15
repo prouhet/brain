@@ -45,10 +45,8 @@
     .rvcard:hover{background:var(--s2);border-color:var(--b2)}
     .rvcard img{width:152px;height:86px;object-fit:cover;display:block;background:var(--s2)}
     .rmono{font-family:'JetBrains Mono',monospace;font-size:12px}
-    .snew{background:rgba(52,211,153,.14);color:var(--ok);border:1px solid rgba(52,211,153,.3);padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
-    .snew.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}
-    .sknown{background:rgba(75,139,245,.14);color:var(--acc);border:1px solid rgba(75,139,245,.3);padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
-    .sknown.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}
+    .smark{background:rgba(251,176,64,.14);color:var(--warn);border:1px solid rgba(251,176,64,.3);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
+    .smark.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}.smark.off:hover{border-color:var(--warn);color:var(--warn)}
     @media(max-width:480px){.rvcard{grid-template-columns:110px 1fr}.rvcard img{width:110px;height:62px}}
     .theme-btn{position:fixed;bottom:20px;right:20px;z-index:999;width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.12);transition:all .2s;font-family:system-ui}
     .theme-btn:hover{border-color:var(--acc);color:var(--acc);transform:scale(1.08)}
@@ -152,10 +150,19 @@
 
       const filtered = videos.filter((v) => {
         const q = search.toLowerCase();
-        return (!q || [v.title, v.channel, v.summary].some((s) => s?.toLowerCase().includes(q)))
+        const qaText = q ? (v.qa || []).map((m) => m.content).join(" ").toLowerCase() : "";
+        return (!q || [v.title, v.channel, v.summary].some((s) => s?.toLowerCase().includes(q)) || qaText.includes(q))
           && (!activeTag || v.tags?.includes(activeTag))
           && (!activeChannel || v.channel === activeChannel);
       });
+
+      function hasQaMatch(v) {
+        if (!search.trim()) return false;
+        const q = search.toLowerCase();
+        const inMain = [v.title, v.channel, v.summary].some((s) => s?.toLowerCase().includes(q));
+        const inQa = (v.qa || []).map((m) => m.content).join(" ").toLowerCase().includes(q);
+        return inQa && !inMain;
+      }
 
       function handleAnalyze() {
         const u = urlInput.trim();
@@ -241,14 +248,14 @@
             <div style={{ textAlign: "center", padding: "40px", color: "var(--t2)" }}>No videos match your filter.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {filtered.map((v) => <VideoCard key={v.id} video={v} onSelect={onSelect} onDelete={onDelete} />)}
+              {filtered.map((v) => <VideoCard key={v.id} video={v} onSelect={onSelect} onDelete={onDelete} qaMatch={hasQaMatch(v)} />)}
             </div>
           )}
         </div>
       );
     }
 
-    function VideoCard({ video, onSelect, onDelete }) {
+    function VideoCard({ video, onSelect, onDelete, qaMatch = false }) {
       const [showCapture, setShowCapture] = useState(false);
       const [captureType, setCaptureType] = useState("note");
       const [captureText, setCaptureText] = useState("");
@@ -279,6 +286,7 @@
                 {video.channel && <span>·</span>}
                 <span className="rmono">{fmtDate(video.dateAdded)}</span>
                 {video.whatsNew && <span style={{ fontSize: 11, background: "var(--warn-lo)", color: "var(--warn)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--warn-mid)" }}>insights</span>}
+                {qaMatch && <span style={{ fontSize: 11, background: "var(--acc-lo)", color: "var(--acc)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--acc-mid)" }}>💬 Q&A match</span>}
                 {!video.videoId && <span style={{ fontSize: 11, background: "var(--s3)", color: "var(--t3)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--b)" }}>transcript</span>}
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{(video.tags || []).slice(0, 4).map((t) => <Tag key={t} label={t} />)}</div>
@@ -446,50 +454,87 @@ Return ONLY valid JSON (no markdown fences):
     function AddVideoView({ onSave, onBack, existingVideos, prefillUrl = "" }) {
       const [url, setUrl] = useState(prefillUrl);
       const [meta, setMeta] = useState(null);
-      const [step, setStep] = useState("idle");
+      const [step, setStep] = useState("idle"); // idle | analyzing | done | error
       const [result, setResult] = useState(null);
       const [tags, setTags] = useState([]);
       const [tagInput, setTagInput] = useState("");
       const [errMsg, setErrMsg] = useState("");
-      const [stepLabel, setStepLabel] = useState("");
+      // Step tracking: each step = { label, status: pending|active|done|error, elapsed }
+      const [steps, setSteps] = useState([]);
+      const [elapsed, setElapsed] = useState(0);
+      const timerRef = useRef(null);
       const videoId = extractVid(url);
 
       useEffect(() => {
-        setMeta(null); setResult(null); setStep("idle"); setErrMsg("");
+        setMeta(null); setResult(null); setStep("idle"); setErrMsg(""); setSteps([]); setElapsed(0);
         if (!videoId) return;
         fetchOEmbed(url).then((d) => setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId }));
       }, [videoId]);
 
+      function startTimer() {
+        const start = Date.now();
+        timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 500);
+      }
+      function stopTimer() { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } }
+
+      function initSteps() {
+        setSteps([
+          { id: "transcript", label: "Fetching transcript", hint: "Pulling caption track from YouTube", status: "pending" },
+          { id: "analyze", label: "Analyzing content", hint: "Claude summarizes & extracts key points", status: "pending" },
+          { id: "save", label: "Ready to save", hint: "", status: "pending" },
+        ]);
+      }
+
+      function setStepStatus(id, status) {
+        setSteps((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
+      }
+
       async function analyze() {
         if (!videoId) return;
         setStep("analyzing"); setErrMsg("");
-        let si = 0;
-        const labels = ["Fetching YouTube transcript...", "Reading transcript...", "Checking prior library...", "Generating analysis..."];
-        setStepLabel(labels[0]);
-        const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
+        initSteps();
+        startTimer();
+
         try {
-          // Step 1: get real transcript
+          // ── Step 1: Fetch transcript via Gemini ──
+          setStepStatus("transcript", "active");
           const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
             body: JSON.stringify({ videoId }),
           });
           const txData = await txRes.json();
-          if (txData.error && !txData.transcript) throw new Error(`Transcript: ${txData.error}`);
+
+          if (txData.error && !txData.transcript) {
+            setStepStatus("transcript", "error");
+            stopTimer();
+            setErrMsg(`Transcript error: ${txData.error}`);
+            setStep("error"); return;
+          }
 
           const transcript = txData.transcript || null;
           const titleResolved = txData.title || meta?.title || "";
           const channelResolved = txData.channel || meta?.channel || "";
 
-          // Step 2: prior context
+          if (!transcript) {
+            setStepStatus("transcript", "error");
+            stopTimer();
+            setErrMsg(`No transcript available. ${txData.warning || ""} Try again in a few minutes — YouTube may still be generating captions.`);
+            setStep("error"); return;
+          }
+
+          setStepStatus("transcript", "done");
+
+          // ── Step 2: Claude analysis ──
+          setStepStatus("analyze", "active");
+
           const prior = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase());
           const priorCtx = prior.length > 0
             ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured.`
             : "\n\nNo prior videos from this channel yet.";
 
-          // Step 3: Claude analyzes real transcript
-          const system = transcript
-            ? `You are analyzing a YouTube video transcript for Dave's personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.${priorCtx}
+          const data = await callClaude({
+            system: `You are analyzing a YouTube video transcript for Dave's personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.${priorCtx}
 
 TRANSCRIPT:
 ${transcript.slice(0, 14000)}
@@ -503,23 +548,31 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
   "whatsNew": "${prior.length > 0 ? "2-3 sentences on what this adds beyond prior videos." : "First video from this channel."}",
   "actionSuggestions": ["Specific action based on transcript content", "...up to 3"]
-}`
-            : `No transcript was available for this video.${priorCtx}
-Note: No transcript — base summary on title/channel, start summary with "NOTE: No transcript available."
-Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelResolved}", "summary": "NOTE: No transcript available...", "keyPoints": [], "tags": [], "whatsNew": "No transcript.", "actionSuggestions": [] }`;
-
-          const data = await callClaude({
-            system,
+}`,
             messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}` }],
             maxTokens: 1600,
           });
-          clearInterval(ticker);
+
           const parsed = parseJSON(getText(data));
-          if (!parsed?.summary) throw new Error("Could not parse response — please try again");
+          if (!parsed?.summary) {
+            setStepStatus("analyze", "error");
+            stopTimer();
+            throw new Error("Could not parse response — please try again");
+          }
+
           if (txData.warning) parsed.whatsNew = `⚠️ ${txData.warning}`;
-          parsed._transcript = transcript; // carry through to save()
+          parsed._transcript = transcript;
+
+          setStepStatus("analyze", "done");
+          setStepStatus("save", "done");
+          stopTimer();
           setResult(parsed); setTags(parsed.tags || []); setStep("done");
-        } catch (e) { clearInterval(ticker); setErrMsg(e.message); setStep("error"); }
+
+        } catch (e) {
+          stopTimer();
+          setErrMsg(e.message);
+          setStep("error");
+        }
       }
 
       function addTag() { const t = tagInput.trim().toLowerCase(); if (t && !tags.includes(t)) setTags([...tags, t]); setTagInput(""); }
@@ -553,10 +606,46 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
             </div>
           )}
 
-          {step === "analyzing" && (
-            <div className="rcard rfade" style={{ padding: 28, textAlign: "center" }}>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Spinner size={26} /></div>
-              <p style={{ color: "var(--t2)", fontSize: 14 }}>{stepLabel}</p>
+          {step === "analyzing" && steps.length > 0 && (
+            <div className="rcard rfade" style={{ padding: 20, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Processing video...</p>
+                <span className="rmono" style={{ fontSize: 13, color: "var(--t2)" }}>{elapsed}s</span>
+              </div>
+              {/* Progress bar */}
+              <div style={{ height: 4, background: "var(--s3)", borderRadius: 2, marginBottom: 20, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: 2, background: "var(--acc)", transition: "width .6s ease",
+                  width: `${Math.round((steps.filter((s) => s.status === "done").length / steps.length) * 100)}%`
+                }} />
+              </div>
+              {/* Steps */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {steps.map((s) => (
+                  <div key={s.id} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
+                      background: s.status === "done" ? "var(--ok-lo)" : s.status === "active" ? "var(--acc-lo)" : s.status === "error" ? "var(--red-lo)" : "var(--s3)",
+                      border: `1px solid ${s.status === "done" ? "var(--ok-mid)" : s.status === "active" ? "var(--acc-mid)" : s.status === "error" ? "var(--red-mid)" : "var(--b)"}`,
+                      color: s.status === "done" ? "var(--ok)" : s.status === "active" ? "var(--acc)" : s.status === "error" ? "var(--red)" : "var(--t3)",
+                    }}>
+                      {s.status === "done" ? "✓" : s.status === "active" ? <div className="rspin" style={{ width: 10, height: 10, borderWidth: 1.5 }} /> : s.status === "error" ? "✕" : "·"}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: s.status === "active" ? 600 : 400, color: s.status === "pending" ? "var(--t3)" : s.status === "error" ? "var(--red)" : "var(--text)" }}>
+                        {s.label}
+                      </p>
+                      {s.hint && s.status === "active" && (
+                        <p style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{s.hint}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {elapsed > 20 && steps[0]?.status === "active" && (
+                <p style={{ fontSize: 12, color: "var(--t3)", marginTop: 16, borderTop: "1px solid var(--b)", paddingTop: 12 }}>
+                  Trying multiple YouTube API clients — should complete shortly.
+                </p>
+              )}
             </div>
           )}
           {step === "error" && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
@@ -630,8 +719,7 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [video.qa?.length]);
 
       const ps = video.pointStatus?.length === video.keyPoints?.length ? video.pointStatus : (video.keyPoints || []).map(() => null);
-      const newCount = ps.filter((s) => s === "new").length;
-      const knownCount = ps.filter((s) => s === "known").length;
+      const interestingCount = ps.filter((s) => s === "interesting").length;
 
       async function updatePoint(idx, val) {
         const next = [...ps]; next[idx] = next[idx] === val ? null : val;
@@ -668,11 +756,66 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
         } catch (e) { setCaptureStatus("error"); setCaptureMsg(e.message); }
       }
 
-      async function captureAction(suggestion) {
-        await callClaude({ system: `Capture for owner "dave" (personal scope) as a task using capture_thought.`, messages: [{ role: "user", content: `Task (scope personal, owner dave):\n${suggestion}\n[From: "${video.title}" — ${video.channel}]` }], maxTokens: 400, mcp: BRAIN_MCP });
+      async function captureAction(text) {
+        await callClaude({
+          system: `Use the capture_thought tool with these exact parameters: scope="personal", save_as="note", owner="dave". Do not use business scope. Do not save as a task.`,
+          messages: [{ role: "user", content: `Capture as personal note (scope: personal, save_as: note, owner: dave):\n\n${text}\n\n[REEL source: "${video.title}" — ${video.channel}]` }],
+          maxTokens: 400, mcp: BRAIN_MCP
+        });
       }
 
-      async function addTag() {
+      async function captureQaAnswer(answer) {
+        await callClaude({
+          system: `Use the capture_thought tool with these exact parameters: scope="personal", save_as="note", owner="dave".`,
+          messages: [{ role: "user", content: `Capture this Q&A insight as a personal note (scope: personal, save_as: note, owner: dave):\n\n${answer}\n\n[REEL Q&A: "${video.title}" — ${video.channel}]` }],
+          maxTokens: 400, mcp: BRAIN_MCP
+        });
+      }
+
+      function EditableAction({ suggestion }) {
+        const [editing, setEditing] = useState(false);
+        const [text, setText] = useState(suggestion);
+        const [st, setSt] = useState("idle");
+        async function save() {
+          setSt("loading");
+          try { await captureAction(text); setSt("done"); setEditing(false); setTimeout(() => setSt("idle"), 2500); }
+          catch { setSt("error"); setTimeout(() => setSt("idle"), 2000); }
+        }
+        return editing ? (
+          <div style={{ flex: 1 }}>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} style={{ marginBottom: 8, resize: "vertical", fontSize: 13 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="rbtn-ok" onClick={save} disabled={st === "loading"} style={{ fontSize: 13 }}>
+                {st === "loading" ? "Saving..." : "Save to Brain"}
+              </button>
+              <button className="rbtn-g" style={{ fontSize: 13 }} onClick={() => { setEditing(false); setText(suggestion); }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flex: 1 }}>
+            <span style={{ flex: 1, fontSize: 14, color: "var(--t2)", lineHeight: 1.6 }}>{text}</span>
+            <button onClick={() => setEditing(true)} style={{ padding: "3px 8px", fontSize: 11, borderRadius: 6, background: "transparent", border: "1px solid var(--b)", color: "var(--t3)", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "Figtree,system-ui", flexShrink: 0 }}>Edit</button>
+            <button onClick={save} disabled={st === "loading" || st === "done"} style={{ padding: "3px 10px", fontSize: 11, flexShrink: 0, borderRadius: 6, background: st === "done" ? "var(--ok-lo)" : "transparent", border: `1px solid ${st === "done" ? "var(--ok-mid)" : "var(--b)"}`, color: st === "done" ? "var(--ok)" : "var(--t3)", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "Figtree,system-ui" }}>
+              {st === "loading" ? "..." : st === "done" ? "✓ Saved" : "→ Brain"}
+            </button>
+          </div>
+        );
+      }
+
+      function QaBrainBtn({ answer }) {
+        const [st, setSt] = useState("idle");
+        async function go() {
+          setSt("loading");
+          try { await captureQaAnswer(answer); setSt("done"); setTimeout(() => setSt("idle"), 2500); }
+          catch { setSt("error"); setTimeout(() => setSt("idle"), 2000); }
+        }
+        return (
+          <button onClick={go} disabled={st === "loading" || st === "done"}
+            style={{ marginTop: 8, padding: "3px 10px", fontSize: 11, borderRadius: 6, background: st === "done" ? "var(--ok-lo)" : "transparent", border: `1px solid ${st === "done" ? "var(--ok-mid)" : "var(--b)"}`, color: st === "done" ? "var(--ok)" : "var(--t3)", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>
+            {st === "loading" ? "..." : st === "done" ? "✓ Saved to brain" : "→ Save to brain"}
+          </button>
+        );
+      }
         const t = tagInput.trim().toLowerCase(); if (!t || (video.tags || []).includes(t)) { setTagInput(""); return; }
         const newTags = [...(video.tags || []), t]; onUpdate({ ...video, tags: newTags }); setTagInput("");
         await sbPatch(video.id, { tags: newTags });
@@ -681,12 +824,6 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
       async function removeTag(t) {
         const newTags = (video.tags || []).filter((x) => x !== t); onUpdate({ ...video, tags: newTags });
         await sbPatch(video.id, { tags: newTags });
-      }
-
-      function ActionBtn({ onCapture }) {
-        const [st, setSt] = useState("idle");
-        async function go() { setSt("loading"); try { await onCapture(); setSt("done"); setTimeout(() => setSt("idle"), 2500); } catch { setSt("error"); setTimeout(() => setSt("idle"), 2000); } }
-        return <button onClick={go} disabled={st === "loading" || st === "done"} style={{ padding: "3px 10px", fontSize: 11, flexShrink: 0, borderRadius: 6, background: st === "done" ? "var(--ok-lo)" : "transparent", border: `1px solid ${st === "done" ? "var(--ok-mid)" : "var(--b)"}`, color: st === "done" ? "var(--ok)" : "var(--t3)", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "Figtree,system-ui" }}>{st === "loading" ? "..." : st === "done" ? "✓ Sent" : "→ Brain"}</button>;
       }
 
       return (
@@ -710,8 +847,7 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
                 {video.channel && <span style={{ fontWeight: 500 }}>{video.channel}</span>}
                 {video.channel && <span>·</span>}
                 <span className="rmono">{fmtDate(video.dateAdded)}</span>
-                {newCount > 0 && <span style={{ background: "var(--ok-lo)", color: "var(--ok)", border: "1px solid var(--ok-mid)", borderRadius: 6, padding: "1px 8px", fontSize: 12 }}>{newCount} new</span>}
-                {knownCount > 0 && <span style={{ background: "var(--acc-lo)", color: "var(--acc)", border: "1px solid var(--acc-mid)", borderRadius: 6, padding: "1px 8px", fontSize: 12 }}>{knownCount} known</span>}
+                {interestingCount > 0 && <span style={{ background: "var(--warn-lo)", color: "var(--warn)", border: "1px solid var(--warn-mid)", borderRadius: 6, padding: "1px 8px", fontSize: 12 }}>★ {interestingCount} to recall</span>}
               </div>
             </div>
           </div>
@@ -724,13 +860,12 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
           )}
 
           {video.actionSuggestions?.length > 0 && (
-            <Sec title="Suggested Actions" subtitle="Tap → Brain to capture as a task">
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Sec title="Suggested Actions" subtitle="Edit any action then save as a personal note to your brain">
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {video.actionSuggestions.map((a, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <span style={{ color: "var(--ok)", fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✦</span>
-                    <span style={{ flex: 1, fontSize: 14, color: "var(--t2)" }}>{a}</span>
-                    <ActionBtn onCapture={() => captureAction(a)} />
+                    <span style={{ color: "var(--ok)", fontWeight: 700, flexShrink: 0, marginTop: 3 }}>✦</span>
+                    <EditableAction suggestion={a} />
                   </div>
                 ))}
               </div>
@@ -742,16 +877,15 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
           </Sec>
 
           {video.keyPoints?.length > 0 && (
-            <Sec title="Key Points" subtitle="Mark each point — New to you or Already Known">
+            <Sec title="Key Points" subtitle="Star anything worth recalling later">
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {video.keyPoints.map((p, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                     <span style={{ color: "var(--acc)", fontWeight: 700, flexShrink: 0, marginTop: 3, fontSize: 13 }}>→</span>
-                    <span style={{ flex: 1, fontSize: 14, color: ps[i] === "known" ? "var(--t3)" : "var(--t2)", textDecoration: ps[i] === "known" ? "line-through" : "none", lineHeight: 1.6 }}>{p}</span>
-                    <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-                      <button className={`snew${ps[i] === "new" ? "" : " off"}`} onClick={() => updatePoint(i, "new")}>New</button>
-                      <button className={`sknown${ps[i] === "known" ? "" : " off"}`} onClick={() => updatePoint(i, "known")}>Known</button>
-                    </div>
+                    <span style={{ flex: 1, fontSize: 14, color: ps[i] === "interesting" ? "var(--warn)" : "var(--t2)", lineHeight: 1.6 }}>{p}</span>
+                    <button className={`smark${ps[i] === "interesting" ? "" : " off"}`} onClick={() => updatePoint(i, "interesting")}>
+                      {ps[i] === "interesting" ? "★ Recall" : "☆ Recall"}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -778,6 +912,7 @@ Return ONLY valid JSON: { "title": "${titleResolved}", "channel": "${channelReso
                   <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
                     <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 5, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>{m.role === "user" ? "You" : "AI"}</p>
                     <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+                    {m.role === "assistant" && <QaBrainBtn answer={m.content} />}
                   </div>
                 ))}
                 {qaLoading && <div className="rqa-a"><p style={{ fontSize: 11, fontWeight: 700, marginBottom: 8, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>AI</p><Dots /></div>}
