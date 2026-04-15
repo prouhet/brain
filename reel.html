@@ -816,6 +816,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           </button>
         );
       }
+      async function addTag() {
         const t = tagInput.trim().toLowerCase(); if (!t || (video.tags || []).includes(t)) { setTagInput(""); return; }
         const newTags = [...(video.tags || []), t]; onUpdate({ ...video, tags: newTags }); setTagInput("");
         await sbPatch(video.id, { tags: newTags });
