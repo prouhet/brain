@@ -9,19 +9,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* ── Light mode (default) ── */
   :root {
-    --teal: #2b7d94; --teal-light: #3a9ab5; --teal-dim: rgba(43,125,148,0.15);
+    --teal: #2b7d94; --teal-light: #3a9ab5; --teal-dim: rgba(43,125,148,0.12);
+    --black: #f7f9fc; --surface: #ffffff; --surface2: #f0f4f8; --surface3: #e4eaf0;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+    --text: #1a1a1a; --text-dim: #555; --text-faint: #999;
+    --april: #c0622e; --may: #a07a0a; --june: #2a7a3a;
+    --green: #1a8a62; --radius: 10px;
+    --grid-line: rgba(43,125,148,0.12);
+    --grid-size: 28px;
+  }
+  /* ── Dark mode ── */
+  body.dark {
     --black: #0d0d0d; --surface: #141414; --surface2: #1c1c1c; --surface3: #242424;
     --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
     --text: #e8e8e8; --text-dim: #888; --text-faint: #555;
     --april: #e8845a; --may: #e8c45a; --june: #7ec87e;
-    --green: #1D9E75; --radius: 10px;
-  }
-  body.light {
-    --black: #f5f5f5; --surface: #ffffff; --surface2: #f0f0f0; --surface3: #e8e8e8;
-    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
-    --text: #1a1a1a; --text-dim: #555; --text-faint: #999;
-    --teal-dim: rgba(43,125,148,0.1);
+    --green: #1D9E75;
+    --grid-line: rgba(43,125,148,0.04);
+    --grid-size: 40px;
   }
   /* Theme toggle button */
   #theme-btn { font-size:16px; width:32px; height:32px; border-radius:8px; border:1px solid var(--border2); background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
@@ -30,9 +37,10 @@
   body { background:var(--black); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
   body::before {
     content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-    background-image: linear-gradient(rgba(43,125,148,0.025) 1px,transparent 1px),
-                      linear-gradient(90deg,rgba(43,125,148,0.025) 1px,transparent 1px);
-    background-size:40px 40px;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
   }
   .wrapper { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:0 20px 80px; }
 
@@ -305,17 +313,16 @@ const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/brain-pr
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
 
 // ── Theme ─────────────────────────────────────────────────────
-function applyTheme(light) {
-  document.body.classList.toggle('light', light);
-  document.getElementById('theme-btn').textContent = light ? '🌙' : '☀️';
+function applyTheme(dark) {
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('theme-btn').textContent = dark ? '☀️' : '🌙';
 }
 function toggleTheme() {
-  const isLight = document.body.classList.toggle('light');
-  localStorage.setItem('brain-theme', isLight ? 'light' : 'dark');
-  document.getElementById('theme-btn').textContent = isLight ? '🌙' : '☀️';
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('brain-theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
 }
-// Apply saved theme on load
-applyTheme(localStorage.getItem('brain-theme') === 'light');
+applyTheme(localStorage.getItem('brain-theme') === 'dark');
 
 const OWNER_CFG = {
   dave:   { initials:'D',  bg:'rgba(43,125,148,0.25)',   color:'#3a9ab5' },
