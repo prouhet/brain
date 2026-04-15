@@ -513,6 +513,21 @@ function stripKeywordPrefix(text) {
 }
 
 // ── Voice (Deepgram Nova-2) ───────────────────────────────────
+function getBestMimeType() {
+  // Try types in order — Android needs ogg or plain webm, iOS needs mp4
+  const types = [
+    'audio/webm;codecs=opus',
+    'audio/ogg;codecs=opus',
+    'audio/webm',
+    'audio/ogg',
+    'audio/mp4',
+  ];
+  for (const t of types) {
+    try { if (MediaRecorder.isTypeSupported(t)) return t; } catch {}
+  }
+  return ''; // let browser choose
+}
+
 async function toggleMic() {
   const micBtn = document.getElementById('mic-btn');
 
@@ -524,58 +539,65 @@ async function toggleMic() {
 
   if (!KEY) { showToast('No key in URL','error'); return; }
 
+  let stream;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioChunks = [];
-
-    // Pick best supported MIME type
-    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/ogg','audio/mp4']
-      .find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
-
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioChunks.push(e.data);
-    };
-
-    mediaRecorder.onstop = async () => {
-      isRecording = false;
-      micBtn.classList.remove('recording');
-      micBtn.classList.add('processing');
-      stream.getTracks().forEach(t => t.stop());
-
-      try {
-        const blob = new Blob(audioChunks, { type: mimeType });
-        const res  = await fetch(`${API_BASE}/transcribe?key=${encodeURIComponent(KEY)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': mimeType },
-          body: blob,
-        });
-        const data = await res.json();
-        if (data.transcript) {
-          const ta = document.getElementById('content');
-          const existing = ta.value.trim();
-          ta.value = existing ? existing + ' ' + data.transcript : data.transcript;
-          applyKeywordOverrides(ta.value);
-        } else {
-          showToast('No speech detected — try again','error');
-        }
-      } catch {
-        showToast('Transcription failed — try again','error');
-      } finally {
-        micBtn.classList.remove('processing');
-      }
-    };
-
-    mediaRecorder.start();
-    isRecording = true;
-    micBtn.classList.add('recording');
-
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch {
     showToast('Microphone access denied','error');
+    return;
+  }
+
+  audioChunks = [];
+  const mimeType = getBestMimeType();
+
+  try {
+    mediaRecorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream); // let browser pick
+  } catch {
+    // Construction failed — fall back to no options
+    try { mediaRecorder = new MediaRecorder(stream); }
+    catch { showToast('Recording not supported on this device','error'); stream.getTracks().forEach(t => t.stop()); return; }
+  }
+
+  const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) audioChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = async () => {
     isRecording = false;
     micBtn.classList.remove('recording');
-  }
+    micBtn.classList.add('processing');
+    stream.getTracks().forEach(t => t.stop());
+
+    try {
+      const blob = new Blob(audioChunks, { type: actualMime });
+      const res  = await fetch(`${API_BASE}/transcribe?key=${encodeURIComponent(KEY)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': actualMime },
+        body: blob,
+      });
+      const data = await res.json();
+      if (data.transcript) {
+        const ta = document.getElementById('content');
+        const existing = ta.value.trim();
+        ta.value = existing ? existing + ' ' + data.transcript : data.transcript;
+        applyKeywordOverrides(ta.value);
+      } else {
+        showToast('No speech detected — try again','error');
+      }
+    } catch {
+      showToast('Transcription failed — try again','error');
+    } finally {
+      micBtn.classList.remove('processing');
+    }
+  };
+
+  mediaRecorder.start();
+  isRecording = true;
+  micBtn.classList.add('recording');
 }
 
 // ── Capture ───────────────────────────────────────────────────
