@@ -599,7 +599,7 @@ async function toggleMic() {
     }
   };
 
-  mediaRecorder.start();
+  mediaRecorder.start(250); // 250ms timeslice — ensures Android collects audio throughout, not just on stop
   isRecording = true;
   micBtn.classList.add('recording');
 }
