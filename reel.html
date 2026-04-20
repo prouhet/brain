@@ -726,7 +726,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [st, setSt] = useState(video.shared ? "shared" : "idle");
       const [copied, setCopied] = useState(false);
 
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=${video.id}`;
+      const shareUrl = `https://reelcall.app/reel.html?share=${video.id}`;
 
       async function toggleShare() {
         const newShared = !video.shared;
