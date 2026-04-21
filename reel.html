@@ -54,6 +54,7 @@
 </head>
 <body>
   <div id="root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
@@ -66,17 +67,53 @@
     const WEB_SEARCH = [{ type: "web_search_20250305", name: "web_search" }];
 
     // ─── User resolution ─────────────────────────────────────────────────────
-    const USERS = {
+    const PRIVILEGED = {
       dave:   { owner: "dave",   brainKey: "88a95862d645a60e54185d899a3d538bff32eebf67f8913177986c81d50b74de" },
       doreen: { owner: "doreen", brainKey: "5ae5c4988e41e9799e4f5ef3c54053510a734bde9a030eedfb32ca3fc1e14b18" },
     };
 
     const params = new URLSearchParams(window.location.search);
-    const SHARE_ID = params.get("share"); // share mode — single video read-only
-    const userParam = (params.get("user") || "dave").toLowerCase();
-    const CURRENT_USER = USERS[userParam] || USERS.dave;
-    const OWNER = CURRENT_USER.owner;
-    const BRAIN_MCP = { type: "url", url: `${SB_URL}/functions/v1/open-brain-mcp`, name: "studio-strong-brain", headers: { "x-brain-key": CURRENT_USER.brainKey } };
+    const SHARE_ID = params.get("share");
+    const userParam = (params.get("user") || "").toLowerCase();
+    const sbAuth = supabase.createClient(SB_URL, SB_KEY);
+
+    // Determine current user — resolved async in App
+    let OWNER = "guest";
+    let BRAIN_MCP = null; // null = no brain features
+    let AUTH_USER = null; // Supabase auth user for regular users
+    let TRIAL_DAYS_LEFT = null;
+
+    async function resolveUser() {
+      // Dave/Doreen — privileged, no auth needed
+      if (PRIVILEGED[userParam]) {
+        const u = PRIVILEGED[userParam];
+        OWNER = u.owner;
+        BRAIN_MCP = { type: "url", url: `${SB_URL}/functions/v1/open-brain-mcp`, name: "studio-strong-brain", headers: { "x-brain-key": u.brainKey } };
+        return { ok: true };
+      }
+
+      // Share mode — no auth needed
+      if (SHARE_ID) return { ok: true };
+
+      // Regular user — check Supabase Auth session
+      const { data: { session } } = await sbAuth.auth.getSession();
+      if (!session) return { ok: false, reason: "noauth" };
+
+      // Load their reel_users row
+      const { data: profile } = await sbAuth.from("reel_users").select("*").eq("id", session.user.id).single();
+      if (!profile) return { ok: false, reason: "noprofile" };
+      if (!profile.active) return { ok: false, reason: "inactive" };
+
+      // Check trial
+      const daysLeft = Math.ceil((new Date(profile.trial_ends_at) - Date.now()) / 86400000);
+      if (daysLeft < 0) return { ok: false, reason: "expired" };
+
+      AUTH_USER = session.user;
+      OWNER = profile.owner;
+      TRIAL_DAYS_LEFT = daysLeft;
+      BRAIN_MCP = null; // no brain for regular users
+      return { ok: true };
+    }
 
     // ─── Supabase ─────────────────────────────────────────────────────────────
     const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
@@ -293,7 +330,7 @@
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <h3 onClick={() => onSelect(video)} style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35, color: "var(--text)", cursor: "pointer", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{video.title}</h3>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <button title="Quick capture to brain" onClick={() => setShowCapture(!showCapture)} style={{ padding: "3px 9px", fontSize: 13, borderRadius: 6, background: showCapture ? "var(--ok-lo)" : "transparent", border: `1px solid ${showCapture ? "var(--ok-mid)" : "var(--b)"}`, color: showCapture ? "var(--ok)" : "var(--t3)", cursor: "pointer" }}>⊕</button>
+                  {BRAIN_MCP && <button title="Quick capture to brain" onClick={() => setShowCapture(!showCapture)} style={{ padding: "3px 9px", fontSize: 13, borderRadius: 6, background: showCapture ? "var(--ok-lo)" : "transparent", border: `1px solid ${showCapture ? "var(--ok-mid)" : "var(--b)"}`, color: showCapture ? "var(--ok)" : "var(--t3)", cursor: "pointer" }}>⊕</button>}
                   <button className="rbtn-d" style={{ padding: "3px 9px", fontSize: 12, borderRadius: 6 }} onClick={() => onDelete(video.id)}>✕</button>
                 </div>
               </div>
@@ -915,7 +952,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             </div>
           )}
 
-          {video.actionSuggestions?.length > 0 && (
+          {BRAIN_MCP && video.actionSuggestions?.length > 0 && (
             <Sec title="Suggested Actions" subtitle="Edit any action then save as a personal note to your brain">
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {video.actionSuggestions.map((a, i) => (
@@ -983,6 +1020,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             </div>
           </Sec>
 
+          {BRAIN_MCP && (
           <Sec title="Capture to Brain" subtitle="Personal scope — notes or tasks from this video">
             <textarea placeholder="Write a note or task idea..." value={captureText} onChange={(e) => setCaptureText(e.target.value)} rows={3} style={{ marginBottom: 12, resize: "vertical" }} />
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -999,6 +1037,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             </div>
             {captureMsg && <p style={{ fontSize: 13, marginTop: 10, color: captureStatus === "done" ? "var(--ok)" : "var(--red)" }}>{captureMsg}</p>}
           </Sec>
+          )}
         </div>
       );
     }
@@ -1321,6 +1360,7 @@ Instructions:
       const [selected, setSelected] = useState(null);
       const [loaded, setLoaded] = useState(false);
       const [loadErr, setLoadErr] = useState("");
+      const [authState, setAuthState] = useState("checking");
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
 
       useEffect(() => {
@@ -1329,10 +1369,14 @@ Instructions:
       }, [dark]);
 
       useEffect(() => {
-        sbReq(`youtube_videos?select=*&owner=eq.${OWNER}&order=date_added.desc`)
-          .then((rows) => setVideos((rows || []).map(fromDb)))
-          .catch((e) => setLoadErr(e.message))
-          .finally(() => setLoaded(true));
+        resolveUser().then(({ ok, reason }) => {
+          if (!ok) { setAuthState(reason || "noauth"); setLoaded(true); return; }
+          setAuthState("ok");
+          sbReq(`youtube_videos?select=*&owner=eq.${OWNER}&order=date_added.desc`)
+            .then((rows) => setVideos((rows || []).map(fromDb)))
+            .catch((e) => setLoadErr(e.message))
+            .finally(() => setLoaded(true));
+        });
       }, []);
 
       const [prefillUrl, setPrefillUrl] = useState("");
@@ -1340,27 +1384,55 @@ Instructions:
       const removeVideo = useCallback(async (id) => { setVideos((prev) => prev.filter((v) => v.id !== id)); await sbDelete(id); }, []);
       const currentVideo = videos.find((v) => v.id === selected?.id) || selected;
 
-      // Share mode — show single video read-only
       if (SHARE_ID) return <SharedVideoView videoId={SHARE_ID} />;
 
-      if (!loaded) return (
+      if (authState === "checking" || (!loaded && authState === "ok")) return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: dark ? "#07090F" : "#F8F9FC", color: dark ? "#4A5D7A" : "#8B97AE", fontFamily: "system-ui", gap: 12 }}>
           <div style={{ width: 20, height: 20, border: `2px solid ${dark ? "#1E2D48" : "#D2DAEA"}`, borderTopColor: dark ? "#4B8BF5" : "#2563EB", borderRadius: "50%", animation: "rspin .7s linear infinite" }} />
-          Connecting...
+          Loading...
+        </div>
+      );
+
+      if (authState === "noauth" || authState === "noprofile") return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
+          <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
+          <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 320 }}>Sign in or create a free account to access your YouTube knowledge base.</p>
+          <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Sign In / Sign Up</a>
+        </div>
+      );
+
+      if (authState === "expired") return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
+          <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
+          <p style={{ color: "#FBB040", fontSize: 15, maxWidth: 320 }}>Your 60-day trial has ended. Contact us to lock in $1/month.</p>
+          <a href="mailto:studiostrongfit@gmail.com" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Get Access</a>
+        </div>
+      );
+
+      if (authState === "inactive") return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
+          <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
+          <p style={{ color: "#F07070", fontSize: 15 }}>Your account has been deactivated. Contact us for help.</p>
         </div>
       );
 
       if (loadErr) return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: dark ? "#07090F" : "#F8F9FC", color: dark ? "#F07070" : "#DC2626", fontFamily: "system-ui", textAlign: "center", padding: 40 }}>
-          <div><p style={{ fontSize: 16, marginBottom: 8 }}>Failed to connect to Supabase</p><p style={{ fontSize: 13, opacity: .7 }}>{loadErr}</p></div>
+          <div><p style={{ fontSize: 16, marginBottom: 8 }}>Failed to connect</p><p style={{ fontSize: 13, opacity: .7 }}>{loadErr}</p></div>
         </div>
       );
 
       return (
         <div className={`reel${dark ? " dark" : ""}`}>
-          {/* User badge */}
-          <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 998, fontSize: 11, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".06em", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px" }}>
-            {OWNER}
+          <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 998, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            {TRIAL_DAYS_LEFT !== null && (
+              <div style={{ fontSize: 11, background: TRIAL_DAYS_LEFT <= 7 ? "rgba(251,176,64,.15)" : "rgba(52,211,153,.1)", color: TRIAL_DAYS_LEFT <= 7 ? "var(--warn)" : "var(--ok)", border: `1px solid ${TRIAL_DAYS_LEFT <= 7 ? "rgba(251,176,64,.3)" : "rgba(52,211,153,.25)"}`, borderRadius: 6, padding: "3px 8px", fontWeight: 600 }}>
+                {TRIAL_DAYS_LEFT}d trial left
+              </div>
+            )}
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".06em", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px" }}>
+              {OWNER}
+            </div>
           </div>
           {view !== "library" && (
             <button className="theme-btn" onClick={() => setDark(!dark)} title={dark ? "Light mode" : "Dark mode"}>
