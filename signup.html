@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#07090F">
+  <title>ReelCall.app — Sign Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100vh;background:#07090F;color:#DDE4F5;font-family:'Figtree',system-ui,sans-serif;font-size:15px}
+    :root{--acc:#4B8BF5;--ok:#34D399;--red:#F07070;--s1:#0D1220;--s2:#131B2E;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070}
+    body{display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{width:100%;max-width:420px;background:var(--s1);border:1px solid var(--b);border-radius:16px;padding:40px 36px;animation:fade .4s ease}
+    @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    .logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-bottom:6px}
+    .tagline{font-size:14px;color:var(--t2);margin-bottom:32px;line-height:1.5}
+    .tabs{display:flex;gap:0;margin-bottom:28px;background:var(--s2);border-radius:10px;padding:4px}
+    .tab{flex:1;padding:9px;text-align:center;font-size:14px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--t2);border:none;background:transparent;font-family:'Figtree',system-ui,sans-serif}
+    .tab.active{background:var(--b);color:#fff}
+    label{display:block;font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;margin-top:16px}
+    input{width:100%;background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:11px 14px;font-size:14px;outline:none;font-family:'Figtree',system-ui,sans-serif;transition:border-color .15s}
+    input:focus{border-color:var(--acc)}
+    input::placeholder{color:var(--t3)}
+    .btn{width:100%;margin-top:24px;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Figtree',system-ui,sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn:hover:not(:disabled){background:#5E9CF8}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .msg{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.5}
+    .msg.err{background:rgba(240,112,112,.1);border:1px solid rgba(240,112,112,.25);color:var(--red)}
+    .msg.ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--ok)}
+    .trial-badge{margin-top:20px;padding:14px;background:rgba(75,139,245,.08);border:1px solid rgba(75,139,245,.2);border-radius:10px;text-align:center}
+    .trial-badge strong{color:var(--acc);font-size:16px;display:block;margin-bottom:4px}
+    .trial-badge span{font-size:12px;color:var(--t2)}
+    .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .divider{text-align:center;font-size:12px;color:var(--t3);margin:16px 0;position:relative}
+    .divider::before,.divider::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:var(--b)}
+    .divider::before{left:0}.divider::after{right:0}
+    .link{color:var(--acc);cursor:pointer;background:none;border:none;font-size:13px;font-family:'Figtree',system-ui,sans-serif;text-decoration:underline}
+    .forgot{display:block;text-align:right;margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">ReelCall.app</div>
+    <div class="tagline">Your YouTube knowledge base — real transcripts, AI analysis, cross-video Q&amp;A</div>
+
+    <div class="trial-badge">
+      <strong>60-Day Free Trial</strong>
+      <span>No credit card required · Lock in $1/month when you convert</span>
+    </div>
+
+    <div class="tabs" style="margin-top:24px">
+      <button class="tab active" id="tab-signup" onclick="showTab('signup')">Create Account</button>
+      <button class="tab" id="tab-login" onclick="showTab('login')">Sign In</button>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup">
+      <label>Email</label>
+      <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email">
+      <label>Password</label>
+      <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password">
+      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free Trial</button>
+      <div id="msg-signup"></div>
+    </div>
+
+    <!-- Login form -->
+    <div id="form-login" style="display:none">
+      <label>Email</label>
+      <input type="email" id="li-email" placeholder="you@example.com" autocomplete="email">
+      <label>Password</label>
+      <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password">
+      <button class="link forgot" onclick="doForgot()">Forgot password?</button>
+      <button class="btn" id="btn-login" onclick="doLogin()">Sign In</button>
+      <div id="msg-login"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+    const sb = supabase.createClient(SB_URL, SB_KEY);
+
+    // Check if already logged in
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = "/reel.html";
+    });
+
+    function showTab(t) {
+      document.getElementById("form-signup").style.display = t === "signup" ? "" : "none";
+      document.getElementById("form-login").style.display = t === "login" ? "" : "none";
+      document.getElementById("tab-signup").className = "tab" + (t === "signup" ? " active" : "");
+      document.getElementById("tab-login").className = "tab" + (t === "login" ? " active" : "");
+    }
+
+    function setMsg(id, text, type) {
+      const el = document.getElementById(id);
+      el.className = "msg " + type;
+      el.textContent = text;
+    }
+
+    function setBtnLoading(id, loading) {
+      const btn = document.getElementById(id);
+      btn.disabled = loading;
+      btn.innerHTML = loading ? '<div class="spin"></div>' : (id === "btn-signup" ? "Start Free Trial" : "Sign In");
+    }
+
+    async function doSignup() {
+      const email = document.getElementById("su-email").value.trim();
+      const pass = document.getElementById("su-pass").value;
+      if (!email || !pass) { setMsg("msg-signup", "Please fill in all fields.", "err"); return; }
+      setBtnLoading("btn-signup", true);
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password: pass });
+        if (error) throw error;
+
+        // Create reel_users row
+        const owner = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
+        const trialEnd = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        await sb.from("reel_users").insert({
+          id: data.user.id,
+          email,
+          owner,
+          trial_ends_at: trialEnd,
+          active: true,
+        });
+
+        setMsg("msg-signup", "Account created! Taking you to your library...", "ok");
+        setTimeout(() => window.location.href = "/reel.html", 1500);
+      } catch (e) {
+        setMsg("msg-signup", e.message, "err");
+        setBtnLoading("btn-signup", false);
+      }
+    }
+
+    async function doLogin() {
+      const email = document.getElementById("li-email").value.trim();
+      const pass = document.getElementById("li-pass").value;
+      if (!email || !pass) { setMsg("msg-login", "Please fill in all fields.", "err"); return; }
+      setBtnLoading("btn-login", true);
+      try {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+        window.location.href = "/reel.html";
+      } catch (e) {
+        setMsg("msg-login", e.message, "err");
+        setBtnLoading("btn-login", false);
+      }
+    }
+
+    async function doForgot() {
+      const email = document.getElementById("li-email").value.trim();
+      if (!email) { setMsg("msg-login", "Enter your email above first.", "err"); return; }
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://reelcall.app/reel.html" });
+      if (error) setMsg("msg-login", error.message, "err");
+      else setMsg("msg-login", "Password reset email sent — check your inbox.", "ok");
+    }
+
+    // Enter key support
+    document.addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      if (document.getElementById("form-signup").style.display !== "none") doSignup();
+      else doLogin();
+    });
+  </script>
+</body>
+</html>
