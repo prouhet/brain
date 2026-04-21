@@ -50,6 +50,14 @@
     @media(max-width:480px){.rvcard{grid-template-columns:110px 1fr}.rvcard img{width:110px;height:62px}}
     .theme-btn{position:fixed;bottom:20px;right:20px;z-index:999;width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.12);transition:all .2s;font-family:system-ui}
     .theme-btn:hover{border-color:var(--acc);color:var(--acc);transform:scale(1.08)}
+    .tip{position:relative;display:inline-flex;align-items:center}
+    .tip-icon{width:15px;height:15px;border-radius:50%;background:var(--s3);border:1px solid var(--b);color:var(--t3);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;font-family:'Figtree',system-ui,sans-serif;line-height:1}
+    .tip-icon:hover{background:var(--acc-lo);border-color:var(--acc-mid);color:var(--acc)}
+    .tip-box{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--b);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--t2);line-height:1.5;width:220px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none}
+    .tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--b)}
+    .tip:hover .tip-box,.tip-icon:focus + .tip-box{display:block}
+    .tip-right .tip-box{left:auto;right:0;transform:none}
+    .tip-right .tip-box::after{left:auto;right:12px;transform:none}
   </style>
 </head>
 <body>
@@ -161,6 +169,15 @@
     const Spinner = ({ size = 18 }) => <div className="rspin" style={{ width: size, height: size }} />;
     const Dots = () => <div style={{ display: "flex", gap: 5, padding: "6px 0" }}><div className="rdot" /><div className="rdot" /><div className="rdot" /></div>;
 
+    function Tip({ text, right = false }) {
+      return (
+        <span className={`tip${right ? " tip-right" : ""}`} style={{ marginLeft: 5 }}>
+          <span className="tip-icon" tabIndex={0}>i</span>
+          <span className="tip-box">{text}</span>
+        </span>
+      );
+    }
+
     function Tag({ label, active, onClick, onRemove }) {
       return (
         <span className={`rtag${onClick ? " clk" : ""}${onRemove ? " rm" : ""}`}
@@ -232,7 +249,7 @@
               <button onClick={onToggleDark} style={{ padding: "7px 11px", borderRadius: 8, background: "transparent", border: "1px solid var(--b)", color: "var(--t2)", cursor: "pointer", fontSize: 15, lineHeight: 1 }} title={dark ? "Light mode" : "Dark mode"}>
                 {dark ? "☀" : "🌙"}
               </button>
-              {videos.length >= 2 && <button className="rbtn-g" onClick={onCrossQuery}>✦ Cross-Query</button>}
+              {videos.length >= 2 && <button className="rbtn-g" onClick={onCrossQuery}>✦ Cross-Query<Tip text="Ask questions across multiple videos. Claude finds connections and patterns across your whole library — or filter by channel or tag to narrow your search." right={true} /></button>}
             </div>
           </div>
 
@@ -330,7 +347,7 @@
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <h3 onClick={() => onSelect(video)} style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.35, color: "var(--text)", cursor: "pointer", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{video.title}</h3>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  {BRAIN_MCP && <button title="Quick capture to brain" onClick={() => setShowCapture(!showCapture)} style={{ padding: "3px 9px", fontSize: 13, borderRadius: 6, background: showCapture ? "var(--ok-lo)" : "transparent", border: `1px solid ${showCapture ? "var(--ok-mid)" : "var(--b)"}`, color: showCapture ? "var(--ok)" : "var(--t3)", cursor: "pointer" }}>⊕</button>}
+                  {BRAIN_MCP && <button title="Quick capture to brain" onClick={() => setShowCapture(!showCapture)} style={{ padding: "3px 9px", fontSize: 13, borderRadius: 6, background: showCapture ? "var(--ok-lo)" : "transparent", border: `1px solid ${showCapture ? "var(--ok-mid)" : "var(--b)"}`, color: showCapture ? "var(--ok)" : "var(--t3)", cursor: "pointer" }}>⊕<Tip text="Quick-capture a note or task from this video directly to your brain." right={true} /></button>}
                   <button className="rbtn-d" style={{ padding: "3px 9px", fontSize: 12, borderRadius: 6 }} onClick={() => onDelete(video.id)}>✕</button>
                 </div>
               </div>
@@ -790,9 +807,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       );
 
       return (
-        <button onClick={toggleShare} className="rbtn-g" style={{ fontSize: 13 }}>
-          Share
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Tip text="Share this video with anyone — they get a read-only page with the summary, key points, and Q&A. Non-members see a prompt to sign up." right={true} />
+          <button onClick={toggleShare} className="rbtn-g" style={{ fontSize: 13 }}>
+            Share
+          </button>
+        </div>
       );
     }
 
@@ -970,7 +990,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           </Sec>
 
           {video.keyPoints?.length > 0 && (
-            <Sec title="Key Points" subtitle="Star anything worth recalling later">
+            <Sec title="Key Points" subtitle={<span>Star anything worth recalling later<Tip text="Starred points are highlighted in amber and counted in the video header badge. Use them to track what's new or important to revisit." /></span>}>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {video.keyPoints.map((p, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -998,7 +1018,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             )}
           </Sec>
 
-          <Sec title="Ask Questions">
+          <Sec title={<span>Ask Questions<Tip text="Ask anything about this video. Your questions and answers are saved automatically and searchable from the library page." /></span>}>
             {video.qa?.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
                 {video.qa.map((m) => (
