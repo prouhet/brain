@@ -1064,8 +1064,9 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
     // ─── Cross-Query ───────────────────────────────────────────────────────────
     function CrossQueryView({ videos, onBack }) {
-      const [activeChannel, setActiveChannel] = useState(null);
-      const [activeTag, setActiveTag] = useState(null);
+      const [selected, setSelected] = useState(new Set(videos.map((v) => v.id)));
+      const [filterChannel, setFilterChannel] = useState(null);
+      const [filterTag, setFilterTag] = useState(null);
       const [query, setQuery] = useState("");
       const [qa, setQa] = useState([]);
       const [loading, setLoading] = useState(false);
@@ -1075,10 +1076,36 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const allChannels = [...new Set(videos.map((v) => v.channel).filter(Boolean))].sort();
       const allTags = [...new Set(videos.flatMap((v) => v.tags || []))].sort();
 
-      const scoped = videos.filter((v) =>
-        (!activeChannel || v.channel === activeChannel) &&
-        (!activeTag || (v.tags || []).includes(activeTag))
+      // Filtered list shown in picker
+      const visible = videos.filter((v) =>
+        (!filterChannel || v.channel === filterChannel) &&
+        (!filterTag || (v.tags || []).includes(filterTag))
       );
+
+      // When filter changes, auto-select all visible
+      useEffect(() => {
+        setSelected(new Set(visible.map((v) => v.id)));
+      }, [filterChannel, filterTag]);
+
+      const scoped = videos.filter((v) => selected.has(v.id));
+
+      function toggleVideo(id) {
+        const next = new Set(selected);
+        next.has(id) ? next.delete(id) : next.add(id);
+        setSelected(next);
+      }
+
+      function toggleAll() {
+        if (visible.every((v) => selected.has(v.id))) {
+          const next = new Set(selected);
+          visible.forEach((v) => next.delete(v.id));
+          setSelected(next);
+        } else {
+          const next = new Set(selected);
+          visible.forEach((v) => next.add(v.id));
+          setSelected(next);
+        }
+      }
 
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
 
@@ -1090,21 +1117,19 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         setQa(withUser);
         try {
           const ctx = scoped.map((v, i) =>
-            `[${i + 1}] "${v.title}" — ${v.channel || "unknown channel"}\nSummary: ${v.summary}\nKey Points: ${(v.keyPoints || []).join("; ")}`
+            `[${i + 1}] "${v.title}" — ${v.channel || "unknown"}\nSummary: ${v.summary}\nKey Points: ${(v.keyPoints || []).join("; ")}`
           ).join("\n\n---\n\n");
 
-          const scopeLabel = activeChannel ? ` from ${activeChannel}` : activeTag ? ` tagged "${activeTag}"` : "";
-
           const data = await callClaude({
-            system: `You are Dave's personal YouTube knowledge base assistant. You have access to ${scoped.length} video${scoped.length !== 1 ? "s" : ""}${scopeLabel}.
+            system: `You are a YouTube knowledge base assistant. You have access to ${scoped.length} video${scoped.length !== 1 ? "s" : ""} selected by the user.
 
 ${ctx}
 
 Instructions:
-- Identify which videos are most relevant to each question — do not use videos that aren't relevant
-- Synthesize insights across relevant videos into a clear, direct answer
-- Always cite video titles in brackets e.g. ["Video Title"] when referencing specific content
-- If no videos address the question, say so clearly and suggest what to search for
+- Identify which videos are most relevant — do not use videos that aren't relevant
+- Synthesize insights into a clear, direct answer
+- Cite video titles in brackets e.g. ["Video Title"] when referencing content
+- If no videos address the question, say so and suggest what to search for
 - Keep answers focused and actionable`,
             messages: withUser.map((m) => ({ role: m.role, content: m.content })),
             maxTokens: 1500,
@@ -1123,71 +1148,84 @@ Instructions:
         try {
           await callClaude({
             system: `Capture for owner "dave" (personal scope) as a note using capture_thought.`,
-            messages: [{ role: "user", content: `REEL library query note (scope personal, owner dave):\n\n${content}` }],
+            messages: [{ role: "user", content: `REEL cross-query note (scope personal, owner dave):\n\n${content}` }],
             maxTokens: 400, mcp: BRAIN_MCP,
           });
           setCaptureStatus("done"); setTimeout(() => setCaptureStatus("idle"), 3000);
         } catch { setCaptureStatus("error"); }
       }
 
-      const scopeLabel = activeChannel ? activeChannel : activeTag ? `#${activeTag}` : `all ${videos.length} videos`;
+      const allVisibleSelected = visible.length > 0 && visible.every((v) => selected.has(v.id));
 
       return (
-        <div style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px" }}>
           <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
-          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Query Your Library</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
+            Query Your Library
+            <Tip text="Select any combination of videos to query together. Filter by channel or tag to find videos faster, then pick exactly which ones to include." />
+          </h2>
           <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 20 }}>
-            Ask anything — Claude finds the relevant videos automatically.
+            Pick the videos you want to compare — then ask anything.
           </p>
 
-          {/* Scope filters */}
-          <div className="rcard" style={{ padding: 16, marginBottom: 20 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 12 }}>
-              Scope — <span style={{ color: "var(--acc)", fontWeight: 600 }}>{scoped.length} video{scoped.length !== 1 ? "s" : ""}</span>
-              {(activeChannel || activeTag) && (
-                <button onClick={() => { setActiveChannel(null); setActiveTag(null); }} style={{ marginLeft: 10, fontSize: 11, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>
-                  clear ×
-                </button>
-              )}
-            </p>
-
-            {allChannels.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", flexShrink: 0 }}>Channel</span>
-                <button onClick={() => setActiveChannel(null)}
-                  style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: !activeChannel ? "var(--acc-lo)" : "var(--s3)", color: !activeChannel ? "var(--acc)" : "var(--t2)", border: `1px solid ${!activeChannel ? "var(--acc-mid)" : "var(--b)"}` }}>
-                  All
-                </button>
-                {allChannels.map((c) => (
-                  <button key={c} onClick={() => { setActiveChannel(activeChannel === c ? null : c); setActiveTag(null); }}
-                    style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: activeChannel === c ? "var(--acc-lo)" : "var(--s3)", color: activeChannel === c ? "var(--acc)" : "var(--t2)", border: `1px solid ${activeChannel === c ? "var(--acc-mid)" : "var(--b)"}` }}>
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {allTags.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", flexShrink: 0 }}>Tags</span>
-                <button onClick={() => setActiveTag(null)}
-                  style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: !activeTag ? "var(--s3)" : "var(--s3)", color: "var(--t2)", border: `1px solid var(--b)` }}>
-                  All
-                </button>
-                {allTags.map((t) => (
-                  <Tag key={t} label={t} active={activeTag === t} onClick={() => { setActiveTag(activeTag === t ? null : t); setActiveChannel(null); }} />
-                ))}
-              </div>
-            )}
+          {/* Filter pills */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em" }}>Filter</span>
+            <button onClick={() => { setFilterChannel(null); setFilterTag(null); }}
+              style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: !filterChannel && !filterTag ? "var(--acc-lo)" : "var(--s3)", color: !filterChannel && !filterTag ? "var(--acc)" : "var(--t2)", border: `1px solid ${!filterChannel && !filterTag ? "var(--acc-mid)" : "var(--b)"}` }}>
+              All ({videos.length})
+            </button>
+            {allChannels.map((c) => (
+              <button key={c} onClick={() => { setFilterChannel(filterChannel === c ? null : c); setFilterTag(null); }}
+                style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: filterChannel === c ? "var(--acc-lo)" : "var(--s3)", color: filterChannel === c ? "var(--acc)" : "var(--t2)", border: `1px solid ${filterChannel === c ? "var(--acc-mid)" : "var(--b)"}` }}>
+                {c} ({videos.filter((v) => v.channel === c).length})
+              </button>
+            ))}
+            {allTags.map((t) => (
+              <Tag key={t} label={t} active={filterTag === t} onClick={() => { setFilterTag(filterTag === t ? null : t); setFilterChannel(null); }} />
+            ))}
           </div>
 
-          {/* Conversation history */}
+          {/* Video thumbnail picker */}
+          <div className="rcard" style={{ padding: 14, marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em" }}>
+                <span style={{ color: "var(--acc)" }}>{scoped.length}</span> of {videos.length} selected
+              </span>
+              <button onClick={toggleAll} className="rbtn-g" style={{ fontSize: 12, padding: "4px 10px" }}>
+                {allVisibleSelected ? "Deselect shown" : "Select shown"}
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+              {visible.map((v) => {
+                const isSelected = selected.has(v.id);
+                return (
+                  <div key={v.id} onClick={() => toggleVideo(v.id)}
+                    style={{ cursor: "pointer", borderRadius: 8, overflow: "hidden", border: `2px solid ${isSelected ? "var(--acc)" : "var(--b)"}`, background: isSelected ? "var(--acc-lo)" : "var(--s2)", transition: "all .15s", opacity: isSelected ? 1 : 0.45 }}>
+                    <div style={{ position: "relative" }}>
+                      <img src={v.videoId ? thumb(v.videoId) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='79' fill='%231A2438'%3E%3Crect width='140' height='79'/%3E%3C/svg%3E"}
+                        style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
+                      {isSelected && (
+                        <div style={{ position: "absolute", top: 4, right: 4, width: 18, height: 18, borderRadius: "50%", background: "var(--acc)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", fontWeight: 700 }}>✓</div>
+                      )}
+                    </div>
+                    <div style={{ padding: "6px 8px" }}>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 2 }}>{v.title}</p>
+                      <p style={{ fontSize: 10, color: "var(--t3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.channel}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Conversation */}
           {qa.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 16 }}>
               {qa.map((m) => (
                 <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
                   <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>
-                    {m.role === "user" ? `You · ${scopeLabel}` : "REEL"}
+                    {m.role === "user" ? `You · ${scoped.length} videos` : "REEL"}
                   </p>
                   <p style={{ lineHeight: 1.7, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
                 </div>
@@ -1204,26 +1242,23 @@ Instructions:
 
           {/* Empty state */}
           {qa.length === 0 && scoped.length > 0 && (
-            <div style={{ background: "var(--s2)", borderRadius: 12, padding: "20px 24px", marginBottom: 20, border: "1px solid var(--b)" }}>
-              <p style={{ fontSize: 13, color: "var(--t2)", marginBottom: 8 }}>
-                <strong style={{ color: "var(--text)" }}>Querying {scopeLabel}</strong>
-              </p>
+            <div style={{ background: "var(--s2)", borderRadius: 12, padding: "16px 20px", marginBottom: 16, border: "1px solid var(--b)" }}>
               <p style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>
-                Try: "What are the common themes?" · "What should I act on?" · "Summarize the key arguments about X" · "What do these videos disagree on?"
+                Try: "What are the common themes?" · "What should I act on?" · "What do these videos disagree on?" · "Summarize the key arguments about X"
               </p>
             </div>
           )}
 
           {scoped.length === 0 && (
-            <div style={{ textAlign: "center", padding: "32px", color: "var(--t2)", fontSize: 14 }}>
-              No videos match this scope. Clear the filters to query your full library.
+            <div style={{ textAlign: "center", padding: "24px", color: "var(--t2)", fontSize: 14, marginBottom: 16 }}>
+              No videos selected — click thumbnails above to select.
             </div>
           )}
 
           {/* Input */}
           <div style={{ display: "flex", gap: 10, marginBottom: qa.length > 0 ? 14 : 0 }}>
             <input
-              placeholder={`Ask anything across ${scoped.length} video${scoped.length !== 1 ? "s" : ""}...`}
+              placeholder={scoped.length > 0 ? `Ask anything across ${scoped.length} selected video${scoped.length !== 1 ? "s" : ""}...` : "Select videos above first..."}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()}
@@ -1237,12 +1272,12 @@ Instructions:
           {/* Actions */}
           {qa.length > 0 && (
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="rbtn-ok" onClick={captureTooBrain} disabled={captureStatus === "loading"} style={{ fontSize: 13 }}>
-                {captureStatus === "loading" ? "Saving..." : captureStatus === "done" ? "Captured ✓" : "Capture Last Answer to Brain"}
-              </button>
-              <button className="rbtn-g" onClick={() => setQa([])} style={{ fontSize: 13 }}>
-                Clear
-              </button>
+              {BRAIN_MCP && (
+                <button className="rbtn-ok" onClick={captureTooBrain} disabled={captureStatus === "loading"} style={{ fontSize: 13 }}>
+                  {captureStatus === "loading" ? "Saving..." : captureStatus === "done" ? "Captured ✓" : "Capture Last Answer to Brain"}
+                </button>
+              )}
+              <button className="rbtn-g" onClick={() => setQa([])} style={{ fontSize: 13 }}>Clear</button>
             </div>
           )}
         </div>
