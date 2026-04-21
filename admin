@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReelCall Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100vh;background:#07090F;color:#DDE4F5;font-family:'Figtree',system-ui,sans-serif;font-size:14px}
+    :root{--acc:#4B8BF5;--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070}
+    .wrap{max-width:1100px;margin:0 auto;padding:28px 20px}
+    h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#fff;margin-bottom:4px}
+    .sub{font-size:13px;color:var(--t2);margin-bottom:28px}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:28px}
+    .stat{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px}
+    .stat-n{font-size:28px;font-weight:700;color:#fff;font-family:'Syne',sans-serif}
+    .stat-l{font-size:12px;color:var(--t2);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+    .card{background:var(--s1);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin-bottom:20px}
+    .card-head{padding:14px 20px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
+    .card-head h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t2)}
+    table{width:100%;border-collapse:collapse}
+    th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);border-bottom:1px solid var(--b)}
+    td{padding:12px 16px;border-bottom:1px solid rgba(30,45,72,.5);vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+    .badge-ok{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}
+    .badge-warn{background:var(--warn-lo);color:var(--warn);border:1px solid var(--warn-mid)}
+    .badge-red{background:var(--red-lo);color:var(--red);border:1px solid var(--red-mid)}
+    .badge-gray{background:var(--s3);color:var(--t2);border:1px solid var(--b)}
+    .mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t2)}
+    button{font-family:'Figtree',system-ui,sans-serif;cursor:pointer;border:none;border-radius:6px;font-size:12px;font-weight:500;padding:5px 12px;transition:all .15s}
+    .btn-ok{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}.btn-ok:hover{background:rgba(52,211,153,.18)}
+    .btn-red{background:var(--red-lo);color:var(--red);border:1px solid var(--red-mid)}.btn-red:hover{background:rgba(240,112,112,.18)}
+    .btn-g{background:transparent;color:var(--t2);border:1px solid var(--b)}.btn-g:hover{background:var(--s2);color:#fff}
+    .btn-acc{background:rgba(75,139,245,.12);color:var(--acc);border:1px solid rgba(75,139,245,.28)}.btn-acc:hover{background:rgba(75,139,245,.2)}
+    .search{background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:'Figtree',system-ui,sans-serif;width:240px;transition:border-color .15s}
+    .search:focus{border-color:var(--acc)}
+    .search::placeholder{color:var(--t3)}
+    .days-bar{display:flex;align-items:center;gap:8px}
+    .bar-bg{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;max-width:80px}
+    .bar-fill{height:100%;border-radius:2px;transition:width .3s}
+    .gate{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;color:var(--t2)}
+    .gate h2{color:#fff;font-family:'Syne',sans-serif;font-size:20px}
+    input.ext{background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;width:50px;font-family:'Figtree',system-ui,sans-serif}
+    input.ext:focus{border-color:var(--acc)}
+  </style>
+</head>
+<body>
+  <div id="gate" class="gate" style="display:none">
+    <h2>Access Denied</h2>
+    <p>This page is only accessible to Dave or Doreen.</p>
+    <a href="/reel.html" style="color:var(--acc)">← Back to ReelCall</a>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <h1>ReelCall Admin</h1>
+        <a href="/reel.html" style="color:var(--t2);font-size:13px;text-decoration:none">← Back to app</a>
+      </div>
+      <div class="sub" id="admin-user"></div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Users</h2>
+          <input class="search" id="search" placeholder="Search email or owner..." oninput="renderTable()">
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Owner ID</th>
+                <th>Status</th>
+                <th>Trial</th>
+                <th>Tier</th>
+                <th>Videos</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+    const sb = supabase.createClient(SB_URL, SB_KEY);
+
+    const ADMINS = ["dave", "doreen"];
+    const params = new URLSearchParams(location.search);
+    const userParam = (params.get("user") || "").toLowerCase();
+
+    let users = [], videoCounts = {};
+
+    if (!ADMINS.includes(userParam)) {
+      document.getElementById("gate").style.display = "flex";
+    } else {
+      document.getElementById("app").style.display = "";
+      document.getElementById("admin-user").textContent = `Signed in as ${userParam}`;
+      init();
+    }
+
+    async function init() {
+      const [usersRes, videosRes] = await Promise.all([
+        sb.from("reel_users").select("*").order("created_at", { ascending: false }),
+        sb.from("youtube_videos").select("owner")
+      ]);
+      users = usersRes.data || [];
+      (videosRes.data || []).forEach(v => { videoCounts[v.owner] = (videoCounts[v.owner] || 0) + 1; });
+      renderStats();
+      renderTable();
+    }
+
+    function trialStatus(u) {
+      if (!u.active) return { label: "Inactive", cls: "badge-red" };
+      const now = Date.now();
+      const end = new Date(u.trial_ends_at).getTime();
+      const days = Math.ceil((end - now) / 86400000);
+      if (days < 0) return { label: "Expired", cls: "badge-red", days: 0 };
+      if (days <= 7) return { label: `${days}d left`, cls: "badge-warn", days };
+      return { label: `${days}d left`, cls: "badge-ok", days };
+    }
+
+    function renderStats() {
+      const active = users.filter(u => u.active).length;
+      const expired = users.filter(u => { const d = Math.ceil((new Date(u.trial_ends_at) - Date.now()) / 86400000); return d < 0 && u.active; }).length;
+      const totalVideos = Object.values(videoCounts).reduce((a, b) => a + b, 0);
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><div class="stat-n">${users.length}</div><div class="stat-l">Total Users</div></div>
+        <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">Active</div></div>
+        <div class="stat"><div class="stat-n">${expired}</div><div class="stat-l">Trial Expired</div></div>
+        <div class="stat"><div class="stat-n">${totalVideos}</div><div class="stat-l">Total Videos</div></div>
+      `;
+    }
+
+    function renderTable() {
+      const q = document.getElementById("search").value.toLowerCase();
+      const filtered = users.filter(u => !q || u.email?.includes(q) || u.owner?.includes(q));
+      document.getElementById("tbody").innerHTML = filtered.map(u => {
+        const ts = trialStatus(u);
+        const pct = Math.min(100, Math.max(0, Math.round((ts.days || 0) / 60 * 100)));
+        const barColor = ts.days > 14 ? "var(--ok)" : ts.days > 7 ? "var(--warn)" : "var(--red)";
+        const vcount = videoCounts[u.owner] || 0;
+        return `<tr>
+          <td>${u.email || "—"}</td>
+          <td><span class="mono">${u.owner || "—"}</span></td>
+          <td><span class="badge ${u.active ? "badge-ok" : "badge-red"}">${u.active ? "Active" : "Inactive"}</span></td>
+          <td>
+            <div class="days-bar">
+              <span class="badge ${ts.cls}">${ts.label}</span>
+              ${ts.days > 0 ? `<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${barColor}"></div></div>` : ""}
+            </div>
+          </td>
+          <td><span class="badge badge-gray">Tier ${u.tier || 1}</span></td>
+          <td style="color:var(--t2)">${vcount}</td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              ${u.active
+                ? `<button class="btn-red" onclick="toggleActive('${u.id}', false)">Deactivate</button>`
+                : `<button class="btn-ok" onclick="toggleActive('${u.id}', true)">Activate</button>`
+              }
+              <button class="btn-acc" onclick="extendTrial('${u.id}', '${u.trial_ends_at}')">+30 days</button>
+              <select onchange="setTier('${u.id}', this.value)" style="background:var(--s2);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:5px 6px;font-size:12px;outline:none;cursor:pointer">
+                ${[1,2,3,4,5].map(t => `<option value="${t}" ${(u.tier||1)==t?"selected":""}>\$${t}/mo</option>`).join("")}
+              </select>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function toggleActive(id, val) {
+      await sb.from("reel_users").update({ active: val }).eq("id", id);
+      users = users.map(u => u.id === id ? { ...u, active: val } : u);
+      renderStats(); renderTable();
+    }
+
+    async function extendTrial(id, currentEnd) {
+      const cur = new Date(currentEnd);
+      const now = new Date();
+      const base = cur > now ? cur : now;
+      const newEnd = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await sb.from("reel_users").update({ trial_ends_at: newEnd }).eq("id", id);
+      users = users.map(u => u.id === id ? { ...u, trial_ends_at: newEnd } : u);
+      renderTable();
+    }
+
+    async function setTier(id, tier) {
+      await sb.from("reel_users").update({ tier: parseInt(tier) }).eq("id", id);
+      users = users.map(u => u.id === id ? { ...u, tier: parseInt(tier) } : u);
+    }
+  </script>
+</body>
+</html>
