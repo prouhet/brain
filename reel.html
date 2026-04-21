@@ -1315,37 +1315,40 @@ Instructions:
           <button className="theme-btn" onClick={() => setDark(!dark)}>{dark ? "☀" : "🌙"}</button>
           <div style={{ maxWidth: 740, margin: "0 auto", padding: "24px 20px" }}>
 
-            {/* CTA Banner — top of page */}
-            {saved ? (
-              <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 18 }}>✓</span>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ok)" }}>Saved to your library!</p>
-                  <a href="/reel.html" style={{ fontSize: 13, color: "var(--acc)", textDecoration: "none" }}>Open your library →</a>
+            {/* CTA Banner component — rendered top & bottom */}
+            {(() => {
+              const CtaBanner = ({ mb = 20, mt = 0 }) => saved ? (
+                <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: mb, marginTop: mt, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 18 }}>✓</span>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ok)" }}>Saved to your library!</p>
+                    <a href="/reel.html" style={{ fontSize: 13, color: "var(--acc)", textDecoration: "none" }}>Open your library →</a>
+                  </div>
                 </div>
-              </div>
-            ) : authUser ? (
-              <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--acc)" }}>Save this to your library</p>
-                  <p style={{ fontSize: 12, color: "var(--t2)", marginTop: 2 }}>Add to your ReelCall library to keep it and ask questions anytime</p>
+              ) : authUser ? (
+                <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: mb, marginTop: mt, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--acc)" }}>Save this to your library</p>
+                    <p style={{ fontSize: 12, color: "var(--t2)", marginTop: 2 }}>Keep this video and your Q&A in your ReelCall library</p>
+                  </div>
+                  <button onClick={saveToLibrary} disabled={saving} style={{ flexShrink: 0, background: "var(--acc)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap" }}>
+                    {saving ? "Saving..." : "Save to Library"}
+                  </button>
                 </div>
-                <button onClick={saveToLibrary} disabled={saving} style={{ flexShrink: 0, background: "var(--acc)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap" }}>
-                  {saving ? "Saving..." : "Save to Library"}
-                </button>
-              </div>
-            ) : (
-              <div style={{ background: "#07090F", border: "1px solid rgba(75,139,245,.3)", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-                <div>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Save this video to your library</p>
-                  <p style={{ fontSize: 13, color: "#7B8FAD" }}>Free 60-day trial · No credit card required</p>
+              ) : (
+                <div style={{ background: "var(--s1)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "16px 20px", marginBottom: mb, marginTop: mt, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                  <div>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Save this video to your library</p>
+                    <p style={{ fontSize: 13, color: "var(--t2)" }}>Free 60-day trial · No credit card required</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                    <a href="/signup.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
+                    <a href="/reel.html" style={{ background: "transparent", color: "var(--t2)", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>Sign In</a>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                  <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
-                  <a href="/reel.html" style={{ background: "transparent", color: "#7B8FAD", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid #1E2D48", whiteSpace: "nowrap" }}>Sign In</a>
-                </div>
-              </div>
-            )}
+              );
+              return <CtaBanner mb={20} />;
+            })()}
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".1em" }}>ReelCall · Shared Video</div>
@@ -1407,6 +1410,32 @@ Instructions:
                 </button>
               </div>
             </Sec>
+
+            {/* CTA Banner — bottom of page */}
+            {!saved && (
+              authUser ? (
+                <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "14px 20px", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--acc)" }}>Save this to your library</p>
+                    <p style={{ fontSize: 12, color: "var(--t2)", marginTop: 2 }}>Keep this video and your Q&A in your ReelCall library</p>
+                  </div>
+                  <button onClick={saveToLibrary} disabled={saving} style={{ flexShrink: 0, background: "var(--acc)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap" }}>
+                    {saving ? "Saving..." : "Save to Library"}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ background: "var(--s1)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "16px 20px", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                  <div>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Save this video to your library</p>
+                    <p style={{ fontSize: 13, color: "var(--t2)" }}>Free 60-day trial · No credit card required</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                    <a href="/signup.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
+                    <a href="/reel.html" style={{ background: "transparent", color: "var(--t2)", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>Sign In</a>
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </div>
       );
