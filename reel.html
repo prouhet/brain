@@ -53,11 +53,11 @@
     .tip{position:relative;display:inline-flex;align-items:center}
     .tip-icon{width:15px;height:15px;border-radius:50%;background:var(--s3);border:1px solid var(--b);color:var(--t3);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;font-family:'Figtree',system-ui,sans-serif;line-height:1}
     .tip-icon:hover{background:var(--acc-lo);border-color:var(--acc-mid);color:var(--acc)}
-    .tip-box{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--b);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--t2);line-height:1.5;width:220px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none}
-    .tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--b)}
-    .tip:hover .tip-box,.tip-icon:focus + .tip-box{display:block}
+    .tip-box{display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--acc-mid);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--t2);line-height:1.5;width:220px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+    .tip-box::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:var(--acc-mid)}
+    .tip:hover .tip-box{display:block}
     .tip-right .tip-box{left:auto;right:0;transform:none}
-    .tip-right .tip-box::after{left:auto;right:12px;transform:none}
+    .tip-right .tip-box::before{left:auto;right:10px;transform:none}
   </style>
 </head>
 <body>
@@ -133,6 +133,9 @@
     }
     const sbLoad = () => sbReq(`youtube_videos?select=*&owner=eq.${OWNER}&order=date_added.desc`);
     const sbInsert = (row) => sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
+    const sbLoadQueries = () => sbReq(`reel_queries?select=*&owner=eq.${OWNER}&order=created_at.desc&limit=50`);
+    const sbSaveQuery = (row) => sbReq("reel_queries", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
+    const sbDeleteQuery = (id) => sbReq(`reel_queries?id=eq.${id}`, { method: "DELETE" });
     const sbPatch = (id, up) => sbReq(`youtube_videos?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(up) });
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
 
@@ -209,6 +212,20 @@
       const [activeTag, setActiveTag] = useState(null);
       const [activeChannel, setActiveChannel] = useState(null);
       const [urlInput, setUrlInput] = useState("");
+      const [tab, setTab] = useState("videos"); // videos | queries
+      const [queries, setQueries] = useState([]);
+      const [queriesLoaded, setQueriesLoaded] = useState(false);
+      const [expandedQuery, setExpandedQuery] = useState(null);
+
+      useEffect(() => {
+        if (tab === "queries" && !queriesLoaded) {
+          sbLoadQueries().then((rows) => { setQueries(rows || []); setQueriesLoaded(true); }).catch(() => setQueriesLoaded(true));
+        }
+      }, [tab]);
+
+      // Videos with Q&A — derived from videos prop
+      const videosWithQa = videos.filter((v) => v.qa?.length > 0)
+        .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
 
       const allTags = [...new Set(videos.flatMap((v) => v.tags || []))].sort();
       const allChannels = [...new Set(videos.map((v) => v.channel).filter(Boolean))].sort();
@@ -269,6 +286,17 @@
             </button>
           </div>
 
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 20, background: "var(--s2)", borderRadius: 10, padding: 4 }}>
+            <button onClick={() => setTab("videos")} style={{ flex: 1, padding: "8px", textAlign: "center", fontSize: 13, fontWeight: 500, borderRadius: 8, cursor: "pointer", fontFamily: "Figtree,system-ui", border: "none", background: tab === "videos" ? "var(--s1)" : "transparent", color: tab === "videos" ? "var(--text)" : "var(--t2)", transition: "all .15s" }}>
+              Videos ({videos.length})
+            </button>
+            <button onClick={() => setTab("queries")} style={{ flex: 1, padding: "8px", textAlign: "center", fontSize: 13, fontWeight: 500, borderRadius: 8, cursor: "pointer", fontFamily: "Figtree,system-ui", border: "none", background: tab === "queries" ? "var(--s1)" : "transparent", color: tab === "queries" ? "var(--text)" : "var(--t2)", transition: "all .15s" }}>
+              Q&A History {queriesLoaded && queries.length > 0 ? `(${queries.length})` : ""}
+            </button>
+          </div>
+
+          {tab === "videos" && (<>
           {/* Channel + Tag filters */}
           {hasFilters && (
             <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -292,12 +320,12 @@
             </div>
           )}
 
-          {/* Search — only shown when there are videos */}
+          {/* Search */}
           {videos.length > 0 && (
             <input placeholder="Search titles, channels, summaries..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 16 }} />
           )}
 
-          {/* Active filters indicator */}
+          {/* Active filters */}
           {(activeChannel || activeTag) && (
             <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
               <span style={{ fontSize: 13, color: "var(--t2)" }}>Filtered by:</span>
@@ -319,6 +347,108 @@
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map((v) => <VideoCard key={v.id} video={v} onSelect={onSelect} onDelete={onDelete} qaMatch={hasQaMatch(v)} />)}
+            </div>
+          )}
+          </>)}
+
+          {tab === "queries" && (
+            <div>
+              {!queriesLoaded ? (
+                <div style={{ textAlign: "center", padding: 32, color: "var(--t2)" }}><Spinner size={20} /></div>
+              ) : queries.length === 0 && videosWithQa.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--t2)" }}>
+                  <div style={{ fontSize: 40, marginBottom: 14, opacity: .25 }}>💬</div>
+                  <p style={{ fontSize: 16, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>No Q&A history yet</p>
+                  <p style={{ fontSize: 14 }}>Ask questions inside a video or use ✦ Cross-Query — sessions are saved here automatically.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                  {/* Single-video Q&A */}
+                  {videosWithQa.length > 0 && (
+                    <>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 4 }}>Video Q&A</p>
+                      {videosWithQa.map((v) => {
+                        const isExpanded = expandedQuery === `v-${v.id}`;
+                        const firstQ = v.qa.find((m) => m.role === "user");
+                        return (
+                          <div key={v.id} className="rcard" style={{ overflow: "hidden" }}>
+                            <div style={{ padding: "14px 16px", cursor: "pointer" }} onClick={() => setExpandedQuery(isExpanded ? null : `v-${v.id}`)}>
+                              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                                {v.videoId && <img src={thumb(v.videoId)} style={{ width: 56, height: 32, objectFit: "cover", borderRadius: 4, background: "var(--s3)", flexShrink: 0 }} />}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.title}</p>
+                                  <p style={{ fontSize: 12, color: "var(--t3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {firstQ?.content || "Q&A session"}
+                                  </p>
+                                </div>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                                  <span style={{ fontSize: 11, color: "var(--t3)" }}>{Math.floor(v.qa.length / 2)} exchange{Math.floor(v.qa.length / 2) !== 1 ? "s" : ""}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); onSelect(v); }} style={{ background: "none", border: "1px solid var(--b)", borderRadius: 6, color: "var(--t2)", cursor: "pointer", fontSize: 11, padding: "2px 8px", fontFamily: "Figtree,system-ui" }}>Open</button>
+                                </div>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="rfade" style={{ borderTop: "1px solid var(--b)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                                {v.qa.map((m) => (
+                                  <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
+                                    <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 5, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>{m.role === "user" ? "You" : "AI"}</p>
+                                    <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* Cross-query sessions */}
+                  {queries.length > 0 && (
+                    <>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", marginTop: videosWithQa.length > 0 ? 10 : 0, marginBottom: 4 }}>Cross-Query Sessions</p>
+                      {queries.map((q) => {
+                        const firstQ = (q.qa || []).find((m) => m.role === "user");
+                        const isExpanded = expandedQuery === q.id;
+                        return (
+                          <div key={q.id} className="rcard" style={{ overflow: "hidden" }}>
+                            <div style={{ padding: "14px 16px", cursor: "pointer" }} onClick={() => setExpandedQuery(isExpanded ? null : q.id)}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+                                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.4, flex: 1 }}>
+                                  {firstQ?.content || "Query"}
+                                </p>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                                  <span className="rmono" style={{ fontSize: 11, color: "var(--t3)" }}>{fmtDate(q.created_at)}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); sbDeleteQuery(q.id); setQueries(queries.filter((x) => x.id !== q.id)); }} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", fontSize: 13, padding: "0 4px", fontFamily: "Figtree,system-ui" }}>✕</button>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                                {(q.video_ids || []).slice(0, 6).map((vid, i) => {
+                                  const v = videos.find((x) => x.id === vid);
+                                  return v?.videoId ? <img key={vid} src={thumb(v.videoId)} title={(q.video_titles || [])[i] || ""} style={{ width: 40, height: 23, objectFit: "cover", borderRadius: 3, background: "var(--s3)", flexShrink: 0 }} /> : null;
+                                })}
+                                {(q.video_ids || []).length > 6 && <span style={{ fontSize: 11, color: "var(--t3)" }}>+{q.video_ids.length - 6} more</span>}
+                                <span style={{ fontSize: 11, color: "var(--t3)", marginLeft: 4 }}>{Math.floor((q.qa?.length || 0) / 2)} exchange{Math.floor((q.qa?.length || 0) / 2) !== 1 ? "s" : ""}</span>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="rfade" style={{ borderTop: "1px solid var(--b)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                                {(q.qa || []).map((m) => (
+                                  <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
+                                    <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 5, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>{m.role === "user" ? "You" : "REEL"}</p>
+                                    <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1071,6 +1201,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [qa, setQa] = useState([]);
       const [loading, setLoading] = useState(false);
       const [captureStatus, setCaptureStatus] = useState("idle");
+      const [queryId] = useState(() => genId()); // stable ID for this session
       const qaEndRef = useRef(null);
 
       const allChannels = [...new Set(videos.map((v) => v.channel).filter(Boolean))].sort();
@@ -1134,7 +1265,13 @@ Instructions:
             messages: withUser.map((m) => ({ role: m.role, content: m.content })),
             maxTokens: 1500,
           });
-          setQa([...withUser, { id: genId(), role: "assistant", content: getText(data) }]);
+          const newQa = [...withUser, { id: genId(), role: "assistant", content: getText(data) }];
+          setQa(newQa);
+          // Auto-save session to reel_queries (upsert by queryId)
+          try {
+            await sbReq(`reel_queries?id=eq.${queryId}`, { method: "DELETE" });
+            await sbSaveQuery({ id: queryId, owner: OWNER, video_ids: scoped.map((v) => v.id), video_titles: scoped.map((v) => v.title), qa: newQa });
+          } catch { /* silent */ }
         } catch (e) {
           setQa([...withUser, { id: genId(), role: "assistant", content: `Error: ${e.message}` }]);
         } finally { setLoading(false); }
