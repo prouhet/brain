@@ -1237,6 +1237,9 @@ Instructions:
       const [qaLoading, setQaLoading] = useState(false);
       const [err, setErr] = useState("");
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
+      const [authUser, setAuthUser] = useState(null); // null = not logged in, object = logged in
+      const [saving, setSaving] = useState(false);
+      const [saved, setSaved] = useState(false);
       const qaEndRef = useRef(null);
 
       useEffect(() => {
@@ -1247,6 +1250,11 @@ Instructions:
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
 
       useEffect(() => {
+        // Check auth session
+        sbAuth.auth.getSession().then(({ data: { session } }) => {
+          if (session) setAuthUser(session.user);
+        });
+        // Load shared video
         sbReq(`youtube_videos?select=*&id=eq.${videoId}&shared=eq.true`)
           .then((rows) => {
             if (!rows?.length) setErr("This video hasn't been shared or the link is invalid.");
@@ -1254,6 +1262,24 @@ Instructions:
           })
           .catch((e) => setErr(e.message));
       }, [videoId]);
+
+      async function saveToLibrary() {
+        if (!authUser || !video) return;
+        setSaving(true);
+        try {
+          // Get user's owner value
+          const { data: profile } = await sbAuth.from("reel_users").select("owner").eq("id", authUser.id).single();
+          if (!profile?.owner) throw new Error("Profile not found");
+          // Check not already saved
+          const existing = await sbReq(`youtube_videos?select=id&owner=eq.${profile.owner}&video_id=eq.${video.videoId || "none"}`);
+          if (existing?.length) { setSaved(true); setSaving(false); return; }
+          // Save a copy to their library including current Q&A
+          const copy = { ...video, id: genId(), owner: profile.owner, shared: false, qa: qa, dateAdded: new Date().toISOString() };
+          await sbInsert({ ...toDb(copy), owner: profile.owner });
+          setSaved(true);
+        } catch (e) { console.error(e); }
+        finally { setSaving(false); }
+      }
 
       async function askQuestion() {
         const q = qaInput.trim(); if (!q || qaLoading) return;
@@ -1288,8 +1314,41 @@ Instructions:
         <div className={`reel${dark ? " dark" : ""}`}>
           <button className="theme-btn" onClick={() => setDark(!dark)}>{dark ? "☀" : "🌙"}</button>
           <div style={{ maxWidth: 740, margin: "0 auto", padding: "24px 20px" }}>
+
+            {/* CTA Banner — top of page */}
+            {saved ? (
+              <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 18 }}>✓</span>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ok)" }}>Saved to your library!</p>
+                  <a href="/reel.html" style={{ fontSize: 13, color: "var(--acc)", textDecoration: "none" }}>Open your library →</a>
+                </div>
+              </div>
+            ) : authUser ? (
+              <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--acc)" }}>Save this to your library</p>
+                  <p style={{ fontSize: 12, color: "var(--t2)", marginTop: 2 }}>Add to your ReelCall library to keep it and ask questions anytime</p>
+                </div>
+                <button onClick={saveToLibrary} disabled={saving} style={{ flexShrink: 0, background: "var(--acc)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap" }}>
+                  {saving ? "Saving..." : "Save to Library"}
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: "#07090F", border: "1px solid rgba(75,139,245,.3)", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Save this video to your library</p>
+                  <p style={{ fontSize: 13, color: "#7B8FAD" }}>Free 60-day trial · No credit card required</p>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                  <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
+                  <a href="/reel.html" style={{ background: "transparent", color: "#7B8FAD", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid #1E2D48", whiteSpace: "nowrap" }}>Sign In</a>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".1em" }}>REEL · Shared Video</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".1em" }}>ReelCall · Shared Video</div>
             </div>
             <div className="rcard rfade" style={{ marginBottom: 14, overflow: "hidden" }}>
               {video.videoId
@@ -1328,7 +1387,7 @@ Instructions:
               </div>
             )}
 
-            <Sec title="Ask Questions" subtitle="Q&A is not saved — for your reference only">
+            <Sec title="Ask Questions" subtitle={saved ? "Q&A saved to your library" : authUser ? "Save this video to keep your Q&A" : "Sign up free to save this video and your Q&A"}>
               {qa.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
                   {qa.map((m) => (
