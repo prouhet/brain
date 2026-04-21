@@ -207,15 +207,16 @@
     }
 
     // ─── Library ──────────────────────────────────────────────────────────────
-    function LibraryView({ videos, onSelect, onDelete, onAddNew, onCrossQuery, onPaste, onChannelImport, dark, onToggleDark }) {
+    function LibraryView({ videos, onSelect, onDelete, onAddNew, onCrossQuery, onPaste, onChannelImport, onUpsertVideo, dark, onToggleDark }) {
       const [search, setSearch] = useState("");
       const [activeTag, setActiveTag] = useState(null);
       const [activeChannel, setActiveChannel] = useState(null);
       const [urlInput, setUrlInput] = useState("");
-      const [tab, setTab] = useState("videos"); // videos | queries
+      const [tab, setTab] = useState("videos");
       const [queries, setQueries] = useState([]);
       const [queriesLoaded, setQueriesLoaded] = useState(false);
       const [expandedQuery, setExpandedQuery] = useState(null);
+      const [showChannelModal, setShowChannelModal] = useState(false);
 
       useEffect(() => {
         if (tab === "queries" && !queriesLoaded) {
@@ -223,7 +224,6 @@
         }
       }, [tab]);
 
-      // Videos with Q&A — derived from videos prop
       const videosWithQa = videos.filter((v) => v.qa?.length > 0)
         .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
 
@@ -246,6 +246,9 @@
         return inQa && !inMain;
       }
 
+      // Detect if URL looks like a channel
+      const isChannelUrl = urlInput.trim().match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//);
+
       function handleAnalyze() {
         const u = urlInput.trim();
         if (!u) return;
@@ -256,6 +259,23 @@
 
       return (
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 20px" }}>
+          {/* Channel import modal overlay */}
+          {showChannelModal && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 20px", overflowY: "auto" }} onClick={(e) => { if (e.target === e.currentTarget) setShowChannelModal(false); }}>
+              <div style={{ background: "var(--s1)", border: "1px solid var(--b)", borderRadius: 16, padding: 28, width: "100%", maxWidth: 680, position: "relative" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>Channel Import</h2>
+                  <button onClick={() => setShowChannelModal(false)} style={{ background: "none", border: "none", color: "var(--t2)", cursor: "pointer", fontSize: 20, padding: "0 4px", fontFamily: "Figtree,system-ui" }}>✕</button>
+                </div>
+                <ChannelImportView
+                  onSave={(v) => { onUpsertVideo(v); }}
+                  existingVideos={videos}
+                  prefillUrl={isChannelUrl ? urlInput.trim() : ""}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <div>
@@ -270,22 +290,28 @@
             </div>
           </div>
 
-          {/* URL input — always visible */}
+          {/* URL input — one box, two smart buttons */}
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
             <input
-              placeholder="Paste YouTube URL to analyze..."
+              placeholder="Paste a YouTube video or channel URL..."
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+              onKeyDown={(e) => e.key === "Enter" && (isChannelUrl ? setShowChannelModal(true) : handleAnalyze())}
             />
-            <button className="rbtn-p" onClick={handleAnalyze} disabled={!urlInput.trim()} style={{ flexShrink: 0 }}>
-              Analyze
-            </button>
-            <button className="rbtn-g" onClick={onChannelImport} style={{ flexShrink: 0 }} title="Import multiple videos from a channel">
-              📺 Channel
+            {isChannelUrl ? (
+              <button className="rbtn-p" onClick={() => setShowChannelModal(true)} style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+                📺 Browse Channel
+              </button>
+            ) : (
+              <button className="rbtn-p" onClick={handleAnalyze} disabled={!urlInput.trim()} style={{ flexShrink: 0 }}>
+                Analyze
+              </button>
+            )}
+            <button className="rbtn-g" onClick={() => setShowChannelModal(true)} style={{ flexShrink: 0 }} title="Import multiple videos from a channel">
+              📺
             </button>
             <button className="rbtn-g" onClick={onPaste} style={{ flexShrink: 0 }} title="Paste a transcript instead">
-              📋 Paste
+              📋
             </button>
           </div>
 
@@ -654,8 +680,8 @@ Return ONLY valid JSON (no markdown fences):
     }
 
     // ─── Channel Import View ──────────────────────────────────────────────────
-    function ChannelImportView({ onSave, existingVideos }) {
-      const [channelUrl, setChannelUrl] = useState("");
+    function ChannelImportView({ onSave, existingVideos, prefillUrl = "" }) {
+      const [channelUrl, setChannelUrl] = useState(prefillUrl);
       const [results, setResults] = useState(null); // null = not searched yet
       const [channelName, setChannelName] = useState("");
       const [offset, setOffset] = useState(0);
@@ -1953,7 +1979,7 @@ Instructions:
               {dark ? "☀" : "🌙"}
             </button>
           )}
-          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); setView("detail"); }} onDelete={removeVideo} onAddNew={(url) => { setPrefillUrl(url || ""); setView("add"); }} onCrossQuery={() => setView("query")} onPaste={() => setView("paste")} onChannelImport={() => setView("channel")} dark={dark} onToggleDark={() => setDark(!dark)} />}
+          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); setView("detail"); }} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); setView("add"); } }} onCrossQuery={() => setView("query")} onPaste={() => setView("paste")} onChannelImport={() => setView("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
           {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} />}
           {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); setView("library"); }} onBack={() => setView("library")} />}
