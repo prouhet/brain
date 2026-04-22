@@ -207,6 +207,63 @@
     }
 
     // ─── Library ──────────────────────────────────────────────────────────────
+    // ─── Expanded Cross Query (Q&A History continue) ─────────────────────────
+    function ExpandedCrossQuery({ query, videos, onUpdate }) {
+      const [qa, setQa] = useState(query.qa || []);
+      const [input, setInput] = useState("");
+      const [loading, setLoading] = useState(false);
+      const qaEndRef = useRef(null);
+
+      useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
+
+      async function ask() {
+        const q = input.trim(); if (!q || loading) return;
+        setInput(""); setLoading(true);
+        const withUser = [...qa, { id: genId(), role: "user", content: q }];
+        setQa(withUser);
+        try {
+          const scoped = (query.video_ids || []).map((id) => videos.find((v) => v.id === id)).filter(Boolean);
+          const ctx = scoped.map((v, i) =>
+            `[${i+1}] "${v.title}" — ${v.channel || ""}\nSummary: ${v.summary}\nKey Points: ${(v.keyPoints||[]).join("; ")}`
+          ).join("\n\n---\n\n");
+          const data = await callClaude({
+            system: `You are a YouTube knowledge base assistant with access to ${scoped.length} video${scoped.length !== 1 ? "s" : ""}.\n\n${ctx}\n\nSynthesize insights, cite video titles in brackets, keep answers focused.`,
+            messages: withUser.map((m) => ({ role: m.role, content: m.content })),
+            maxTokens: 1500,
+          });
+          const newQa = [...withUser, { id: genId(), role: "assistant", content: getText(data) }];
+          setQa(newQa);
+          // Save updated session
+          try {
+            await sbReq(`reel_queries?id=eq.${query.id}`, { method: "DELETE" });
+            await sbSaveQuery({ ...query, qa: newQa });
+            onUpdate({ ...query, qa: newQa });
+          } catch { /* silent */ }
+        } catch (e) {
+          setQa([...withUser, { id: genId(), role: "assistant", content: `Error: ${e.message}` }]);
+        } finally { setLoading(false); }
+      }
+
+      return (
+        <div className="rfade" style={{ borderTop: "1px solid var(--b)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {qa.map((m) => (
+            <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
+              <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 5, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>{m.role === "user" ? "You" : "REEL"}</p>
+              <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+            </div>
+          ))}
+          {loading && <div className="rqa-a"><p style={{ fontSize: 11, fontWeight: 700, marginBottom: 8, color: "var(--t2)", textTransform: "uppercase" }}>REEL</p><Dots /></div>}
+          <div ref={qaEndRef} />
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <input placeholder="Ask a follow-up question..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()} disabled={loading} style={{ fontSize: 13 }} />
+            <button className="rbtn-p" onClick={ask} disabled={loading || !input.trim()} style={{ flexShrink: 0, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6 }}>
+              {loading ? <Spinner size={13} /> : "Ask"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     function LibraryView({ videos, onSelect, onDelete, onAddNew, onCrossQuery, onPaste, onChannelImport, onUpsertVideo, dark, onToggleDark }) {
       const [search, setSearch] = useState("");
       const [activeTag, setActiveTag] = useState(null);
@@ -307,9 +364,6 @@
                 Analyze
               </button>
             )}
-            <button className="rbtn-g" onClick={() => setShowChannelModal(true)} style={{ flexShrink: 0 }} title="Import multiple videos from a channel">
-              📺
-            </button>
             <button className="rbtn-g" onClick={onPaste} style={{ flexShrink: 0 }} title="Paste a transcript instead">
               📋
             </button>
@@ -462,14 +516,11 @@
                               </div>
                             </div>
                             {isExpanded && (
-                              <div className="rfade" style={{ borderTop: "1px solid var(--b)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-                                {(q.qa || []).map((m) => (
-                                  <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
-                                    <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 5, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase", letterSpacing: ".05em" }}>{m.role === "user" ? "You" : "REEL"}</p>
-                                    <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
-                                  </div>
-                                ))}
-                              </div>
+                              <ExpandedCrossQuery
+                                query={q}
+                                videos={videos}
+                                onUpdate={(updatedQ) => setQueries(queries.map((x) => x.id === q.id ? updatedQ : x))}
+                              />
                             )}
                           </div>
                         );
@@ -928,7 +979,11 @@ Return ONLY valid JSON (no markdown fences):
       useEffect(() => {
         setMeta(null); setResult(null); setStep("idle"); setErrMsg(""); setSteps([]); setElapsed(0);
         if (!videoId) return;
-        fetchOEmbed(url).then((d) => setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId }));
+        fetchOEmbed(url).then((d) => {
+          setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId });
+          // Auto-analyze if URL was pre-filled from library page
+          if (prefillUrl) setTimeout(() => analyze(), 300);
+        });
       }, [videoId]);
 
       function startTimer() {
