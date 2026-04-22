@@ -1046,7 +1046,18 @@ Return ONLY valid JSON (no markdown fences):
             if (txData.error && !txData.transcript) {
               setStepStatus("transcript", "error");
               stopTimer();
-              setErrMsg(`Transcript error: ${txData.error}`);
+              const raw = txData.error || "";
+              let msg = `Transcript error: ${raw}`;
+              if (raw.includes("429") || raw.includes("Too Many Requests")) {
+                msg = "YouTube is temporarily rate limiting. Please wait a few minutes and try again.";
+              } else if (raw.includes("Requested format is not available") || raw.includes("list-formats")) {
+                msg = "This video has no accessible captions. Try 📋 Paste Transcript instead.";
+              } else if (raw.includes("private") || raw.includes("Private")) {
+                msg = "This video is private and can't be accessed.";
+              } else if (raw.includes("unavailable") || raw.includes("not available")) {
+                msg = "This video is unavailable or has been removed.";
+              }
+              setErrMsg(msg);
               setStep("error"); return;
             }
 
@@ -1057,7 +1068,11 @@ Return ONLY valid JSON (no markdown fences):
             if (!transcript) {
               setStepStatus("transcript", "error");
               stopTimer();
-              setErrMsg(`No transcript available. ${txData.warning || ""} Try again in a few minutes — YouTube may still be generating captions.`);
+              const warn = txData?.warning || "";
+              let msg = "No transcript available for this video.";
+              if (warn.includes("No English captions")) msg = "No English captions found. Try 📋 Paste Transcript if you have the text.";
+              else if (warn.includes("empty")) msg = "Caption track found but it was empty. The video may not have proper captions.";
+              setErrMsg(msg);
               setStep("error"); return;
             }
           }
