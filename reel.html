@@ -1104,9 +1104,9 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       return (
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
           <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
-          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Add YouTube Video</h2>
-          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Paste a URL — Claude finds the transcript and analyzes it against your existing library.</p>
-          <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 16 }} autoFocus />
+          {!prefillUrl && <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Add YouTube Video</h2>}
+          {!prefillUrl && <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Paste a URL — Claude finds the transcript and analyzes it against your existing library.</p>}
+          {!prefillUrl && <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 16 }} autoFocus />}
 
           {videoId && meta && (
             <div className="rcard rfade" style={{ padding: 16, marginBottom: 20 }}>
@@ -1213,7 +1213,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             </div>
           )}
 
-          {(step === "idle" || step === "meta" || step === "error") && videoId && (
+          {(step === "idle" || step === "meta" || step === "error") && videoId && !prefillUrl && (
             <button className="rbtn-p" onClick={analyze} style={{ width: "100%" }}>Analyze Video</button>
           )}
         </div>
