@@ -787,13 +787,22 @@ Return ONLY valid JSON (no markdown fences):
           const v = toImport[i];
           setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "active" } : p));
           try {
-            // Fetch transcript
-            const tRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
-              body: JSON.stringify({ videoId: v.videoId }),
-            });
-            const tData = await tRes.json();
+            // Fetch transcript (check cache first)
+            let tData = null;
+            try {
+              const cached = await sbReq(`youtube_videos?select=transcript,title,channel&video_id=eq.${v.videoId}&transcript=not.is.null&limit=1`);
+              if (cached?.length && cached[0].transcript) {
+                tData = { transcript: cached[0].transcript, title: cached[0].title, channel: cached[0].channel };
+              }
+            } catch { /* cache miss */ }
+            if (!tData) {
+              const tRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+                body: JSON.stringify({ videoId: v.videoId }),
+              });
+              tData = await tRes.json();
+            }
             if (tData.error) throw new Error(tData.error);
 
             // Analyze
@@ -1011,31 +1020,46 @@ Return ONLY valid JSON (no markdown fences):
         startTimer();
 
         try {
-          // ── Step 1: Fetch transcript via Gemini ──
+          // ── Step 1: Fetch transcript (check cache first) ──
           setStepStatus("transcript", "active");
-          const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
-            body: JSON.stringify({ videoId }),
-          });
-          const txData = await txRes.json();
 
-          if (txData.error && !txData.transcript) {
-            setStepStatus("transcript", "error");
-            stopTimer();
-            setErrMsg(`Transcript error: ${txData.error}`);
-            setStep("error"); return;
-          }
-
-          const transcript = txData.transcript || null;
-          const titleResolved = txData.title || meta?.title || "";
-          const channelResolved = txData.channel || meta?.channel || "";
+          // Check if any user already has this video with a transcript cached
+          let transcript = null, titleResolved = meta?.title || "", channelResolved = meta?.channel || "";
+          try {
+            const cached = await sbReq(`youtube_videos?select=transcript,title,channel&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
+            if (cached?.length && cached[0].transcript) {
+              transcript = cached[0].transcript;
+              titleResolved = cached[0].title || titleResolved;
+              channelResolved = cached[0].channel || channelResolved;
+            }
+          } catch { /* cache miss is fine */ }
 
           if (!transcript) {
-            setStepStatus("transcript", "error");
-            stopTimer();
-            setErrMsg(`No transcript available. ${txData.warning || ""} Try again in a few minutes — YouTube may still be generating captions.`);
-            setStep("error"); return;
+            // Not cached — fetch from NUC via yt-dlp
+            const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+              body: JSON.stringify({ videoId }),
+            });
+            const txData = await txRes.json();
+
+            if (txData.error && !txData.transcript) {
+              setStepStatus("transcript", "error");
+              stopTimer();
+              setErrMsg(`Transcript error: ${txData.error}`);
+              setStep("error"); return;
+            }
+
+            transcript = txData.transcript || null;
+            titleResolved = txData.title || titleResolved;
+            channelResolved = txData.channel || channelResolved;
+
+            if (!transcript) {
+              setStepStatus("transcript", "error");
+              stopTimer();
+              setErrMsg(`No transcript available. ${txData.warning || ""} Try again in a few minutes — YouTube may still be generating captions.`);
+              setStep("error"); return;
+            }
           }
 
           setStepStatus("transcript", "done");
