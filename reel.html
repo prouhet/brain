@@ -1114,7 +1114,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             throw new Error("Could not parse response — please try again");
           }
 
-          if (txData.warning) parsed.whatsNew = `⚠️ ${txData.warning}`;
+          if (typeof txData !== "undefined" && txData?.warning) parsed.whatsNew = `⚠️ ${txData.warning}`;
           parsed._transcript = transcript;
 
           setStepStatus("analyze", "done");
