@@ -87,9 +87,9 @@
 
     // Determine current user — resolved async in App
     let OWNER = "guest";
-    let BRAIN_MCP = null; // null = no brain features
-    let AUTH_USER = null; // Supabase auth user for regular users
-    let TRIAL_DAYS_LEFT = null;
+    let BRAIN_MCP = null;
+    let AUTH_USER = null;
+    let MEMBERSHIP = null; // { daysLeft, videosUsed, videosCapacity, isPrivileged, isPaid, expiresAt, sharesCreated, referrals }
 
     async function resolveUser() {
       // Dave/Doreen — privileged, no auth needed
@@ -97,6 +97,7 @@
         const u = PRIVILEGED[userParam];
         OWNER = u.owner;
         BRAIN_MCP = { type: "url", url: `${SB_URL}/functions/v1/open-brain-mcp`, name: "studio-strong-brain", headers: { "x-brain-key": u.brainKey } };
+        MEMBERSHIP = { isPrivileged: true, isPaid: true };
         return { ok: true };
       }
 
@@ -112,15 +113,66 @@
       if (!profile) return { ok: false, reason: "noprofile" };
       if (!profile.active) return { ok: false, reason: "inactive" };
 
-      // Check trial
-      const daysLeft = Math.ceil((new Date(profile.trial_ends_at) - Date.now()) / 86400000);
-      if (daysLeft < 0) return { ok: false, reason: "expired" };
-
       AUTH_USER = session.user;
       OWNER = profile.owner;
-      TRIAL_DAYS_LEFT = daysLeft;
-      BRAIN_MCP = null; // no brain for regular users
+      BRAIN_MCP = null;
+
+      const isPaid = !!profile.stripe_subscription_id;
+      const videosCapacity = profile.videos_capacity || 10;
+      const videosUsed = profile.videos_added || 0;
+      const qaExpiresAt = profile.qa_expires_at ? new Date(profile.qa_expires_at) : new Date(Date.now() + 60 * 86400000);
+      const daysLeft = Math.ceil((qaExpiresAt - Date.now()) / 86400000);
+
+      if (!isPaid && daysLeft < 0) return { ok: false, reason: "expired" };
+
+      // Load share/referral stats
+      let sharesCreated = 0, referrals = 0;
+      try {
+        const rewards = await sbReq(`reelcall_rewards?select=action,videos_earned&owner=eq.${profile.owner}`);
+        sharesCreated = (rewards || []).filter(r => r.action.startsWith('share_')).length;
+        referrals = (rewards || []).filter(r => r.action.startsWith('referral_')).length;
+      } catch {}
+
+      MEMBERSHIP = { daysLeft, videosUsed, videosCapacity, isPaid, isPrivileged: false, expiresAt: qaExpiresAt, sharesCreated, referrals, tier: profile.tier || 1 };
       return { ok: true };
+    }
+
+    // ─── Reward helpers ───────────────────────────────────────────────────────
+    async function grantReward(action, videos, days) {
+      if (!OWNER || MEMBERSHIP?.isPrivileged || MEMBERSHIP?.isPaid) return;
+      try {
+        // Insert reward (UNIQUE constraint prevents duplicates for milestones)
+        await sbReq("reelcall_rewards", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ owner: OWNER, action, videos_earned: videos, days_earned: days })
+        });
+        // Update user capacity and expiry
+        const profile = await sbReq(`reel_users?select=videos_capacity,qa_expires_at&owner=eq.${OWNER}`);
+        if (profile?.[0]) {
+          const newCap = (profile[0].videos_capacity || 10) + videos;
+          const base = new Date(Math.max(new Date(profile[0].qa_expires_at || Date.now()), Date.now()));
+          const newExpiry = new Date(base.getTime() + days * 86400000).toISOString();
+          await sbReq(`reel_users?owner=eq.${OWNER}`, {
+            method: "PATCH",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({ videos_capacity: newCap, qa_expires_at: newExpiry })
+          });
+          if (MEMBERSHIP) {
+            MEMBERSHIP.videosCapacity = newCap;
+            MEMBERSHIP.daysLeft = Math.ceil((new Date(newExpiry) - Date.now()) / 86400000);
+          }
+        }
+      } catch (e) { /* reward already granted or error — silent */ }
+    }
+
+    async function checkMilestone(action, videos, days) {
+      // Only grant if not already granted
+      if (!OWNER || MEMBERSHIP?.isPrivileged || MEMBERSHIP?.isPaid) return;
+      try {
+        const existing = await sbReq(`reelcall_rewards?owner=eq.${OWNER}&action=eq.${action}&limit=1`);
+        if (!existing?.length) await grantReward(action, videos, days);
+      } catch {}
     }
 
     // ─── Supabase ─────────────────────────────────────────────────────────────
@@ -134,8 +186,17 @@
     const sbLoad = () => sbReq(`youtube_videos?select=*&owner=eq.${OWNER}&order=date_added.desc`);
     const sbInsert = (row) => sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
     const sbLoadQueries = () => sbReq(`reel_queries?select=*&owner=eq.${OWNER}&order=created_at.desc&limit=50`);
-    const sbSaveQuery = (row) => sbReq("reel_queries", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
     const sbDeleteQuery = (id) => sbReq(`reel_queries?id=eq.${id}`, { method: "DELETE" });
+    async function sbIncrementVideosAdded() {
+      if (!OWNER || MEMBERSHIP?.isPrivileged || MEMBERSHIP?.isPaid) return;
+      try {
+        const p = await sbReq(`reel_users?select=videos_added&owner=eq.${OWNER}`);
+        const cur = p?.[0]?.videos_added || 0;
+        await sbReq(`reel_users?owner=eq.${OWNER}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ videos_added: cur + 1, hit_limit_at: cur + 1 >= (MEMBERSHIP?.videosCapacity || 10) ? new Date().toISOString() : null }) });
+        if (MEMBERSHIP) MEMBERSHIP.videosUsed = cur + 1;
+      } catch {}
+    }
+    const sbSaveQuery = (row) => sbReq("reel_queries", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
     const sbPatch = (id, up) => sbReq(`youtube_videos?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(up) });
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
 
@@ -246,6 +307,8 @@
             maxTokens: 1500,
           });
           const newQa = [...withUser, { id: genId(), role: "assistant", content: getText(data) }];
+          // Q&A milestone: grant after 5 total Q&A exchanges
+          if (newQa.filter(m => m.role === "user").length >= 5) checkMilestone("milestone_qa5", 2, 0);
           setQa(newQa);
           // Save updated session
           try {
@@ -352,6 +415,37 @@
             <div>
               <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)" }}>ReelCall.app</h1>
               <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · personal knowledge base</p>
+              {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
+                const pct = Math.min(100, Math.round((MEMBERSHIP.videosUsed / MEMBERSHIP.videosCapacity) * 100));
+                const daysPct = Math.min(100, Math.round(((MEMBERSHIP.daysLeft < 0 ? 0 : MEMBERSHIP.daysLeft) / 90) * 100));
+                const nearLimit = MEMBERSHIP.videosUsed >= MEMBERSHIP.videosCapacity - 2;
+                const nearExpiry = MEMBERSHIP.daysLeft <= 7;
+                return (
+                  <div style={{ marginTop: 10, background: "var(--s2)", border: `1px solid ${nearLimit || nearExpiry ? "var(--warn-mid)" : "var(--b)"}`, borderRadius: 10, padding: "10px 14px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                      <span style={{ color: nearLimit ? "var(--warn)" : "var(--t2)", fontWeight: nearLimit ? 700 : 400 }}>📹 {MEMBERSHIP.videosUsed} of {MEMBERSHIP.videosCapacity} videos</span>
+                      <span style={{ color: nearExpiry ? "var(--warn)" : "var(--t2)", fontWeight: nearExpiry ? 700 : 400 }}>⏱ {Math.max(0, MEMBERSHIP.daysLeft)} days membership</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ flex: 1, height: 4, background: "var(--s3)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: nearLimit ? "var(--warn)" : "var(--acc)" }} />
+                      </div>
+                      <div style={{ flex: 1, height: 4, background: "var(--s3)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 2, width: `${daysPct}%`, background: nearExpiry ? "var(--warn)" : "var(--ok)" }} />
+                      </div>
+                    </div>
+                    {(nearLimit || nearExpiry) && (
+                      <p style={{ fontSize: 11, color: "var(--warn)", marginTop: 6, fontWeight: 600 }}>
+                        {nearLimit ? "Almost at video limit — " : "Membership expiring — "}
+                        share a video to earn more · <a href="/index.htm" style={{ color: "var(--acc)", textDecoration: "none" }}>or upgrade for $1/mo →</a>
+                      </p>
+                    )}
+                    {!nearLimit && !nearExpiry && (
+                      <p style={{ fontSize: 11, color: "var(--t3)", marginTop: 5 }}>Share a video to earn +2 videos &amp; +7 days · <a href="/index.htm" style={{ color: "var(--acc)", textDecoration: "none" }}>Upgrade for $1/mo →</a></p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={onToggleDark} style={{ padding: "7px 11px", borderRadius: 8, background: "transparent", border: "1px solid var(--b)", color: "var(--t2)", cursor: "pointer", fontSize: 15, lineHeight: 1 }} title={dark ? "Light mode" : "Dark mode"}>
@@ -869,6 +963,7 @@ Return ONLY valid JSON (no markdown fences):
             await sbInsert(videoRecord);
             onSave(fromDb(videoRecord));
             setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "done" } : p));
+              checkMilestone("milestone_channel", 2, 0);
           } catch (e) {
             setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "error", error: e.message } : p));
           }
@@ -1367,6 +1462,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         setSt(newShared ? "shared" : "idle");
         onUpdate({ ...video, shared: newShared });
         await sbPatch(video.id, { shared: newShared });
+        // Grant share reward (unique per video)
+        if (newShared) {
+          grantReward(`share_${video.id}`, 2, 7);
+          // Track in reel_share_views for referral attribution
+          sbReq("reel_share_views", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ video_id: video.id, owner: OWNER }) }).catch(() => {});
+        }
       }
 
       function copyLink() {
@@ -1697,6 +1798,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         setQuery(""); setLoading(true);
         const withUser = [...qa, { id: genId(), role: "user", content: q }];
         setQa(withUser);
+        checkMilestone("milestone_crossquery", 2, 0);
         try {
           const ctx = scoped.map((v, i) =>
             `[${i + 1}] "${v.title}" — ${v.channel || "unknown"}\nSummary: ${v.summary}\nKey Points: ${(v.keyPoints || []).join("; ")}`
@@ -1887,7 +1989,7 @@ Instructions:
       const qaEndRef = useRef(null);
 
       const PITCHES = [
-        { headline: "Your personal YouTube knowledge base", sub: "AI summaries, key points, and full Q&A — saved forever" },
+        { headline: "Your personal YouTube knowledge base", sub: "AI summaries, key points, and full Q&A — free for 60 days or 30 videos" },
         { headline: "Ask questions across all your videos", sub: "Cross-query any channel or topic to find connections instantly" },
         { headline: "Import entire channels at once", sub: "Browse, select, and bulk-analyze any YouTube channel" },
         { headline: "Remember every insight", sub: "Star key points, save Q&A sessions, build your knowledge over time" },
@@ -1918,6 +2020,14 @@ Instructions:
             if (session) setAuthUser(session.user);
           });
         }
+        // Store referral info for signup attribution
+        sbReq(`youtube_videos?select=id,owner&id=eq.${videoId}&shared=eq.true`)
+          .then((rows) => {
+            if (rows?.[0]) {
+              sessionStorage.setItem("reelcall_referred_by", rows[0].owner);
+              sessionStorage.setItem("reelcall_referred_video", rows[0].id);
+            }
+          }).catch(() => {});
         // Load shared video
         sbReq(`youtube_videos?select=*&id=eq.${videoId}&shared=eq.true`)
           .then((rows) => {
@@ -2012,7 +2122,7 @@ Instructions:
                     <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                    <a href="/signup.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
+                    <a href="/index.htm" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
                     <a href="/reel.html" style={{ background: "transparent", color: "var(--t2)", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>Sign In</a>
                   </div>
                 </div>
@@ -2100,7 +2210,7 @@ Instructions:
                     <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                    <a href="/signup.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
+                    <a href="/index.htm" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
                     <a href="/reel.html" style={{ background: "transparent", color: "var(--t2)", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>Sign In</a>
                   </div>
                 </div>
@@ -2176,7 +2286,7 @@ Instructions:
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
           <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 320 }}>Sign in or create a free account to access your YouTube knowledge base.</p>
-          <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Sign In / Sign Up</a>
+          <a href="/index.htm" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Learn More / Sign Up</a>
         </div>
       );
 
@@ -2184,7 +2294,7 @@ Instructions:
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
           <p style={{ color: "#FBB040", fontSize: 15, maxWidth: 320 }}>Your 60-day trial has ended. Contact us to lock in $1/month.</p>
-          <a href="mailto:studiostrongfit@gmail.com" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Get Access</a>
+          <a href="/index.htm" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>See Plans</a>
         </div>
       );
 
@@ -2204,9 +2314,14 @@ Instructions:
       return (
         <div className={`reel${dark ? " dark" : ""}`}>
           <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 998, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            {TRIAL_DAYS_LEFT !== null && (
-              <div style={{ fontSize: 11, background: TRIAL_DAYS_LEFT <= 7 ? "rgba(251,176,64,.15)" : "rgba(52,211,153,.1)", color: TRIAL_DAYS_LEFT <= 7 ? "var(--warn)" : "var(--ok)", border: `1px solid ${TRIAL_DAYS_LEFT <= 7 ? "rgba(251,176,64,.3)" : "rgba(52,211,153,.25)"}`, borderRadius: 6, padding: "3px 8px", fontWeight: 600 }}>
-                {TRIAL_DAYS_LEFT}d trial left
+            {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                <div style={{ fontSize: 11, color: MEMBERSHIP.daysLeft <= 7 ? "var(--warn)" : "var(--t2)", fontWeight: 600 }}>
+                  ⏱ {MEMBERSHIP.daysLeft}d membership left
+                </div>
+                <div style={{ fontSize: 11, color: MEMBERSHIP.videosUsed >= MEMBERSHIP.videosCapacity - 2 ? "var(--warn)" : "var(--t2)", fontWeight: 600 }}>
+                  📹 {MEMBERSHIP.videosUsed}/{MEMBERSHIP.videosCapacity} videos
+                </div>
               </div>
             )}
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".06em", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px" }}>
@@ -2219,7 +2334,30 @@ Instructions:
             </button>
           )}
           {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); navigate("detail"); }} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onCrossQuery={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
-          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
+          {view === "add" && MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && MEMBERSHIP.videosUsed >= MEMBERSHIP.videosCapacity ? (
+            <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 20 }}>📹</div>
+              <h2 style={{ fontFamily: "Syne,sans-serif", fontSize: 26, fontWeight: 800, marginBottom: 16, color: "var(--text)" }}>
+                You've used all {MEMBERSHIP.videosCapacity} free videos
+              </h2>
+              <p style={{ color: "var(--t2)", fontSize: 16, marginBottom: 12, lineHeight: 1.7 }}>
+                You've seen what ReelCall can do — real transcripts, AI analysis, cross-video Q&A.<br/>
+                Keep going for just $1/month, locked forever.
+              </p>
+              <p style={{ color: "var(--t3)", fontSize: 14, marginBottom: 32 }}>
+                Or share a video to earn +2 more free videos &amp; +7 days membership — unlimited.
+              </p>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <a href="/index.htm" style={{ background: "var(--acc)", color: "#fff", padding: "13px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>
+                  Upgrade for $1/month →
+                </a>
+                <button className="rbtn-g" onClick={() => navigate("library")} style={{ padding: "13px 24px", fontSize: 15 }}>
+                  ← Back to Library
+                </button>
+              </div>
+              <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 20 }}>Tier 1 pricing — locked forever at $1/month</p>
+            </div>
+          ) : view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} />}
           {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); navigate("library"); }} onBack={() => navigate("library")} />}
           {view === "query" && <CrossQueryView videos={videos} onBack={() => navigate("library")} />}
