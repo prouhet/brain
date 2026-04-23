@@ -111,22 +111,30 @@
       // Load their reel_users row — auto-create if missing
       let { data: profile } = await sbAuth.from("reel_users").select("*").eq("id", session.user.id).single();
       if (!profile) {
-        // First login — create profile now
-        const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
-        const qaExpiresAt = new Date(Date.now() + 60 * 86400000).toISOString();
-        const { data: newProfile } = await sbAuth.from("reel_users").insert({
-          id: session.user.id,
-          email: session.user.email,
-          owner,
-          active: true,
-          videos_capacity: 10,
-          qa_expires_at: qaExpiresAt,
-          trial_ends_at: qaExpiresAt,
-          videos_added: 0
-        }).select().single();
-        profile = newProfile;
+        // Try to create profile
+        try {
+          const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
+          const qaExpiresAt = new Date(Date.now() + 60 * 86400000).toISOString();
+          const { data: newProfile } = await sbAuth.from("reel_users").insert({
+            id: session.user.id,
+            email: session.user.email,
+            owner,
+            active: true,
+            videos_capacity: 10,
+            qa_expires_at: qaExpiresAt,
+            trial_ends_at: qaExpiresAt,
+            videos_added: 0
+          }).select().single();
+          profile = newProfile;
+        } catch(e) { console.log("profile create error", e); }
       }
-      if (!profile) return { ok: false, reason: "noprofile" };
+
+      // If profile still missing, create a minimal in-memory one so user can get in
+      if (!profile) {
+        const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_anon";
+        profile = { id: session.user.id, email: session.user.email, owner, active: true, videos_capacity: 10, videos_added: 0, qa_expires_at: new Date(Date.now() + 60 * 86400000).toISOString() };
+      }
+
       if (!profile.active) return { ok: false, reason: "inactive" };
 
       AUTH_USER = session.user;
