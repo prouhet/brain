@@ -108,8 +108,24 @@
       const { data: { session } } = await sbAuth.auth.getSession();
       if (!session) return { ok: false, reason: "noauth" };
 
-      // Load their reel_users row
-      const { data: profile } = await sbAuth.from("reel_users").select("*").eq("id", session.user.id).single();
+      // Load their reel_users row — auto-create if missing
+      let { data: profile } = await sbAuth.from("reel_users").select("*").eq("id", session.user.id).single();
+      if (!profile) {
+        // First login — create profile now
+        const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
+        const qaExpiresAt = new Date(Date.now() + 60 * 86400000).toISOString();
+        const { data: newProfile } = await sbAuth.from("reel_users").insert({
+          id: session.user.id,
+          email: session.user.email,
+          owner,
+          active: true,
+          videos_capacity: 10,
+          qa_expires_at: qaExpiresAt,
+          trial_ends_at: qaExpiresAt,
+          videos_added: 0
+        }).select().single();
+        profile = newProfile;
+      }
       if (!profile) return { ok: false, reason: "noprofile" };
       if (!profile.active) return { ok: false, reason: "inactive" };
 
