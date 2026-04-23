@@ -618,7 +618,7 @@
         const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
         try {
           const data = await callClaude({
-            system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.
+            system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.
 
 Return ONLY valid JSON (no markdown fences):
 {
@@ -630,7 +630,7 @@ Return ONLY valid JSON (no markdown fences):
   "whatsNew": "First entry from this source.",
   "actionSuggestions": ["specific action 1", "...up to 3"]
 }`,
-            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nTRANSCRIPT:\n${transcript}` }],
+            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nFULL TRANSCRIPT:\n${transcript}` }],
             maxTokens: 1600,
           });
           clearInterval(ticker);
@@ -1107,10 +1107,7 @@ Return ONLY valid JSON (no markdown fences):
           let data;
           try {
             data = await callClaude({
-              system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.${channelNote}
-
-TRANSCRIPT:
-${transcriptTruncated}
+              system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.${channelNote}
 
 Return ONLY valid JSON (no markdown fences, no extra text):
 {
@@ -1122,7 +1119,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "whatsNew": "${priorCount > 0 ? `Video #${priorCount + 1} from this channel.` : "First video from this channel."}",
   "actionSuggestions": ["Specific action based on transcript content", "...up to 3"]
 }`,
-              messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}` }],
+              messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}\n\nFULL TRANSCRIPT:\n${transcriptTruncated}` }],
               maxTokens: 1600,
             });
           } catch (apiErr) {
