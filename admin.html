@@ -77,7 +77,7 @@
                 <th>Email</th>
                 <th>Owner ID</th>
                 <th>Status</th>
-                <th>Trial</th>
+                <th>Membership</th>
                 <th>Tier</th>
                 <th>Videos</th>
                 <th>Actions</th>
@@ -160,9 +160,12 @@
               <span class="badge ${ts.cls}">${ts.label}</span>
               ${ts.days > 0 ? `<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${barColor}"></div></div>` : ""}
             </div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">📹 ${u.videos_added||0}/${u.videos_capacity||10} videos</div>
           </td>
           <td><span class="badge badge-gray">Tier ${u.tier || 1}</span></td>
-          <td style="color:var(--t2)">${vcount}</td>
+          <td style="color:var(--t2)">${vcount}
+            ${(u.videos_added||0) >= (u.videos_capacity||10) ? '<span class="badge badge-warn" style="margin-left:4px;font-size:10px">🔥 At limit</span>' : ""}
+          </td>
           <td>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               ${u.active
