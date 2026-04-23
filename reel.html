@@ -2305,8 +2305,12 @@ Instructions:
       if (authState === "noauth" || authState === "noprofile") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
-          <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 320 }}>Sign in or create a free account to access your YouTube knowledge base.</p>
-          <a href="/index.htm" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Learn More / Sign Up</a>
+          <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 340, lineHeight: 1.6 }}>Sign in to access your YouTube knowledge base.</p>
+          <p style={{ color: "#3D5070", fontSize: 13, maxWidth: 340, lineHeight: 1.6 }}>New accounts require email confirmation — check your inbox and click the link before signing in.</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Sign In / Sign Up</a>
+            <a href="/index.htm" style={{ background: "transparent", color: "#7B8FAD", padding: "12px 20px", borderRadius: 10, textDecoration: "none", fontWeight: 500, fontSize: 14, border: "1px solid #1E2D48" }}>Learn More</a>
+          </div>
         </div>
       );
 
