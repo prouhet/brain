@@ -3,81 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#07090F">
-  <title>ReelCall.app — Sign Up</title>
+  <meta name="theme-color" content="#F7F8FC">
+  <title>ReelCall -- Sign Up Free</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{min-height:100vh;background:#07090F;color:#DDE4F5;font-family:'Figtree',system-ui,sans-serif;font-size:15px}
-    :root{--acc:#4B8BF5;--ok:#34D399;--red:#F07070;--s1:#0D1220;--s2:#131B2E;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070}
-    body{display:flex;align-items:center;justify-content:center;padding:20px}
-    .card{width:100%;max-width:420px;background:var(--s1);border:1px solid var(--b);border-radius:16px;padding:40px 36px;animation:fade .4s ease}
-    @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-    .logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-bottom:6px}
-    .tagline{font-size:14px;color:var(--t2);margin-bottom:32px;line-height:1.5}
-    .tabs{display:flex;gap:0;margin-bottom:28px;background:var(--s2);border-radius:10px;padding:4px}
-    .tab{flex:1;padding:9px;text-align:center;font-size:14px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--t2);border:none;background:transparent;font-family:'Figtree',system-ui,sans-serif}
-    .tab.active{background:var(--b);color:#fff}
-    label{display:block;font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;margin-top:16px}
-    input{width:100%;background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:11px 14px;font-size:14px;outline:none;font-family:'Figtree',system-ui,sans-serif;transition:border-color .15s}
-    input:focus{border-color:var(--acc)}
-    input::placeholder{color:var(--t3)}
-    .btn{width:100%;margin-top:24px;padding:13px;background:var(--acc);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Figtree',system-ui,sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn:hover:not(:disabled){background:#5E9CF8}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .msg{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.5}
-    .msg.err{background:rgba(240,112,112,.1);border:1px solid rgba(240,112,112,.25);color:var(--red)}
-    .msg.ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--ok)}
-    .trial-badge{margin-top:20px;padding:14px;background:rgba(75,139,245,.08);border:1px solid rgba(75,139,245,.2);border-radius:10px;text-align:center}
-    .trial-badge strong{color:var(--acc);font-size:16px;display:block;margin-bottom:4px}
-    .trial-badge span{font-size:12px;color:var(--t2)}
-    .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .divider{text-align:center;font-size:12px;color:var(--t3);margin:16px 0;position:relative}
-    .divider::before,.divider::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:var(--b)}
-    .divider::before{left:0}.divider::after{right:0}
-    .link{color:var(--acc);cursor:pointer;background:none;border:none;font-size:13px;font-family:'Figtree',system-ui,sans-serif;text-decoration:underline}
-    .forgot{display:block;text-align:right;margin-top:6px}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --acc: #3B6EF5; --ok: #22C98A; --red: #EF4444; --warn: #F5A623;
+      --bg: #F7F8FC; --card: #FFFFFF; --border: rgba(0,0,0,.08);
+      --ink: #0A0C10; --t2: #5A6478; --t3: #9BA3B5;
+      --s2: rgba(0,0,0,.04);
+    }
+    html, body { min-height: 100vh; font-family: 'Figtree', sans-serif; font-size: 15px; background: var(--bg); color: var(--ink); }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; position: relative; }
+    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,110,245,.06) 0%, transparent 70%); pointer-events: none; }
+
+    .brand { text-align: center; margin-bottom: 28px; }
+    .brand a { text-decoration: none; }
+    .logo { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -.5px; color: var(--ink); }
+    .logo span { color: var(--acc); }
+    .tagline { font-size: 14px; color: var(--t2); margin-top: 6px; }
+    .tagline a { color: var(--acc); text-decoration: none; }
+    .tagline a:hover { text-decoration: underline; }
+
+    .trial-badge { background: rgba(59,110,245,.08); border: 1px solid rgba(59,110,245,.18); border-radius: 12px; padding: 14px 20px; margin-bottom: 24px; text-align: center; width: 100%; max-width: 400px; }
+    .trial-badge strong { display: block; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--acc); margin-bottom: 4px; }
+    .trial-badge span { font-size: 13px; color: var(--t2); }
+
+    .card { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+
+    .tabs { display: flex; gap: 0; margin-bottom: 24px; background: var(--s2); border-radius: 10px; padding: 4px; }
+    .tab { flex: 1; padding: 9px; text-align: center; font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: all .15s; color: var(--t2); border: none; background: transparent; font-family: 'Figtree', sans-serif; }
+    .tab.active { background: var(--card); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); font-weight: 600; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; margin-top: 16px; }
+    input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--ink); border-radius: 8px; padding: 11px 14px; font-size: 14px; outline: none; font-family: 'Figtree', sans-serif; transition: border-color .15s; }
+    input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(59,110,245,.1); }
+    input::placeholder { color: var(--t3); }
+
+    .btn { width: 100%; margin-top: 20px; padding: 13px; background: var(--acc); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:hover:not(:disabled) { background: #2D5CE8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,110,245,.3); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+    .msg.err { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); color: var(--red); }
+    .msg.ok { background: rgba(34,201,138,.08); border: 1px solid rgba(34,201,138,.2); color: var(--ok); }
+
+    .forgot { display: block; text-align: right; margin-top: 6px; font-size: 13px; color: var(--acc); background: none; border: none; cursor: pointer; font-family: 'Figtree', sans-serif; }
+    .forgot:hover { text-decoration: underline; }
+
+    .spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer-note { margin-top: 20px; font-size: 13px; color: var(--t3); text-align: center; max-width: 400px; }
+    .footer-note a { color: var(--acc); text-decoration: none; }
+
+    @media (max-width: 440px) { .card { padding: 28px 20px; } }
   </style>
 </head>
 <body>
+  <div class="brand">
+    <a href="/index.htm"><div class="logo">Reel<span>Call</span></div></a>
+    <p class="tagline">Your personal YouTube knowledge base &middot; <a href="/index.htm">Learn more &rarr;</a></p>
+  </div>
+
+  <div class="trial-badge">
+    <strong>10 Free Videos to Start</strong>
+    <span>Share to earn more &middot; Then just $1/month, locked forever</span>
+  </div>
+
   <div class="card">
-    <div class="logo">ReelCall.app</div>
-    <div class="tagline">Your YouTube knowledge base — real transcripts, AI analysis, cross-video Q&amp;A</div>
-
-    <div class="trial-badge">
-      <strong>60-Day Free Trial</strong>
-      <span>No credit card required · Lock in $1/month when you convert</span>
-    </div>
-
-    <div class="tabs" style="margin-top:24px">
+    <div class="tabs">
       <button class="tab active" id="tab-signup" onclick="showTab('signup')">Create Account</button>
       <button class="tab" id="tab-login" onclick="showTab('login')">Sign In</button>
     </div>
 
-    <!-- Signup form -->
     <div id="form-signup">
       <label>Email</label>
       <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email">
       <label>Password</label>
       <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password">
-      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free Trial</button>
+      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 10 Videos on Us</button>
       <div id="msg-signup"></div>
     </div>
 
-    <!-- Login form -->
     <div id="form-login" style="display:none">
       <label>Email</label>
       <input type="email" id="li-email" placeholder="you@example.com" autocomplete="email">
       <label>Password</label>
       <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password">
-      <button class="link forgot" onclick="doForgot()">Forgot password?</button>
+      <button class="forgot" onclick="doForgot()">Forgot password?</button>
       <button class="btn" id="btn-login" onclick="doLogin()">Sign In</button>
       <div id="msg-login"></div>
     </div>
   </div>
+
+  <p class="footer-note">
+    By signing up you agree to use ReelCall for your own YouTube knowledge base.<br>
+    Already have an account? <a href="#" onclick="showTab('login');return false">Sign in here</a>.
+  </p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
@@ -85,7 +110,6 @@
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
     const sb = supabase.createClient(SB_URL, SB_KEY);
 
-    // Check if already logged in
     sb.auth.getSession().then(({ data: { session } }) => {
       if (session) window.location.href = "/reel.html";
     });
@@ -106,7 +130,11 @@
     function setBtnLoading(id, loading) {
       const btn = document.getElementById(id);
       btn.disabled = loading;
-      btn.innerHTML = loading ? '<div class="spin"></div>' : (id === "btn-signup" ? "Start Free Trial" : "Sign In");
+      if (id === "btn-signup") {
+        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free &mdash; 10 Videos on Us';
+      } else {
+        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Sign In';
+      }
     }
 
     async function doSignup() {
@@ -117,18 +145,33 @@
       try {
         const { data, error } = await sb.auth.signUp({ email, password: pass });
         if (error) throw error;
-
-        // Create reel_users row
         const owner = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
-        const trialEnd = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
-        await sb.from("reel_users").insert({
-          id: data.user.id,
-          email,
-          owner,
-          trial_ends_at: trialEnd,
-          active: true,
-        });
-
+        const qaExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        // Check for referral from share link (stored in sessionStorage by shared video page)
+        const referredBy = sessionStorage.getItem("reelcall_referred_by") || null;
+        const referredVideo = sessionStorage.getItem("reelcall_referred_video") || null;
+        await sb.from("reel_users").insert({ id: data.user.id, email, owner, trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt, active: true, videos_capacity: 10, referred_by: referredBy });
+        // Credit referrer if exists
+        if (referredBy) {
+          try {
+            // Grant referrer +15 videos +15 days
+            const action = `referral_${owner}`;
+            await sb.from("reelcall_rewards").insert({ owner: referredBy, action, videos_earned: 15, days_earned: 15 });
+            const p = await sb.from("reel_users").select("videos_capacity, qa_expires_at").eq("owner", referredBy).single();
+            if (p.data) {
+              const newCap = (p.data.videos_capacity || 10) + 15;
+              const base = new Date(Math.max(new Date(p.data.qa_expires_at || Date.now()), Date.now()));
+              const newExpiry = new Date(base.getTime() + 15 * 86400000).toISOString();
+              await sb.from("reel_users").update({ videos_capacity: newCap, qa_expires_at: newExpiry }).eq("owner", referredBy);
+            }
+            // Mark share view with signup
+            if (referredVideo) {
+              await sb.from("reel_share_views").update({ signed_up_as: owner }).eq("video_id", referredVideo).eq("owner", referredBy).is("signed_up_as", null);
+            }
+          } catch(e) { console.log("referral credit error", e); }
+          sessionStorage.removeItem("reelcall_referred_by");
+          sessionStorage.removeItem("reelcall_referred_video");
+        }
         setMsg("msg-signup", "Account created! Taking you to your library...", "ok");
         setTimeout(() => window.location.href = "/reel.html", 1500);
       } catch (e) {
@@ -157,10 +200,9 @@
       if (!email) { setMsg("msg-login", "Enter your email above first.", "err"); return; }
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://reelcall.app/reel.html" });
       if (error) setMsg("msg-login", error.message, "err");
-      else setMsg("msg-login", "Password reset email sent — check your inbox.", "ok");
+      else setMsg("msg-login", "Password reset email sent -- check your inbox.", "ok");
     }
 
-    // Enter key support
     document.addEventListener("keydown", e => {
       if (e.key !== "Enter") return;
       if (document.getElementById("form-signup").style.display !== "none") doSignup();
