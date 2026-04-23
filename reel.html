@@ -155,6 +155,7 @@
              url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)?.[1] || null;
     };
     const canonicalUrl = (url, vid) => vid ? `https://www.youtube.com/watch?v=${vid}` : url;
+    const thumb = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
     const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     const fmtDuration = (secs) => { if (!secs) return null; const h = Math.floor(secs / 3600); const m = Math.floor((secs % 3600) / 60); const s = secs % 60; return h > 0 ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`; };
 
