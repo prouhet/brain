@@ -304,7 +304,7 @@
       }
 
       // Detect if URL looks like a channel
-      const isChannelUrl = urlInput.trim().match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//);
+      const isChannelUrl = urlInput.trim().match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || urlInput.trim().startsWith("@");;
 
       function handleAnalyze() {
         const u = urlInput.trim();
@@ -733,7 +733,7 @@ Return ONLY valid JSON (no markdown fences):
     // ─── Channel Import View ──────────────────────────────────────────────────
     function ChannelImportView({ onSave, existingVideos, prefillUrl = "" }) {
       const [channelUrl, setChannelUrl] = useState(prefillUrl);
-      const [results, setResults] = useState(null); // null = not searched yet
+      const [results, setResults] = useState(null);
       const [channelName, setChannelName] = useState("");
       const [offset, setOffset] = useState(0);
       const [hasMore, setHasMore] = useState(false);
@@ -741,24 +741,42 @@ Return ONLY valid JSON (no markdown fences):
       const [searchErr, setSearchErr] = useState("");
       const [selected, setSelected] = useState(new Set());
       const [importing, setImporting] = useState(false);
-      const [importProgress, setImportProgress] = useState([]); // [{videoId, title, status}]
+      const [importProgress, setImportProgress] = useState([]);
 
       const existingVideoIds = new Set(existingVideos.map((v) => v.videoId).filter(Boolean));
 
-      async function searchChannel(newOffset = 0) {
-        if (!channelUrl.trim()) return;
+      // Normalize input: @handle → full URL
+      function normalizeChannelUrl(input) {
+        const trimmed = input.trim();
+        if (trimmed.startsWith("@")) return `https://www.youtube.com/${trimmed}`;
+        if (trimmed.startsWith("http")) return trimmed;
+        // Treat plain text as @handle
+        if (!trimmed.includes(".")) return `https://www.youtube.com/@${trimmed}`;
+        return trimmed;
+      }
+
+      // Auto-search when prefillUrl is provided
+      useEffect(() => {
+        if (prefillUrl) searchChannel(0, prefillUrl);
+      }, []);
+
+      async function searchChannel(newOffset = 0, overrideUrl = null) {
+        const raw = overrideUrl || channelUrl;
+        if (!raw.trim()) return;
+        const normalized = normalizeChannelUrl(raw);
+        setChannelUrl(normalized);
         setSearching(true); setSearchErr("");
         try {
           const res = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
-            body: JSON.stringify({ channelUrl: channelUrl.trim(), limit: 10, offset: newOffset }),
+            body: JSON.stringify({ channelUrl: normalized, limit: 10, offset: newOffset }),
           });
           const data = await res.json();
           if (data.error) throw new Error(data.error);
           if (newOffset === 0) {
             setResults(data.videos || []);
-            setSelected(new Set()); // reset selection on new search
+            setSelected(new Set());
           } else {
             setResults((prev) => [...(prev || []), ...(data.videos || [])]);
           }
@@ -860,7 +878,7 @@ Return ONLY valid JSON (no markdown fences):
           </p>
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
             <input
-              placeholder="https://youtube.com/@ChannelName"
+              placeholder="https://youtube.com/@ChannelName or @ChannelName"
               value={channelUrl}
               onChange={(e) => setChannelUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && searchChannel(0)}
