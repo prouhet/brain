@@ -140,14 +140,15 @@
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
 
     // ─── Data mapping ─────────────────────────────────────────────────────────
-    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], transcript: r.transcript || null, shared: r.shared || false, dateAdded: r.date_added });
-    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, transcript: v.transcript || null, shared: v.shared || false, date_added: v.dateAdded, owner: OWNER });
+    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], transcript: r.transcript || null, shared: r.shared || false, duration: r.duration || null, dateAdded: r.date_added });
+    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, transcript: v.transcript || null, shared: v.shared || false, duration: v.duration || null, date_added: v.dateAdded, owner: OWNER });
 
     // ─── Utilities ────────────────────────────────────────────────────────────
     const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     const extractVid = (url) => url.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/)?.[1] || null;
     const thumb = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
     const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const fmtDuration = (secs) => { if (!secs) return null; const h = Math.floor(secs / 3600); const m = Math.floor((secs % 3600) / 60); const s = secs % 60; return h > 0 ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`; };
 
     async function callClaude({ system, messages, maxTokens = 1000, tools, mcp }) {
       const body = { model: "claude-sonnet-4-20250514", max_tokens: maxTokens, system, messages };
@@ -569,6 +570,7 @@
                 {video.channel && <span style={{ fontWeight: 500 }}>{video.channel}</span>}
                 {video.channel && <span>·</span>}
                 <span className="rmono">{fmtDate(video.dateAdded)}</span>
+                {fmtDuration(video.duration) && <><span>·</span><span className="rmono">{fmtDuration(video.duration)}</span></>}
                 {video.whatsNew && <span style={{ fontSize: 11, background: "var(--warn-lo)", color: "var(--warn)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--warn-mid)" }}>insights</span>}
                 {qaMatch && <span style={{ fontSize: 11, background: "var(--acc-lo)", color: "var(--acc)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--acc-mid)" }}>💬 Q&A match</span>}
                 {!video.videoId && <span style={{ fontSize: 11, background: "var(--s3)", color: "var(--t3)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--b)" }}>transcript</span>}
@@ -645,7 +647,7 @@ Return ONLY valid JSON (no markdown fences):
       async function save() {
         if (!result) return;
         const videoId = url ? extractVid(url) : null;
-        const video = { id: genId(), videoId, url: url || null, title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: transcript || null, dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url: url || null, title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: transcript || null, duration: txData?.duration || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
@@ -1041,7 +1043,7 @@ Return ONLY valid JSON (no markdown fences):
           setStepStatus("transcript", "active");
 
           // Check if any user already has this video with a transcript cached
-          let transcript = null, titleResolved = meta?.title || "", channelResolved = meta?.channel || "";
+          let transcript = null, titleResolved = meta?.title || "", channelResolved = meta?.channel || "", txData = null;
           try {
             const cached = await sbReq(`youtube_videos?select=transcript,title,channel&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
             if (cached?.length && cached[0].transcript) {
@@ -1058,7 +1060,7 @@ Return ONLY valid JSON (no markdown fences):
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
               body: JSON.stringify({ videoId }),
             });
-            const txData = await txRes.json();
+            txData = await txRes.json();
 
             if (txData.error && !txData.transcript) {
               setStepStatus("transcript", "error");
@@ -1468,6 +1470,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
                 {video.channel && <span style={{ fontWeight: 500 }}>{video.channel}</span>}
                 {video.channel && <span>·</span>}
                 <span className="rmono">{fmtDate(video.dateAdded)}</span>
+                {fmtDuration(video.duration) && <><span>·</span><span className="rmono">{fmtDuration(video.duration)}</span></>}
                 {interestingCount > 0 && <span style={{ background: "var(--warn-lo)", color: "var(--warn)", border: "1px solid var(--warn-mid)", borderRadius: 6, padding: "1px 8px", fontSize: 12 }}>★ {interestingCount} to recall</span>}
               </div>
             </div>
