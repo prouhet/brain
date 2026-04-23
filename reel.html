@@ -1082,16 +1082,18 @@ Return ONLY valid JSON (no markdown fences):
           // ── Step 2: Claude analysis ──
           setStepStatus("analyze", "active");
 
-          const prior = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase());
-          const priorCtx = prior.length > 0
-            ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured.`
-            : "\n\nNo prior videos from this channel yet.";
+          const priorCount = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase()).length;
+          const channelNote = priorCount > 0 ? `\n\nNote: This is video #${priorCount + 1} from ${channelResolved} in this library.` : "";
 
-          const data = await callClaude({
-            system: `You are analyzing a YouTube video transcript for Dave's personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.${priorCtx}
+          const transcriptTruncated = transcript.slice(0, 12000);
+
+          let data;
+          try {
+            data = await callClaude({
+              system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.${channelNote}
 
 TRANSCRIPT:
-${transcript.slice(0, 14000)}
+${transcriptTruncated}
 
 Return ONLY valid JSON (no markdown fences, no extra text):
 {
@@ -1100,12 +1102,22 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "summary": "3-4 paragraph summary based strictly on the transcript",
   "keyPoints": ["specific point from transcript", "...up to 8"],
   "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
-  "whatsNew": "${prior.length > 0 ? "2-3 sentences on what this adds beyond prior videos." : "First video from this channel."}",
+  "whatsNew": "${priorCount > 0 ? `Video #${priorCount + 1} from this channel.` : "First video from this channel."}",
   "actionSuggestions": ["Specific action based on transcript content", "...up to 3"]
 }`,
-            messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}` }],
-            maxTokens: 1600,
-          });
+              messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}` }],
+              maxTokens: 1600,
+            });
+          } catch (apiErr) {
+            setStepStatus("analyze", "error");
+            stopTimer();
+            const msg = apiErr.message || "";
+            if (msg.includes("400")) setErrMsg("Analysis failed — transcript may be too long. Try a shorter video or use 📋 Paste Transcript.");
+            else if (msg.includes("401") || msg.includes("403")) setErrMsg("API authentication error. Please contact support.");
+            else if (msg.includes("529") || msg.includes("overloaded")) setErrMsg("AI is temporarily busy. Please try again in a moment.");
+            else setErrMsg(`Analysis error: ${msg}`);
+            setStep("error"); return;
+          }
 
           const parsed = parseJSON(getText(data));
           if (!parsed?.summary) {
