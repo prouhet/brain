@@ -48,7 +48,7 @@
     .smark{background:rgba(251,176,64,.14);color:var(--warn);border:1px solid rgba(251,176,64,.3);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
     .smark.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}.smark.off:hover{border-color:var(--warn);color:var(--warn)}
     @media(max-width:480px){.rvcard{grid-template-columns:110px 1fr}.rvcard img{width:110px;height:62px}}
-    .theme-btn{position:fixed;bottom:20px;right:20px;z-index:999;width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.12);transition:all .2s;font-family:system-ui}
+    .theme-btn{position:fixed;bottom:68px;right:20px;z-index:999;width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.12);transition:all .2s;font-family:system-ui}
     .theme-btn:hover{border-color:var(--acc);color:var(--acc);transform:scale(1.08)}
     .tip{position:relative;display:inline-flex;align-items:center}
     .tip-icon{width:15px;height:15px;border-radius:50%;background:var(--s3);border:1px solid var(--b);color:var(--t3);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;font-family:'Figtree',system-ui,sans-serif;line-height:1}
@@ -145,8 +145,16 @@
 
     // ─── Utilities ────────────────────────────────────────────────────────────
     const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    const extractVid = (url) => url.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/)?.[1] || null;
-    const thumb = (id) => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+    const extractVid = (url) => {
+      // Strip tracking params like ?si=xxx before matching
+      const clean = (url || "").split("?")[0].split("&")[0];
+      // Try standard patterns on cleaned URL, then fall back to original for ?v= param
+      return clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)?.[1] ||
+             clean.match(/\/embed\/([a-zA-Z0-9_-]{11})/)?.[1] ||
+             clean.match(/\/shorts\/([a-zA-Z0-9_-]{11})/)?.[1] ||
+             url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)?.[1] || null;
+    };
+    const canonicalUrl = (url, vid) => vid ? `https://www.youtube.com/watch?v=${vid}` : url;
     const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     const fmtDuration = (secs) => { if (!secs) return null; const h = Math.floor(secs / 3600); const m = Math.floor((secs % 3600) / 60); const s = secs % 60; return h > 0 ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`; };
 
@@ -647,7 +655,7 @@ Return ONLY valid JSON (no markdown fences):
       async function save() {
         if (!result) return;
         const videoId = url ? extractVid(url) : null;
-        const video = { id: genId(), videoId, url: url || null, title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: transcript || null, duration: txData?.duration || null, dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url: canonicalUrl(url, videoId), title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: transcript || null, duration: txData?.duration || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
