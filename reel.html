@@ -1122,18 +1122,26 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "actionSuggestions": ["Specific action based on transcript content", "...up to 3"]
 }`,
               messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}\n\nFULL TRANSCRIPT:\n${transcriptTruncated}` }],
-              maxTokens: 1600,
+              maxTokens: 2500,
             });
           } catch (apiErr) {
             setStepStatus("analyze", "error");
             stopTimer();
             const msg = apiErr.message || "";
-            // Show actual error for debugging
             setErrMsg(`Analysis error: ${msg}`);
             setStep("error"); return;
           }
 
-          const parsed = parseJSON(getText(data));
+          // Try to parse — repair truncated JSON if needed
+          const rawText = getText(data);
+          let parsed = parseJSON(rawText);
+          if (!parsed?.summary) {
+            // Try to repair truncated JSON by finding last complete field
+            try {
+              const fixed = rawText.replace(/,?\s*"[^"]*":\s*[^,}\]]*$/, "").replace(/,\s*$/, "") + "}";
+              parsed = JSON.parse(fixed.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim());
+            } catch {}
+          }
           if (!parsed?.summary) {
             setStepStatus("analyze", "error");
             stopTimer();
