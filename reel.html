@@ -124,11 +124,11 @@
       // Load their reel_users row — auto-create if missing
       let { data: profile } = await sbAuth.from("reel_users").select("*").eq("id", session.user.id).single();
       if (!profile) {
-        // Try to create profile
         try {
           const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
           const qaExpiresAt = new Date(Date.now() + 60 * 86400000).toISOString();
-          const { data: newProfile } = await sbAuth.from("reel_users").insert({
+          // Use upsert on email to handle duplicate signups cleanly
+          const { data: newProfile } = await sbAuth.from("reel_users").upsert({
             id: session.user.id,
             email: session.user.email,
             owner,
@@ -137,12 +137,12 @@
             qa_expires_at: qaExpiresAt,
             trial_ends_at: qaExpiresAt,
             videos_added: 0
-          }).select().single();
+          }, { onConflict: "email" }).select().single();
           profile = newProfile;
-        } catch(e) { console.log("profile create error", e); }
+        } catch(e) { console.log("profile upsert error", e); }
       }
 
-      // If profile still missing, create a minimal in-memory one so user can get in
+      // Last resort — in-memory profile so user always gets in
       if (!profile) {
         const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_anon";
         profile = { id: session.user.id, email: session.user.email, owner, active: true, videos_capacity: 10, videos_added: 0, qa_expires_at: new Date(Date.now() + 60 * 86400000).toISOString() };
