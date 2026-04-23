@@ -1126,10 +1126,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             setStepStatus("analyze", "error");
             stopTimer();
             const msg = apiErr.message || "";
-            if (msg.includes("400")) setErrMsg("Analysis failed — transcript may be too long. Try a shorter video or use 📋 Paste Transcript.");
-            else if (msg.includes("401") || msg.includes("403")) setErrMsg("API authentication error. Please contact support.");
-            else if (msg.includes("529") || msg.includes("overloaded")) setErrMsg("AI is temporarily busy. Please try again in a moment.");
-            else setErrMsg(`Analysis error: ${msg}`);
+            // Show actual error for debugging
+            setErrMsg(`Analysis error: ${msg}`);
             setStep("error"); return;
           }
 
