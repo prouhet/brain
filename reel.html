@@ -654,7 +654,7 @@ Return ONLY valid JSON (no markdown fences):
 
       return (
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
-          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Paste Transcript</h2>
           <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>No YouTube link needed — paste the transcript text and optionally add metadata.</p>
 
@@ -1176,7 +1176,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       return (
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
-          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
           {!prefillUrl && <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Add YouTube Video</h2>}
           {!prefillUrl && <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Paste a URL — Claude finds the transcript and analyzes it against your existing library.</p>}
           {!prefillUrl && <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 16 }} autoFocus />}
@@ -1240,6 +1240,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
           {step === "done" && result && (
             <div className="rfade">
+              <button className="rbtn-p" onClick={save} style={{ width: "100%", marginBottom: 14 }}>Save to Knowledge Base</button>
               {result.whatsNew && (
                 <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
@@ -1282,13 +1283,65 @@ Return ONLY valid JSON (no markdown fences, no extra text):
                   <button className="rbtn-g" onClick={addTag}>Add</button>
                 </div>
               </div>
-              <button className="rbtn-p" onClick={save} style={{ width: "100%" }}>Save to Knowledge Base</button>
+              <button className="rbtn-p" onClick={save} style={{ width: "100%", marginTop: 14 }}>Save to Knowledge Base</button>
             </div>
           )}
 
           {(step === "idle" || step === "meta" || step === "error") && videoId && !prefillUrl && (
             <button className="rbtn-p" onClick={analyze} style={{ width: "100%" }}>Analyze Video</button>
           )}
+        </div>
+      );
+    }
+
+    // ─── Pre-Save Q&A ─────────────────────────────────────────────────────────
+    function PreSaveQA({ transcript, title, channel }) {
+      const [qa, setQa] = useState([]);
+      const [input, setInput] = useState("");
+      const [loading, setLoading] = useState(false);
+      const qaEndRef = useRef(null);
+      useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
+
+      async function ask() {
+        const q = input.trim(); if (!q || loading) return;
+        setInput(""); setLoading(true);
+        const withUser = [...qa, { id: genId(), role: "user", content: q }];
+        setQa(withUser);
+        try {
+          const data = await callClaude({
+            system: `You are answering questions about a YouTube video before it's saved to a knowledge base.\nVideo: "${title}" by ${channel}\n\nUse ONLY the transcript content below. Be concise and specific.`,
+            messages: [
+              { role: "user", content: `TRANSCRIPT:\n${(transcript || "").slice(0, 14000)}\n\n---\n\nQuestion: ${q}` },
+            ],
+            maxTokens: 800,
+          });
+          setQa([...withUser, { id: genId(), role: "assistant", content: getText(data) }]);
+        } catch (e) {
+          setQa([...withUser, { id: genId(), role: "assistant", content: `Error: ${e.message}` }]);
+        } finally { setLoading(false); }
+      }
+
+      return (
+        <div className="rcard" style={{ padding: 18, marginBottom: 0 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 12 }}>Ask Questions Before Saving</p>
+          {qa.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+              {qa.map((m) => (
+                <div key={m.id} className={m.role === "user" ? "rqa-u" : "rqa-a"}>
+                  <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, color: m.role === "user" ? "var(--acc)" : "var(--t2)", textTransform: "uppercase" }}>{m.role === "user" ? "You" : "AI"}</p>
+                  <p style={{ lineHeight: 1.65, whiteSpace: "pre-wrap", fontSize: 14 }}>{m.content}</p>
+                </div>
+              ))}
+              {loading && <div className="rqa-a"><p style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "var(--t2)", textTransform: "uppercase" }}>AI</p><Dots /></div>}
+              <div ref={qaEndRef} />
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input placeholder="Ask anything about this video..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()} disabled={loading} style={{ fontSize: 13 }} />
+            <button className="rbtn-p" onClick={ask} disabled={loading || !input.trim()} style={{ flexShrink: 0, padding: "8px 14px", display: "flex", alignItems: "center", gap: 6 }}>
+              {loading ? <Spinner size={13} /> : "Ask"}
+            </button>
+          </div>
         </div>
       );
     }
@@ -1459,7 +1512,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       return (
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
-            <button className="rbtn-g" onClick={onBack}>← Back</button>
+            <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
             <div style={{ display: "flex", gap: 10 }}>
               {video.url && <a href={video.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}><button className="rbtn-g" style={{ color: "var(--yt)", borderColor: "rgba(255,68,68,.3)" }}>▶ YouTube</button></a>}
               <ShareBtn video={video} onUpdate={onUpdate} />
@@ -1577,11 +1630,11 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             {captureMsg && <p style={{ fontSize: 13, marginTop: 10, color: captureStatus === "done" ? "var(--ok)" : "var(--red)" }}>{captureMsg}</p>}
           </Sec>
           )}
+          {/* Back button at bottom */}
+          <button className="rbtn-g" onClick={onBack} style={{ width: "100%", marginTop: 8, padding: "11px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
         </div>
       );
     }
-
-    // ─── Cross-Query ───────────────────────────────────────────────────────────
     function CrossQueryView({ videos, onBack }) {
       const [selected, setSelected] = useState(new Set(videos.map((v) => v.id)));
       const [filterChannel, setFilterChannel] = useState(null);
@@ -1685,7 +1738,7 @@ Instructions:
 
       return (
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px" }}>
-          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+          <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
             Query Your Library
             <Tip text="Select any combination of videos to query together. Filter by channel or tag to find videos faster, then pick exactly which ones to include." />
@@ -1818,10 +1871,24 @@ Instructions:
       const [qaLoading, setQaLoading] = useState(false);
       const [err, setErr] = useState("");
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
-      const [authUser, setAuthUser] = useState(null); // null = not logged in, object = logged in
+      const [authUser, setAuthUser] = useState(null);
       const [saving, setSaving] = useState(false);
       const [saved, setSaved] = useState(false);
+      const [pitchIdx, setPitchIdx] = useState(0);
       const qaEndRef = useRef(null);
+
+      const PITCHES = [
+        { headline: "Your personal YouTube knowledge base", sub: "AI summaries, key points, and full Q&A — saved forever" },
+        { headline: "Ask questions across all your videos", sub: "Cross-query any channel or topic to find connections instantly" },
+        { headline: "Import entire channels at once", sub: "Browse, select, and bulk-analyze any YouTube channel" },
+        { headline: "Remember every insight", sub: "Star key points, save Q&A sessions, build your knowledge over time" },
+        { headline: "Share videos with anyone", sub: "Generate a link — they see the summary and can ask questions too" },
+      ];
+
+      useEffect(() => {
+        const t = setInterval(() => setPitchIdx((i) => (i + 1) % PITCHES.length), 4000);
+        return () => clearInterval(t);
+      }, []);
 
       useEffect(() => {
         document.body.style.background = dark ? "#07090F" : "#F8F9FC";
@@ -1919,8 +1986,8 @@ Instructions:
               ) : (
                 <div style={{ background: "var(--s1)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "16px 20px", marginBottom: mb, marginTop: mt, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                   <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Save this video to your library</p>
-                    <p style={{ fontSize: 13, color: "var(--t2)" }}>Free 60-day trial · No credit card required</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, transition: "opacity .3s" }}>{PITCHES[pitchIdx].headline}</p>
+                    <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                     <a href="/signup.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
@@ -2007,8 +2074,8 @@ Instructions:
               ) : (
                 <div style={{ background: "var(--s1)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "16px 20px", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                   <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Save this video to your library</p>
-                    <p style={{ fontSize: 13, color: "var(--t2)" }}>Free 60-day trial · No credit card required</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, transition: "opacity .3s" }}>{PITCHES[pitchIdx].headline}</p>
+                    <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                     <a href="/signup.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
@@ -2031,6 +2098,27 @@ Instructions:
       const [loadErr, setLoadErr] = useState("");
       const [authState, setAuthState] = useState("checking");
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
+
+      // Navigate with history so browser back button works within the app
+      function navigate(newView) {
+        if (newView !== "library") {
+          history.pushState({ view: newView }, "", window.location.href);
+        }
+        setView(newView);
+      }
+
+      // Intercept browser back button
+      useEffect(() => {
+        function handlePop(e) {
+          // Always go back to library when browser back is pressed
+          setView("library");
+          setSelected(null);
+        }
+        // Push initial state so we have something to pop to
+        history.replaceState({ view: "library" }, "", window.location.href);
+        window.addEventListener("popstate", handlePop);
+        return () => window.removeEventListener("popstate", handlePop);
+      }, []);
 
       useEffect(() => {
         localStorage.setItem("reel-theme", dark ? "dark" : "light");
@@ -2108,14 +2196,14 @@ Instructions:
               {dark ? "☀" : "🌙"}
             </button>
           )}
-          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); setView("detail"); }} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); setView("add"); } }} onCrossQuery={() => setView("query")} onPaste={() => setView("paste")} onChannelImport={() => setView("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
-          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
-          {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); setView("detail"); }} onBack={() => setView("library")} existingVideos={videos} />}
-          {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); setView("library"); }} onBack={() => setView("library")} />}
-          {view === "query" && <CrossQueryView videos={videos} onBack={() => setView("library")} />}
+          {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); navigate("detail"); }} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onCrossQuery={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
+          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
+          {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} />}
+          {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); navigate("library"); }} onBack={() => navigate("library")} />}
+          {view === "query" && <CrossQueryView videos={videos} onBack={() => navigate("library")} />}
           {view === "channel" && (
             <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
-              <button className="rbtn-g" onClick={() => setView("library")} style={{ marginBottom: 24 }}>← Back</button>
+              <button className="rbtn-g" onClick={() => navigate("library")} style={{ marginBottom: 24 }}>← Back</button>
               <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Channel Import</h2>
               <ChannelImportView onSave={(v) => { upsertVideo(v); }} existingVideos={videos} />
             </div>
