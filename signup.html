@@ -85,6 +85,7 @@
       <label>Password</label>
       <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password">
       <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 10 Videos on Us</button>
+      <p style="font-size:12px;color:var(--t3);margin-top:10px;text-align:center">You'll receive a confirmation email — click the link to activate.</p>
       <div id="msg-signup"></div>
     </div>
 
@@ -172,8 +173,17 @@
           sessionStorage.removeItem("reelcall_referred_by");
           sessionStorage.removeItem("reelcall_referred_video");
         }
-        setMsg("msg-signup", "Account created! Taking you to your library...", "ok");
-        setTimeout(() => window.location.href = "/reel.html", 1500);
+        document.getElementById("form-signup").innerHTML = `
+          <div style="text-align:center;padding:8px 0">
+            <div style="font-size:40px;margin-bottom:16px">📬</div>
+            <h3 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--ink);margin-bottom:10px">Check your email</h3>
+            <p style="font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:20px">
+              We sent a confirmation link to <strong>${email}</strong>.<br>
+              Click it to activate your account, then come back and sign in.
+            </p>
+            <a href="/signup.html" style="display:inline-block;background:var(--acc);color:#fff;padding:11px 24px;border-radius:9px;text-decoration:none;font-weight:600;font-size:14px">Go to Sign In →</a>
+          </div>
+        `;
       } catch (e) {
         setMsg("msg-signup", e.message, "err");
         setBtnLoading("btn-signup", false);
