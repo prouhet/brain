@@ -105,6 +105,19 @@
       if (SHARE_ID) return { ok: true };
 
       // Regular user — check Supabase Auth session
+      // First try to set session from URL hash (passed by signup/login page)
+      const hash = window.location.hash;
+      if (hash && hash.includes("access_token")) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        if (accessToken && refreshToken) {
+          await sbAuth.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          // Clean up URL
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+      }
+
       const { data: { session } } = await sbAuth.auth.getSession();
       if (!session) return { ok: false, reason: "noauth" };
 
