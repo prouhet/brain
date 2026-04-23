@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReelCall -- Your YouTube Knowledge Base</title>
+  <meta name="description" content="Turn YouTube into a searchable knowledge base. Real transcripts, AI analysis, cross-video Q&A, channel import, and sharing. Free 60-day trial.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --acc: #3B6EF5; --acc2: #6C3BF5; --ok: #22C98A; --warn: #F5A623;
+      --ink: #0A0C10; --ink2: #1C2030; --bg: #F7F8FC; --card: #FFFFFF;
+      --border: rgba(0,0,0,.08); --t2: #5A6478; --t3: #9BA3B5;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Figtree', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; overflow-x: hidden; }
+    a { text-decoration: none; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; background: rgba(247,248,252,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -.5px; }
+    .logo span { color: var(--acc); }
+    .nav-links { display: flex; gap: 8px; }
+    .btn-ghost { padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border); color: var(--t2); font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: inline-block; }
+    .btn-ghost:hover { border-color: var(--acc); color: var(--acc); }
+    .btn-primary { padding: 9px 22px; border-radius: 8px; background: var(--acc); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: inline-block; }
+    .btn-primary:hover { background: #2D5CE8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,110,245,.35); }
+
+    .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120px 24px 80px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,110,245,.08) 0%, transparent 70%); pointer-events: none; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: rgba(59,110,245,.1); border: 1px solid rgba(59,110,245,.2); color: var(--acc); font-size: 13px; font-weight: 600; padding: 5px 14px; border-radius: 20px; margin-bottom: 28px; animation: fadeUp .6s ease both; }
+    h1 { font-family: 'Syne', sans-serif; font-size: clamp(40px, 7vw, 76px); font-weight: 800; line-height: 1.05; letter-spacing: -2px; max-width: 820px; margin-bottom: 24px; animation: fadeUp .6s .1s ease both; }
+    h1 em { font-style: normal; background: linear-gradient(135deg, var(--acc), var(--acc2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: clamp(17px, 2.5vw, 21px); color: var(--t2); max-width: 560px; line-height: 1.65; margin-bottom: 40px; animation: fadeUp .6s .2s ease both; }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; animation: fadeUp .6s .3s ease both; }
+    .btn-hero { padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 600; font-family: 'Figtree', sans-serif; cursor: pointer; transition: all .18s; display: inline-block; }
+    .btn-hero-p { background: var(--acc); color: #fff; box-shadow: 0 4px 24px rgba(59,110,245,.3); }
+    .btn-hero-p:hover { background: #2D5CE8; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(59,110,245,.4); }
+    .btn-hero-s { background: var(--card); color: var(--ink); border: 1px solid var(--border); }
+    .btn-hero-s:hover { border-color: var(--acc); color: var(--acc); }
+    .hero-note { font-size: 13px; color: var(--t3); animation: fadeUp .6s .35s ease both; }
+    .hero-note strong { color: var(--ok); }
+
+    .ticker-wrap { overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--card); padding: 14px 0; }
+    .ticker { display: flex; animation: ticker 28s linear infinite; white-space: nowrap; }
+    .ticker-item { display: inline-flex; align-items: center; gap: 8px; padding: 0 28px; font-size: 14px; font-weight: 500; color: var(--t2); }
+    .ticker-item span { color: var(--acc); }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    section { padding: 90px 24px; max-width: 1100px; margin: 0 auto; }
+    .sec-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--acc); margin-bottom: 16px; }
+    h2 { font-family: 'Syne', sans-serif; font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-bottom: 16px; }
+    h2 em { font-style: normal; color: var(--acc); }
+    .sec-sub { font-size: 18px; color: var(--t2); max-width: 540px; line-height: 1.65; margin-bottom: 48px; }
+
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; }
+    .step:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+    .step-num { font-family: 'Syne', sans-serif; font-size: 64px; font-weight: 800; color: rgba(59,110,245,.07); position: absolute; top: 10px; right: 18px; line-height: 1; }
+    .step-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(59,110,245,.1); display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; }
+    .step h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: 14px; color: var(--t2); line-height: 1.65; }
+
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    .feat { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all .2s; }
+    .feat:hover { border-color: rgba(59,110,245,.3); box-shadow: 0 8px 32px rgba(59,110,245,.08); }
+    .feat-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+    .feat h3 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat p { font-size: 14px; color: var(--t2); line-height: 1.65; }
+
+    .pricing-box { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 52px 48px; max-width: 600px; margin: 0 auto; text-align: center; }
+    .price { font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+    .price sup { font-size: 28px; vertical-align: top; margin-top: 14px; letter-spacing: 0; }
+    .price sub { font-size: 20px; font-weight: 400; color: var(--t2); letter-spacing: 0; }
+    .tier-bar { background: var(--bg); border-radius: 12px; padding: 18px; margin: 24px 0; text-align: left; }
+    .tier-row { display: flex; justify-content: space-between; font-size: 14px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .tier-row:last-child { border-bottom: none; }
+    .tier-row.active { color: var(--acc); font-weight: 600; }
+    .tier-row.active .badge { color: var(--warn); font-weight: 600; }
+    .perks { list-style: none; text-align: left; margin: 0 0 28px; display: flex; flex-direction: column; gap: 10px; }
+    .perks li { font-size: 15px; color: var(--t2); display: flex; gap: 10px; }
+    .perks li::before { content: 'checkmark'; font-family: none; display: none; }
+    .perk-check { color: var(--ok); font-weight: 700; flex-shrink: 0; }
+    .alert { background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.25); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 14px; color: var(--warn); font-weight: 600; }
+
+    .cta-band { background: linear-gradient(135deg, var(--acc) 0%, var(--acc2) 100%); border-radius: 24px; padding: 64px 48px; text-align: center; color: #fff; }
+    .cta-band h2 { color: #fff; margin-bottom: 16px; }
+    .cta-band p { color: rgba(255,255,255,.8); font-size: 18px; max-width: 540px; margin: 0 auto 36px; }
+    .btn-white { padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; font-family: 'Figtree', sans-serif; background: #fff; color: var(--acc); cursor: pointer; transition: all .18s; display: inline-block; }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; max-width: 1100px; margin: 0 auto; }
+    footer p { font-size: 13px; color: var(--t3); }
+    footer a { font-size: 13px; color: var(--t2); }
+    footer a:hover { color: var(--acc); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 640px) {
+      h1 { letter-spacing: -1px; }
+      .pricing-box { padding: 32px 20px; }
+      .cta-band { padding: 40px 24px; }
+      section { padding: 60px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.htm" class="logo">Reel<span>Call</span></a>
+  <div class="nav-links">
+    <a href="/reel.html" class="btn-ghost">Sign In</a>
+    <a href="/signup.html" class="btn-primary">Start Free Trial</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">&#9654; Your Personal YouTube Knowledge Base</div>
+  <h1>Stop watching.<br>Start <em>knowing</em>.</h1>
+  <p class="hero-sub">ReelCall turns YouTube into a searchable, queryable knowledge base. Real transcripts. AI analysis. Ask questions across everything you've watched.</p>
+  <div class="hero-ctas">
+    <a href="/signup.html" class="btn-hero btn-hero-p">Start Free &mdash; 60 Days</a>
+    <a href="/reel.html" class="btn-hero btn-hero-s">Sign In</a>
+  </div>
+  <p class="hero-note"><strong>No credit card required.</strong> Lock in $1/month forever when you convert.</p>
+</div>
+
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item"><span>&#9654;</span> Real transcripts via yt-dlp</span>
+    <span class="ticker-item"><span>&#10022;</span> Cross-video Q&amp;A</span>
+    <span class="ticker-item"><span>&#128250;</span> Bulk channel import</span>
+    <span class="ticker-item"><span>&#9733;</span> Star key points to recall</span>
+    <span class="ticker-item"><span>&#128279;</span> Share videos with anyone</span>
+    <span class="ticker-item"><span>&#128172;</span> Q&amp;A history saved forever</span>
+    <span class="ticker-item"><span>&#128269;</span> Search across all your videos</span>
+    <span class="ticker-item"><span>&#9889;</span> Instant AI summaries</span>
+    <span class="ticker-item"><span>&#9654;</span> Real transcripts via yt-dlp</span>
+    <span class="ticker-item"><span>&#10022;</span> Cross-video Q&amp;A</span>
+    <span class="ticker-item"><span>&#128250;</span> Bulk channel import</span>
+    <span class="ticker-item"><span>&#9733;</span> Star key points to recall</span>
+    <span class="ticker-item"><span>&#128279;</span> Share videos with anyone</span>
+    <span class="ticker-item"><span>&#128172;</span> Q&amp;A history saved forever</span>
+    <span class="ticker-item"><span>&#128269;</span> Search across all your videos</span>
+    <span class="ticker-item"><span>&#9889;</span> Instant AI summaries</span>
+  </div>
+</div>
+
+<section>
+  <div class="sec-label reveal">How it works</div>
+  <h2 class="reveal">Three steps to <em>never forget</em> a video again</h2>
+  <p class="sec-sub reveal">ReelCall does the heavy lifting so you can focus on learning, not note-taking.</p>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">1</div>
+      <div class="step-icon">&#128279;</div>
+      <h3>Paste any YouTube URL</h3>
+      <p>Drop in a video link or a channel URL to browse and bulk import. We fetch the real transcript automatically in seconds.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">2</div>
+      <div class="step-icon">&#10022;</div>
+      <h3>AI analyzes the full video</h3>
+      <p>Claude reads the complete transcript and returns a detailed summary, key points, actionable suggestions, and smart tags.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">3</div>
+      <div class="step-icon">&#128172;</div>
+      <h3>Ask, search, share</h3>
+      <p>Ask questions about any video or cross-query your entire library. Share any video with a link. Your knowledge compounds over time.</p>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="sec-label reveal">Features</div>
+  <h2 class="reveal">Everything your YouTube habit <em>deserves</em></h2>
+  <p class="sec-sub reveal">Built for people who watch to learn, not just to watch.</p>
+  <div class="features">
+    <div class="feat reveal">
+      <span class="feat-icon">&#128221;</span>
+      <h3>Real transcripts, not guesses</h3>
+      <p>We pull the actual captions from YouTube &mdash; not AI hallucinations. If the video has captions, we have the full transcript.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#10022;</span>
+      <h3>Cross-video Q&amp;A</h3>
+      <p>Select any combination of videos and ask Claude to synthesize across all of them. Find patterns and connections you'd never notice watching one at a time.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128250;</span>
+      <h3>Channel bulk import</h3>
+      <p>Paste a channel URL, browse recent videos as thumbnails, select which to import, and watch them analyze in sequence.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#9733;</span>
+      <h3>Recall system</h3>
+      <p>Star key points worth remembering. They're highlighted and counted so you always know what's worth revisiting.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128279;</span>
+      <h3>Share any video</h3>
+      <p>One click generates a share link. Recipients see the full summary, key points, and can ask Q&amp;A &mdash; no account required.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128172;</span>
+      <h3>Q&amp;A history saved forever</h3>
+      <p>Every question you ask is saved. Single-video Q&amp;A and cross-query sessions both live in your history &mdash; searchable and continuable.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128269;</span>
+      <h3>Full-text search</h3>
+      <p>Search across titles, summaries, channels, tags, and Q&amp;A content. Find anything you've ever captured.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#127769;</span>
+      <h3>Works everywhere</h3>
+      <p>Mobile-first, dark/light mode, persistent sessions. Your knowledge base is always there when you need it.</p>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="sec-label reveal" style="text-align:center">Pricing</div>
+  <h2 class="reveal" style="text-align:center">Lock in your rate <em>forever</em></h2>
+  <p class="sec-sub reveal" style="text-align:center;margin-left:auto;margin-right:auto">Early users pay their signup price forever. As tiers fill up the price goes up &mdash; but yours never does.</p>
+  <div class="pricing-box reveal">
+    <div class="price"><sup>$</sup>1<sub>/mo</sub></div>
+    <p style="color:var(--t2);margin:10px 0 20px;font-size:15px">Current tier &middot; Lock this in forever</p>
+    <div class="alert">&#8987; Spots filling up &mdash; price increases when Tier 1 is full</div>
+    <div class="tier-bar">
+      <div class="tier-row active">
+        <span>&#128994; Tier 1 &mdash; First 10 users</span>
+        <span class="badge">$1/mo &middot; Open now</span>
+      </div>
+      <div class="tier-row">
+        <span>Tier 2 &mdash; Next 20 users</span>
+        <span style="color:var(--t3)">$2/mo</span>
+      </div>
+      <div class="tier-row">
+        <span>Tier 3 &mdash; Next 30 users</span>
+        <span style="color:var(--t3)">$3/mo</span>
+      </div>
+      <div class="tier-row">
+        <span>Tier 4+</span>
+        <span style="color:var(--t3)">Increases</span>
+      </div>
+    </div>
+    <ul class="perks">
+      <li><span class="perk-check">&#10003;</span> 60-day free trial &mdash; no credit card required</li>
+      <li><span class="perk-check">&#10003;</span> Full access to every feature, no limits</li>
+      <li><span class="perk-check">&#10003;</span> Your signup price is locked in forever</li>
+      <li><span class="perk-check">&#10003;</span> Cancel anytime, no questions asked</li>
+      <li><span class="perk-check">&#10003;</span> Price only goes up for new signups, never existing users</li>
+    </ul>
+    <a href="/signup.html" class="btn-hero btn-hero-p" style="width:100%;display:block;text-align:center">Start Free Trial &mdash; 60 Days</a>
+    <p style="font-size:13px;color:var(--t3);margin-top:14px">No credit card &middot; No commitment &middot; Cancel anytime</p>
+  </div>
+</section>
+
+<section style="padding-top:0;padding-bottom:80px">
+  <div class="cta-band reveal">
+    <h2>Your YouTube watch history<br>is a goldmine. Start mining it.</h2>
+    <p>Every video you've watched and forgotten is a missed insight. ReelCall turns passive watching into active knowledge.</p>
+    <a href="/signup.html" class="btn-white">Get Started Free &rarr;</a>
+  </div>
+</section>
+
+<footer>
+  <a href="/index.htm" class="logo">Reel<span>Call</span></a>
+  <p>&copy; 2026 ReelCall &middot; Your YouTube Knowledge Base</p>
+  <div style="display:flex;gap:20px">
+    <a href="/reel.html">Sign In</a>
+    <a href="/signup.html">Start Free Trial</a>
+  </div>
+</footer>
+
+<script>
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = (i % 4) * 0.08 + 's';
+    obs.observe(el);
+  });
+</script>
+</body>
+</html>
