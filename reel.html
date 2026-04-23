@@ -414,7 +414,7 @@
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <div>
               <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)" }}>ReelCall.app</h1>
-              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · personal knowledge base</p>
+              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · personal knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
               {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
                 const pct = Math.min(100, Math.round((MEMBERSHIP.videosUsed / MEMBERSHIP.videosCapacity) * 100));
                 const daysPct = Math.min(100, Math.round(((MEMBERSHIP.daysLeft < 0 ? 0 : MEMBERSHIP.daysLeft) / 90) * 100));
@@ -1210,6 +1210,16 @@ Return ONLY valid JSON (no markdown fences):
 
           const transcriptTruncated = transcript; // Full transcript — no truncation
 
+          // Dynamic key point count based on video duration
+          const dur = txData?.duration || null;
+          const kpCount = dur
+            ? dur < 600 ? 5        // under 10 min: 5 points
+            : dur < 1800 ? 9       // 10-30 min: 9 points
+            : dur < 3600 ? 12      // 30-60 min: 12 points
+            : dur < 5400 ? 18      // 1-1.5 hours: 18 points
+            : 22                   // 1.5+ hours: 22 points
+            : 8;                   // unknown duration: default 8
+
           let data;
           try {
             data = await callClaude({
@@ -1220,7 +1230,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "title": "exact video title",
   "channel": "channel/creator name",
   "summary": "3-4 paragraph summary based strictly on the transcript",
-  "keyPoints": ["specific point from transcript", "...up to 8"],
+  "keyPoints": ["specific point from transcript", "...up to " + kpCount + " points — scale to video length"],
   "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
   "whatsNew": "${priorCount > 0 ? `Video #${priorCount + 1} from this channel.` : "First video from this channel."}",
   "actionSuggestions": ["Specific action based on transcript content", "...up to 3"]
@@ -1462,10 +1472,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         setSt(newShared ? "shared" : "idle");
         onUpdate({ ...video, shared: newShared });
         await sbPatch(video.id, { shared: newShared });
-        // Grant share reward (unique per video)
         if (newShared) {
+          // Auto-copy link immediately on share
+          navigator.clipboard.writeText(shareUrl).catch(() => {});
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
           grantReward(`share_${video.id}`, 2, 7);
-          // Track in reel_share_views for referral attribution
           sbReq("reel_share_views", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ video_id: video.id, owner: OWNER }) }).catch(() => {});
         }
       }
@@ -1473,25 +1485,23 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       function copyLink() {
         navigator.clipboard.writeText(shareUrl);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => setCopied(false), 2500);
       }
 
       if (st === "shared") return (
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={copyLink} className="rbtn-ok" style={{ fontSize: 13, padding: "7px 12px" }}>
-            {copied ? "✓ Copied" : "🔗 Copy Link"}
+          <button onClick={copyLink} className="rbtn-ok" style={{ fontSize: 13, padding: "7px 14px", fontWeight: 600, transition: "all .2s" }}>
+            {copied ? "✓ Link Copied!" : "🔗 Copy Link"}
           </button>
-          <button onClick={toggleShare} className="rbtn-g" style={{ fontSize: 13, padding: "7px 10px" }} title="Stop sharing">
-            ✕
-          </button>
+          <button onClick={toggleShare} className="rbtn-g" style={{ fontSize: 13, padding: "7px 10px" }} title="Stop sharing">✕</button>
         </div>
       );
 
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Tip text="Share this video with anyone — they get a read-only page with the summary, key points, and Q&A. Non-members see a prompt to sign up." right={true} />
-          <button onClick={toggleShare} className="rbtn-g" style={{ fontSize: 13 }}>
-            Share
+          <Tip text="Share this video with anyone — they get a read-only page with the summary, key points, and Q&A. You earn +2 videos and +7 days membership." right={true} />
+          <button onClick={toggleShare} className="rbtn-ok" style={{ fontSize: 13, fontWeight: 600 }}>
+            {copied ? "✓ Link Copied!" : "Share"}
           </button>
         </div>
       );
@@ -1746,7 +1756,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       );
     }
     function CrossQueryView({ videos, onBack }) {
-      const [selected, setSelected] = useState(new Set(videos.map((v) => v.id)));
+      const [selected, setSelected] = useState(new Set()); // default none selected
+      const MAX_SELECTED = 20;
       const [filterChannel, setFilterChannel] = useState(null);
       const [filterTag, setFilterTag] = useState(null);
       const [query, setQuery] = useState("");
@@ -1774,7 +1785,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       function toggleVideo(id) {
         const next = new Set(selected);
-        next.has(id) ? next.delete(id) : next.add(id);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          if (next.size >= MAX_SELECTED) return; // cap at 20
+          next.add(id);
+        }
         setSelected(next);
       }
 
@@ -1785,7 +1801,10 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           setSelected(next);
         } else {
           const next = new Set(selected);
-          visible.forEach((v) => next.add(v.id));
+          for (const v of visible) {
+            if (next.size >= MAX_SELECTED) break;
+            next.add(v.id);
+          }
           setSelected(next);
         }
       }
@@ -1880,7 +1899,8 @@ Instructions:
           <div className="rcard" style={{ padding: 14, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".07em" }}>
-                <span style={{ color: "var(--acc)" }}>{scoped.length}</span> of {videos.length} selected
+                <span style={{ color: selected.size >= MAX_SELECTED ? "var(--warn)" : "var(--acc)" }}>{selected.size}</span> of {videos.length} selected
+                {selected.size >= MAX_SELECTED && <span style={{ color: "var(--warn)", marginLeft: 6, fontSize: 11 }}>(max {MAX_SELECTED})</span>}
               </span>
               <button onClick={toggleAll} className="rbtn-g" style={{ fontSize: 12, padding: "4px 10px" }}>
                 {allVisibleSelected ? "Deselect shown" : "Select shown"}
