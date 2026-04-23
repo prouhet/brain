@@ -158,7 +158,11 @@
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
         body: JSON.stringify(body),
       });
-      if (!r.ok) throw new Error(`API ${r.status}`);
+      if (!r.ok) {
+        let errMsg = `API ${r.status}`;
+        try { const errBody = await r.json(); errMsg = errBody.error?.message || errBody.message || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
       return r.json();
     }
     const getText = (d) => (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("") || "";
@@ -613,13 +617,8 @@
         let si = 0; setStepLabel(labels[0]);
         const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
         try {
-          const prior = existingVideos.filter((v) => channel && v.channel?.toLowerCase() === channel.toLowerCase());
-          const priorCtx = prior.length > 0
-            ? `\n\nPRIOR VIDEOS FROM THIS CHANNEL:\n${prior.map((v) => `• "${v.title}"\n  Key points: ${(v.keyPoints || []).slice(0, 4).join("; ")}`).join("\n")}\n\nIdentify what is GENUINELY NEW vs already captured.`
-            : "";
-
           const data = await callClaude({
-            system: `You are analyzing a YouTube video transcript for Dave's personal knowledge base.${priorCtx}
+            system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the transcript — do not guess or add anything not in the transcript.
 
 Return ONLY valid JSON (no markdown fences):
 {
@@ -628,10 +627,10 @@ Return ONLY valid JSON (no markdown fences):
   "summary": "3-4 paragraph comprehensive summary",
   "keyPoints": ["specific point 1", "...up to 8"],
   "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
-  "whatsNew": "${prior.length > 0 ? "what this adds beyond prior videos" : "First entry from this source."}",
+  "whatsNew": "First entry from this source.",
   "actionSuggestions": ["specific action 1", "...up to 3"]
 }`,
-            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}` }],
+            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nTRANSCRIPT:\n${transcript}` }],
             maxTokens: 1600,
           });
           clearInterval(ticker);
@@ -1103,7 +1102,7 @@ Return ONLY valid JSON (no markdown fences):
           const priorCount = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase()).length;
           const channelNote = priorCount > 0 ? `\n\nNote: This is video #${priorCount + 1} from ${channelResolved} in this library.` : "";
 
-          const transcriptTruncated = transcript.slice(0, 12000);
+          const transcriptTruncated = transcript; // Full transcript — no truncation
 
           let data;
           try {
