@@ -1898,10 +1898,17 @@ Instructions:
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
 
       useEffect(() => {
-        // Check auth session
-        sbAuth.auth.getSession().then(({ data: { session } }) => {
-          if (session) setAuthUser(session.user);
-        });
+        // Check auth — Supabase session OR privileged ?user= param
+        const urlParams = new URLSearchParams(window.location.search);
+        const userParam = (urlParams.get("user") || "").toLowerCase();
+        const PRIVILEGED_USERS = { dave: "dave", doreen: "doreen" };
+        if (PRIVILEGED_USERS[userParam]) {
+          setAuthUser({ id: userParam, owner: userParam, privileged: true });
+        } else {
+          sbAuth.auth.getSession().then(({ data: { session } }) => {
+            if (session) setAuthUser(session.user);
+          });
+        }
         // Load shared video
         sbReq(`youtube_videos?select=*&id=eq.${videoId}&shared=eq.true`)
           .then((rows) => {
@@ -1915,15 +1922,21 @@ Instructions:
         if (!authUser || !video) return;
         setSaving(true);
         try {
-          // Get user's owner value
-          const { data: profile } = await sbAuth.from("reel_users").select("owner").eq("id", authUser.id).single();
-          if (!profile?.owner) throw new Error("Profile not found");
+          // Get owner — privileged users have it directly, auth users need DB lookup
+          let ownerVal;
+          if (authUser.privileged) {
+            ownerVal = authUser.owner;
+          } else {
+            const { data: profile } = await sbAuth.from("reel_users").select("owner").eq("id", authUser.id).single();
+            if (!profile?.owner) throw new Error("Profile not found");
+            ownerVal = profile.owner;
+          }
           // Check not already saved
-          const existing = await sbReq(`youtube_videos?select=id&owner=eq.${profile.owner}&video_id=eq.${video.videoId || "none"}`);
+          const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
           if (existing?.length) { setSaved(true); setSaving(false); return; }
           // Save a copy to their library including current Q&A
-          const copy = { ...video, id: genId(), owner: profile.owner, shared: false, qa: qa, dateAdded: new Date().toISOString() };
-          await sbInsert({ ...toDb(copy), owner: profile.owner });
+          const copy = { ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() };
+          await sbInsert({ ...toDb(copy), owner: ownerVal });
           setSaved(true);
         } catch (e) { console.error(e); }
         finally { setSaving(false); }
@@ -1970,7 +1983,7 @@ Instructions:
                   <span style={{ fontSize: 18 }}>✓</span>
                   <div>
                     <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ok)" }}>Saved to your library!</p>
-                    <a href="/reel.html" style={{ fontSize: 13, color: "var(--acc)", textDecoration: "none" }}>Open your library →</a>
+                    <a href={authUser?.privileged ? `/reel.html?user=${authUser.owner}` : "/reel.html"} style={{ fontSize: 13, color: "var(--acc)", textDecoration: "none" }}>Open your library →</a>
                   </div>
                 </div>
               ) : authUser ? (
