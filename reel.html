@@ -82,7 +82,7 @@
 
     const params = new URLSearchParams(window.location.search);
     const SHARE_ID = params.get("share");
-    const SHARE_TITLE = params.get("t") ? decodeURIComponent(params.get("t")) : null;
+    const SHARE_TITLE = params.get("t") ? params.get("t").replace(/-/g, " ") : null;
     const userParam = (params.get("user") || "").toLowerCase();
     const sbAuth = supabase.createClient(SB_URL, SB_KEY);
 
@@ -1510,7 +1510,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [st, setSt] = useState(video.shared ? "shared" : "idle");
       const [copied, setCopied] = useState(false);
 
-      const shareTitle = encodeURIComponent((video.title || "").slice(0, 60));
+      const shareTitle = (video.title || "").slice(0, 60).replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "-");
       const shareUrl = `https://reelcall.app/reel.html?share=${video.id}&t=${shareTitle}`;
 
       async function toggleShare() {
