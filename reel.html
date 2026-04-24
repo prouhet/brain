@@ -82,6 +82,7 @@
 
     const params = new URLSearchParams(window.location.search);
     const SHARE_ID = params.get("share");
+    const SHARE_TITLE = params.get("t") ? decodeURIComponent(params.get("t")) : null;
     const userParam = (params.get("user") || "").toLowerCase();
     const sbAuth = supabase.createClient(SB_URL, SB_KEY);
 
@@ -1502,7 +1503,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [st, setSt] = useState(video.shared ? "shared" : "idle");
       const [copied, setCopied] = useState(false);
 
-      const shareUrl = `https://reelcall.app/reel.html?share=${video.id}`;
+      const shareTitle = encodeURIComponent((video.title || "").slice(0, 60));
+      const shareUrl = `https://reelcall.app/reel.html?share=${video.id}&t=${shareTitle}`;
 
       async function toggleShare() {
         const newShared = !video.shared;
@@ -2032,7 +2034,7 @@ Instructions:
     }
 
     // ─── Shared Video View ────────────────────────────────────────────────────
-    function SharedVideoView({ videoId }) {
+    function SharedVideoView({ videoId, shareTitle }) {
       const [video, setVideo] = useState(null);
       const [qaInput, setQaInput] = useState("");
       const [qa, setQa] = useState([]);
@@ -2142,8 +2144,10 @@ Instructions:
       );
 
       if (!video) return (
-        <div className={`reel${dark ? " dark" : ""}`} style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 12, color: "var(--t2)" }}>
-          <Spinner size={20} /> Loading shared video...
+        <div className={`reel${dark ? " dark" : ""}`} style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", flexDirection: "column", gap: 12, color: "var(--t2)", padding: 24, textAlign: "center" }}>
+          <Spinner size={20} />
+          <p style={{ fontSize: 15 }}>Loading shared video{shareTitle ? "..." : "..."}</p>
+          {shareTitle && <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", maxWidth: 500, lineHeight: 1.4 }}>{shareTitle}</p>}
         </div>
       );
 
@@ -2330,7 +2334,7 @@ Instructions:
       const removeVideo = useCallback(async (id) => { setVideos((prev) => prev.filter((v) => v.id !== id)); await sbDelete(id); }, []);
       const currentVideo = videos.find((v) => v.id === selected?.id) || selected;
 
-      if (SHARE_ID) return <SharedVideoView videoId={SHARE_ID} />;
+      if (SHARE_ID) return <SharedVideoView videoId={SHARE_ID} shareTitle={SHARE_TITLE} />;
 
       if (authState === "checking" || (!loaded && authState === "ok")) return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: dark ? "#07090F" : "#F8F9FC", color: dark ? "#4A5D7A" : "#8B97AE", fontFamily: "system-ui", gap: 12 }}>
