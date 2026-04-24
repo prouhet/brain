@@ -1149,6 +1149,13 @@ Return ONLY valid JSON (no markdown fences):
       useEffect(() => {
         setMeta(null); setResult(null); setStep("idle"); setErrMsg(""); setSteps([]); setElapsed(0);
         if (!videoId) return;
+        // Check if video already in library by videoId (strips tracking params)
+        const existing = existingVideos.find((v) => v.videoId === videoId);
+        if (existing) {
+          setErrMsg(`This video is already in your library: "${existing.title}"`);
+          setStep("error");
+          return;
+        }
         fetchOEmbed(url).then((d) => {
           setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId });
           // Auto-analyze if URL was pre-filled from library page
