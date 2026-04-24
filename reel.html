@@ -133,7 +133,7 @@
             email: session.user.email,
             owner,
             active: true,
-            videos_capacity: 10,
+            videos_capacity: 50,
             qa_expires_at: qaExpiresAt,
             trial_ends_at: qaExpiresAt,
             videos_added: 0
@@ -2394,30 +2394,7 @@ Instructions:
             </button>
           )}
           {view === "library" && <LibraryView videos={videos} onSelect={(v) => { setSelected(v); navigate("detail"); }} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onCrossQuery={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
-          {view === "add" && MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && MEMBERSHIP.videosUsed >= MEMBERSHIP.videosCapacity ? (
-            <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 20 }}>📹</div>
-              <h2 style={{ fontFamily: "Syne,sans-serif", fontSize: 26, fontWeight: 800, marginBottom: 16, color: "var(--text)" }}>
-                You've used all {MEMBERSHIP.videosCapacity} free videos
-              </h2>
-              <p style={{ color: "var(--t2)", fontSize: 16, marginBottom: 12, lineHeight: 1.7 }}>
-                You've seen what ReelCall can do — real transcripts, AI analysis, cross-video Q&A.<br/>
-                Keep going for just $1/month, locked forever.
-              </p>
-              <p style={{ color: "var(--t3)", fontSize: 14, marginBottom: 32 }}>
-                Or share a video to earn +2 more free videos &amp; +7 days membership — unlimited.
-              </p>
-              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                <a href="/index.html" style={{ background: "var(--acc)", color: "#fff", padding: "13px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>
-                  Upgrade for $1/month →
-                </a>
-                <button className="rbtn-g" onClick={() => navigate("library")} style={{ padding: "13px 24px", fontSize: 15 }}>
-                  ← Back to Library
-                </button>
-              </div>
-              <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 20 }}>Tier 1 pricing — locked forever at $1/month</p>
-            </div>
-          ) : view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
+          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} />}
           {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); navigate("library"); }} onBack={() => navigate("library")} />}
           {view === "query" && <CrossQueryView videos={videos} onBack={() => navigate("library")} />}
