@@ -48,6 +48,7 @@
     .smark{background:rgba(251,176,64,.14);color:var(--warn);border:1px solid rgba(251,176,64,.3);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:'Figtree',system-ui,sans-serif}
     .smark.off{background:transparent;color:var(--t3);border-color:var(--b);font-weight:400}.smark.off:hover{border-color:var(--warn);color:var(--warn)}
     @media(max-width:480px){.rvcard{grid-template-columns:110px 1fr}.rvcard img{width:110px;height:62px}}
+    @keyframes reel-progress { 0%{transform:translateX(-100%)} 50%{transform:translateX(150%)} 100%{transform:translateX(250%)} }
     div:hover .grid-delete-btn{opacity:1!important}
     .theme-btn{position:fixed;bottom:68px;right:20px;z-index:999;width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--s1);color:var(--t2);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.12);transition:all .2s;font-family:system-ui}
     .theme-btn:hover{border-color:var(--acc);color:var(--acc);transform:scale(1.08)}
@@ -1624,6 +1625,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
     function VideoDetailView({ video, onUpdate, onDelete, onBack }) {
       const [qaInput, setQaInput] = useState("");
       const [qaLoading, setQaLoading] = useState(false);
+      const [videoTranscript, setVideoTranscript] = useState(video.transcript || null);
+      const [transcriptLoading, setTranscriptLoading] = useState(!video.transcript);
       const [captureText, setCaptureText] = useState("");
       const [captureType, setCaptureType] = useState("note");
       const [captureStatus, setCaptureStatus] = useState("idle");
@@ -1632,6 +1635,16 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [showTagEdit, setShowTagEdit] = useState(false);
       const qaEndRef = useRef(null);
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [video.qa?.length]);
+
+      // Fetch transcript on demand if not already loaded
+      useEffect(() => {
+        if (videoTranscript) { setTranscriptLoading(false); return; }
+        setTranscriptLoading(true);
+        sbReq(`youtube_videos?select=transcript&id=eq.${video.id}`)
+          .then((rows) => { if (rows?.[0]?.transcript) setVideoTranscript(rows[0].transcript); })
+          .catch(() => {})
+          .finally(() => setTranscriptLoading(false));
+      }, [video.id]);
 
       const ps = video.pointStatus?.length === video.keyPoints?.length ? video.pointStatus : (video.keyPoints || []).map(() => null);
       const interestingCount = ps.filter((s) => s === "interesting").length;
@@ -1649,7 +1662,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         onUpdate({ ...video, qa: withUser });
         try {
           const data = await callClaude({
-            system: `You are helping Dave understand a YouTube video.\nVideo: "${video.title}" by ${video.channel}\n${video.url ? `URL: ${video.url}\n` : ""}\nSummary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nAnswer questions using the summary and key points above as your primary source. Be concise and specific.`,
+            system: `You are helping someone understand a YouTube video. Use ONLY the information provided — do not guess or add anything not in the transcript.
+Video: "${video.title}" by ${video.channel}${video.url ? `\nURL: ${video.url}` : ""}
+
+${videoTranscript ? `FULL TRANSCRIPT:\n${videoTranscript}` : `Summary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`}
+
+Answer questions accurately and specifically based on the content above.`,
             messages: withUser.map((m) => ({ role: m.role, content: m.content })),
             maxTokens: 1000,
           });
@@ -1841,6 +1859,13 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           </Sec>
 
           <Sec title="Ask Questions" subtitle="Questions and answers are saved automatically">
+            {transcriptLoading && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ height: 3, background: "var(--s3)", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ height: "100%", background: "var(--acc)", borderRadius: 2, animation: "reel-progress 1.4s ease-in-out infinite", width: "40%" }} />
+                </div>
+              </div>
+            )}
             {video.qa?.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
                 {video.qa.map((m) => (
@@ -1855,8 +1880,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
               </div>
             )}
             <div style={{ display: "flex", gap: 10 }}>
-              <input id="qa-input-box" placeholder="Ask anything about this video..." value={qaInput} onChange={(e) => setQaInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && askQuestion()} disabled={qaLoading} />
-              <button className="rbtn-p" onClick={askQuestion} disabled={qaLoading || !qaInput.trim()} style={{ flexShrink: 0, padding: "10px 18px", display: "flex", alignItems: "center", gap: 6 }}>
+              <input id="qa-input-box" placeholder={transcriptLoading ? "Preparing..." : "Ask anything about this video..."} value={qaInput} onChange={(e) => setQaInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && askQuestion()} disabled={qaLoading || transcriptLoading} />
+              <button className="rbtn-p" onClick={askQuestion} disabled={qaLoading || transcriptLoading || !qaInput.trim()} style={{ flexShrink: 0, padding: "10px 18px", display: "flex", alignItems: "center", gap: 6 }}>
                 {qaLoading ? <Spinner size={15} /> : "Ask"}
               </button>
             </div>
@@ -2218,7 +2243,12 @@ Instructions:
         setQa(withUser);
         try {
           const data = await callClaude({
-            system: `You are helping someone understand a YouTube video.\nVideo: "${video.title}" by ${video.channel}\n\nSummary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nAnswer using the summary and key points. Be concise and specific.`,
+            system: `You are helping someone understand a YouTube video. Use ONLY the information provided — do not guess or add anything not in the transcript.
+Video: "${video.title}" by ${video.channel}
+
+${video.transcript ? `FULL TRANSCRIPT:\n${video.transcript}` : `Summary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`}
+
+Answer questions accurately and specifically based on the content above.`,
             messages: withUser.map((m) => ({ role: m.role, content: m.content })),
             maxTokens: 1000,
           });
