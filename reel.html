@@ -2290,6 +2290,14 @@ Answer questions accurately and specifically based on the content above.`,
 
             {/* CTA Banner component — rendered top & bottom */}
             {(() => {
+              const shareUrl = window.location.href;
+
+              // Store share URL so after login we can redirect back
+              function goSignIn() {
+                sessionStorage.setItem("reelcall_return_to", shareUrl);
+                window.location.href = "/signup.html";
+              }
+
               const CtaBanner = ({ mb = 20, mt = 0 }) => saved ? (
                 <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 12, padding: "14px 20px", marginBottom: mb, marginTop: mt, display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontSize: 18 }}>✓</span>
@@ -2315,8 +2323,8 @@ Answer questions accurately and specifically based on the content above.`,
                     <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                    <a href="/index.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
-                    <a href="/reel.html" style={{ background: "transparent", color: "var(--t2)", padding: "9px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>Sign In</a>
+                    <button onClick={goSignIn} style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>Start Free — Save This</button>
+                    <button onClick={goSignIn} style={{ background: "transparent", color: "var(--t2)", padding: "9px 16px", borderRadius: 8, fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>Sign In</button>
                   </div>
                 </div>
               );
