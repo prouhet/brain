@@ -404,6 +404,7 @@
       const [tab, setTab] = useState("videos");
       const [queries, setQueries] = useState([]);
       const [queriesLoaded, setQueriesLoaded] = useState(false);
+      const [videosWithQaData, setVideosWithQaData] = useState([]);
       const [expandedQuery, setExpandedQuery] = useState(null);
       const [showChannelModal, setShowChannelModal] = useState(false);
       const [page, setPage] = useState(1);
@@ -413,7 +414,18 @@
 
       useEffect(() => {
         if (tab === "queries" && !queriesLoaded) {
-          sbLoadQueries().then((rows) => { setQueries(rows || []); setQueriesLoaded(true); }).catch(() => setQueriesLoaded(true));
+          sbLoadQueries().then((rows) => { setQueries(rows || []); }).catch(() => {});
+          // Fetch QA on demand since library load excludes it
+          sbReq(`youtube_videos?select=id,video_id,title,channel,qa,date_added&owner=eq.${OWNER}&order=date_added.desc`)
+            .then((rows) => {
+              const withQa = (rows || []).filter(r => r.qa?.length > 0).map(r => ({
+                id: r.id, videoId: r.video_id, title: r.title, channel: r.channel,
+                qa: r.qa || [], dateAdded: r.date_added
+              }));
+              setVideosWithQaData(withQa);
+            })
+            .catch(() => {})
+            .finally(() => setQueriesLoaded(true));
         }
       }, [tab]);
 
@@ -450,7 +462,7 @@
         return true;
       });
 
-      const videosWithQa = videos.filter((v) => v.qa?.length > 0).sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      const videosWithQa = videosWithQaData.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
 
       const paginated = sorted.slice(0, page * PAGE_SIZE);
       const hasMore = sorted.length > page * PAGE_SIZE;
@@ -669,7 +681,7 @@
     function GridCard({ video, onSelect, onDelete }) {
       const [pressTimer, setPressTimer] = useState(null);
       const [showActions, setShowActions] = useState(false);
-      const isNew = video.dateAdded && (Date.now() - new Date(video.dateAdded).getTime()) < 5 * 86400000;
+      const isNew = video.dateAdded && (Date.now() - new Date(video.dateAdded).getTime()) < 3 * 86400000;
       const isUnread = !video.lastOpenedAt;
 
       function handlePressStart() {
@@ -713,19 +725,13 @@
               )}
               {/* New badge */}
               {isNew && (
-                <span style={{ position: "absolute", top: 5, left: 5, background: "#F5A623", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", letterSpacing: ".05em" }}>New</span>
+                <span style={{ position: "absolute", top: 5, left: 5, background: "#EF4444", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", letterSpacing: ".05em" }}>New</span>
               )}
-              {/* Unread dot */}
+              {/* Unread indicator — green "New" bottom right */}
               {isUnread && (
-                <span style={{ position: "absolute", top: 5, right: 5, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "1.5px solid var(--s1)" }} />
+                <span style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(34,201,138,.9)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, letterSpacing: ".03em" }}>Unread</span>
               )}
-              {/* Delete button on hover */}
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(video.id); }}
-                style={{ position: "absolute", top: 5, right: isUnread ? 18 : 5, opacity: 0, background: "rgba(0,0,0,.7)", border: "none", color: "#fff", width: 22, height: 22, borderRadius: 4, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Figtree,system-ui", transition: "opacity .15s" }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-                className="grid-delete-btn"
-              >✕</button>
+
             </div>
             {/* Title */}
             <div style={{ padding: "8px 10px 10px" }}>
@@ -768,7 +774,6 @@
                 <span className="rmono">{fmtDate(video.dateAdded)}</span>
                 {fmtDuration(video.duration) && <><span>·</span><span className="rmono">{fmtDuration(video.duration)}</span></>}
                 {video.whatsNew && <span style={{ fontSize: 11, background: "var(--warn-lo)", color: "var(--warn)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--warn-mid)" }}>insights</span>}
-                {qaMatch && <span style={{ fontSize: 11, background: "var(--acc-lo)", color: "var(--acc)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--acc-mid)" }}>💬 Q&A match</span>}
                 {!video.videoId && <span style={{ fontSize: 11, background: "var(--s3)", color: "var(--t3)", borderRadius: 4, padding: "1px 6px", border: "1px solid var(--b)" }}>transcript</span>}
               </div>
               {video.summary && <p style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{video.summary}</p>}
