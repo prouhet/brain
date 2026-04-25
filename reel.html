@@ -136,7 +136,7 @@
             email: session.user.email,
             owner,
             active: true,
-            videos_capacity: 50,
+            videos_capacity: 100,
             qa_expires_at: qaExpiresAt,
             trial_ends_at: qaExpiresAt,
             videos_added: 0
@@ -148,7 +148,7 @@
       // Last resort — in-memory profile so user always gets in
       if (!profile) {
         const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_anon";
-        profile = { id: session.user.id, email: session.user.email, owner, active: true, videos_capacity: 50, videos_added: 0, qa_expires_at: new Date(Date.now() + 60 * 86400000).toISOString() };
+        profile = { id: session.user.id, email: session.user.email, owner, active: true, videos_capacity: 100, videos_added: 0, qa_expires_at: new Date(Date.now() + 60 * 86400000).toISOString() };
       }
 
       if (!profile.active) return { ok: false, reason: "inactive" };
