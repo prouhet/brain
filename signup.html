@@ -84,7 +84,7 @@
       <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email">
       <label>Password</label>
       <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password">
-      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 10 Videos on Us</button>
+      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 100 Videos Free</button>
       <div id="msg-signup"></div>
     </div>
 
@@ -93,7 +93,7 @@
       <input type="email" id="li-email" placeholder="you@example.com" autocomplete="email">
       <label>Password</label>
       <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password">
-      <button class="forgot" onclick="doForgot()">Forgot password?</button>
+      <button class="forgot" onclick="doForgot()" title="Enter your email above first">Forgot password?</button>
       <button class="btn" id="btn-login" onclick="doLogin()">Sign In</button>
       <div id="msg-login"></div>
     </div>
@@ -131,7 +131,7 @@
       const btn = document.getElementById(id);
       btn.disabled = loading;
       if (id === "btn-signup") {
-        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free &mdash; 10 Videos on Us';
+        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free &mdash; 100 Videos Free';
       } else {
         btn.innerHTML = loading ? '<div class="spin"></div>' : 'Sign In';
       }
@@ -181,7 +181,13 @@
             </p>
           </div>
         `;
-        setTimeout(() => window.location.href = "/reel.html", 1200);
+        // Pass session tokens explicitly so reel.html can set session directly
+        const { data: { session: sess } } = await sb.auth.getSession();
+        if (sess) {
+          window.location.href = "/reel.html#access_token=" + sess.access_token + "&refresh_token=" + sess.refresh_token + "&type=signup";
+        } else {
+          window.location.href = "/reel.html";
+        }
       } catch (e) {
         setMsg("msg-signup", e.message, "err");
         setBtnLoading("btn-signup", false);
@@ -194,9 +200,13 @@
       if (!email || !pass) { setMsg("msg-login", "Please fill in all fields.", "err"); return; }
       setBtnLoading("btn-login", true);
       try {
-        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        const { data: loginData, error } = await sb.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
-        window.location.href = "/reel.html";
+        if (loginData?.session) {
+          window.location.href = "/reel.html#access_token=" + loginData.session.access_token + "&refresh_token=" + loginData.session.refresh_token + "&type=login";
+        } else {
+          window.location.href = "/reel.html";
+        }
       } catch (e) {
         setMsg("msg-login", e.message, "err");
         setBtnLoading("btn-login", false);
@@ -205,10 +215,14 @@
 
     async function doForgot() {
       const email = document.getElementById("li-email").value.trim();
-      if (!email) { setMsg("msg-login", "Enter your email above first.", "err"); return; }
+      if (!email) { 
+        setMsg("msg-login", "Enter your email address in the field above, then click Forgot password.", "err"); 
+        document.getElementById("li-email").focus();
+        return; 
+      }
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://reelcall.app/reel.html" });
       if (error) setMsg("msg-login", error.message, "err");
-      else setMsg("msg-login", "Password reset email sent -- check your inbox.", "ok");
+      else setMsg("msg-login", "✓ Password reset email sent to " + email + " — check your inbox.", "ok");
     }
 
     document.addEventListener("keydown", e => {
