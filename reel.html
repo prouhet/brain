@@ -148,7 +148,7 @@
       // Last resort — in-memory profile so user always gets in
       if (!profile) {
         const owner = session.user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_anon";
-        profile = { id: session.user.id, email: session.user.email, owner, active: true, videos_capacity: 10, videos_added: 0, qa_expires_at: new Date(Date.now() + 60 * 86400000).toISOString() };
+        profile = { id: session.user.id, email: session.user.email, owner, active: true, videos_capacity: 50, videos_added: 0, qa_expires_at: new Date(Date.now() + 60 * 86400000).toISOString() };
       }
 
       if (!profile.active) return { ok: false, reason: "inactive" };
@@ -2532,8 +2532,19 @@ Answer questions accurately and specifically based on the content above.`,
                 </div>
               </div>
             )}
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".06em", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px" }}>
-              {OWNER}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".06em", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px" }}>
+                {OWNER}
+              </div>
+              {!MEMBERSHIP?.isPrivileged && (
+                <button
+                  onClick={async () => { await sbAuth.auth.signOut(); window.location.href = "/signup.html"; }}
+                  style={{ fontSize: 11, color: "var(--t3)", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontFamily: "Figtree,system-ui", fontWeight: 500 }}
+                  title="Sign out"
+                >
+                  Sign out
+                </button>
+              )}
             </div>
           </div>
           {view !== "library" && (
