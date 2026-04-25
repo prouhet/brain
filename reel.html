@@ -550,9 +550,35 @@
             <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
               <input placeholder="Who: person, guest, creator..." value={whoSearch} onChange={(e) => setWhoSearch(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
               <input placeholder="Topic / About: subject, keyword..." value={topicSearch} onChange={(e) => setTopicSearch(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
-              <button disabled title="Smart Find — describe what you remember · Paid feature" style={{ padding: "9px 16px", borderRadius: 8, background: "var(--s2)", border: "1px solid var(--b)", color: "var(--t3)", cursor: "not-allowed", fontSize: 13, fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", opacity: isPrivileged ? 1 : 0.5, ...(isPrivileged ? { cursor: "pointer", color: "var(--acc)", background: "var(--acc-lo)", borderColor: "var(--acc-mid)" } : {}) }}>
-                ✦ Smart Find {isPrivileged ? "" : "🔒"}
-              </button>
+              <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  onClick={async () => {
+                    if (!isPrivileged) return;
+                    const q = whoSearch.trim() || topicSearch.trim();
+                    if (!q) return;
+                    // AI fuzzy search
+                    const videoList = videos.map((v, i) => `${i+1}. "${v.title}" — ${v.channel} — ${(v.summary||"").slice(0,100)}`).join("\n");
+                    const data = await callClaude({
+                      system: "You are helping find YouTube videos in a personal knowledge base. Given a search query and a list of videos, return ONLY a JSON array of the top 5 most relevant video numbers like: [3, 7, 12, 1, 5]. No other text.",
+                      messages: [{ role: "user", content: `Search query: "${q}"\n\nVideos:\n${videoList}` }],
+                      maxTokens: 100,
+                    });
+                    try {
+                      const indices = JSON.parse(getText(data).match(/\[[\d,\s]+\]/)?.[0] || "[]");
+                      const found = indices.map(i => videos[i-1]).filter(Boolean);
+                      if (found.length) {
+                        const next = new Set();
+                        found.forEach(v => next.add(v.id));
+                        setSelected(next);
+                      }
+                    } catch {}
+                  }}
+                  title={isPrivileged ? "Smart Find — describe what you remember, AI selects matching videos" : "Smart Find — paid feature"}
+                  style={{ padding: "9px 16px", borderRadius: 8, background: isPrivileged ? "var(--acc-lo)" : "var(--s2)", border: `1px solid ${isPrivileged ? "var(--acc-mid)" : "var(--b)"}`, color: isPrivileged ? "var(--acc)" : "var(--t3)", cursor: isPrivileged ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", opacity: isPrivileged ? 1 : 0.5 }}>
+                  ✦ Smart Find {isPrivileged ? "" : "🔒"}
+                </button>
+                <Tip text={isPrivileged ? "Type what you remember in the search boxes above, then click Smart Find — AI will select the most relevant videos automatically." : "Smart Find uses AI to find videos based on fuzzy descriptions like 'that crude oil QQQ video' or 'the anxiety protocol one'. Available on paid plans."} right={true} />
+              </div>
             </div>
 
             {/* Sort pills + view toggle */}
@@ -1925,16 +1951,15 @@ Answer questions accurately and specifically based on the content above.`,
       const allChannels = [...new Set(videos.map((v) => v.channel).filter(Boolean))].sort();
       const allTags = [...new Set(videos.flatMap((v) => v.tags || []))].sort();
 
-      // Filtered list shown in picker
-      const visible = videos.filter((v) =>
-        (!filterChannel || v.channel === filterChannel) &&
-        (!filterTag || (v.tags || []).includes(filterTag))
-      );
-
-      // When filter changes, auto-select all visible
-      useEffect(() => {
-        setSelected(new Set(visible.map((v) => v.id)));
-      }, [filterChannel, filterTag]);
+      // Filter by text search across title/channel/summary/keypoints
+      const visible = videos.filter((v) => {
+        const who = filterChannel?.toLowerCase().trim() || "";
+        const topic = filterTag?.toLowerCase().trim() || "";
+        const searchText = [v.title, v.channel, v.summary, ...(v.keyPoints || [])].join(" ").toLowerCase();
+        if (who && !searchText.includes(who)) return false;
+        if (topic && !searchText.includes(topic)) return false;
+        return true;
+      });
 
       const scoped = videos.filter((v) => selected.has(v.id));
 
@@ -2024,30 +2049,16 @@ Instructions:
       return (
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px" }}>
           <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
-          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-            Query Your Library
-            <Tip text="Select any combination of videos to query together. Filter by channel or tag to find videos faster, then pick exactly which ones to include." />
-          </h2>
-          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 20 }}>
-            Pick the videos you want to compare — then ask anything.
-          </p>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Query Your Library</h2>
+          <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 16 }}>Pick the videos you want to compare — then ask anything.</p>
 
-          {/* Filter pills */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em" }}>Filter</span>
-            <button onClick={() => { setFilterChannel(null); setFilterTag(null); }}
-              style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: !filterChannel && !filterTag ? "var(--acc-lo)" : "var(--s3)", color: !filterChannel && !filterTag ? "var(--acc)" : "var(--t2)", border: `1px solid ${!filterChannel && !filterTag ? "var(--acc-mid)" : "var(--b)"}` }}>
-              All ({videos.length})
-            </button>
-            {allChannels.map((c) => (
-              <button key={c} onClick={() => { setFilterChannel(filterChannel === c ? null : c); setFilterTag(null); }}
-                style={{ padding: "3px 12px", borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "Figtree,system-ui", background: filterChannel === c ? "var(--acc-lo)" : "var(--s3)", color: filterChannel === c ? "var(--acc)" : "var(--t2)", border: `1px solid ${filterChannel === c ? "var(--acc-mid)" : "var(--b)"}` }}>
-                {c} ({videos.filter((v) => v.channel === c).length})
-              </button>
-            ))}
-            {allTags.map((t) => (
-              <Tag key={t} label={t} active={filterTag === t} onClick={() => { setFilterTag(filterTag === t ? null : t); setFilterChannel(null); }} />
-            ))}
+          {/* Who/About search to filter picker */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+            <input placeholder="Who: person, guest, creator..." value={filterChannel} onChange={(e) => setFilterChannel(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
+            <input placeholder="Topic / About: subject, keyword..." value={filterTag} onChange={(e) => setFilterTag(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
+            {(filterChannel || filterTag) && (
+              <button onClick={() => { setFilterChannel(""); setFilterTag(""); }} className="rbtn-g" style={{ whiteSpace: "nowrap" }}>Clear</button>
+            )}
           </div>
 
           {/* Video thumbnail picker */}
