@@ -111,7 +111,11 @@
     const sb = supabase.createClient(SB_URL, SB_KEY);
 
     sb.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = "/reel.html";
+      if (session) {
+        const returnTo = sessionStorage.getItem("reelcall_return_to");
+        sessionStorage.removeItem("reelcall_return_to");
+        window.location.href = returnTo || "/reel.html";
+      }
     });
 
     function showTab(t) {
@@ -186,7 +190,9 @@
         if (sess) {
           window.location.href = "/reel.html#access_token=" + sess.access_token + "&refresh_token=" + sess.refresh_token + "&type=signup";
         } else {
-          window.location.href = "/reel.html";
+          const returnTo = sessionStorage.getItem("reelcall_return_to");
+        sessionStorage.removeItem("reelcall_return_to");
+        window.location.href = returnTo || "/reel.html";
         }
       } catch (e) {
         setMsg("msg-signup", e.message, "err");
@@ -205,7 +211,9 @@
         if (loginData?.session) {
           window.location.href = "/reel.html#access_token=" + loginData.session.access_token + "&refresh_token=" + loginData.session.refresh_token + "&type=login";
         } else {
-          window.location.href = "/reel.html";
+          const returnTo = sessionStorage.getItem("reelcall_return_to");
+        sessionStorage.removeItem("reelcall_return_to");
+        window.location.href = returnTo || "/reel.html";
         }
       } catch (e) {
         setMsg("msg-login", e.message, "err");
