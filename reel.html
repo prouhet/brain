@@ -2246,6 +2246,11 @@ Instructions:
           const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal };
           const { error } = await sbAuth.from("youtube_videos").insert(copy);
           if (error) throw error;
+          // Increment videos_added counter
+          try {
+            const { data: prof } = await sbAuth.from("reel_users").select("videos_added").eq("id", authUser.id).single();
+            if (prof) await sbAuth.from("reel_users").update({ videos_added: (prof.videos_added || 0) + 1 }).eq("id", authUser.id);
+          } catch {}
           setSaved(true);
         } catch (e) {
           console.error("Save error:", e);
