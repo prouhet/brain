@@ -940,7 +940,14 @@ Return ONLY valid JSON (no markdown fences):
               <p style={{ color: "var(--t2)", fontSize: 14 }}>{stepLabel}</p>
             </div>
           )}
-          {step === "error" && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
+          {step === "error" && (
+            <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <p style={{ color: "var(--red)", fontSize: 14, marginBottom: errMsg.includes("busy") || errMsg.includes("overload") || errMsg.includes("429") || errMsg.includes("try again") ? 10 : 0 }}>{errMsg}</p>
+              {(errMsg.includes("busy") || errMsg.includes("overload") || errMsg.includes("429") || errMsg.includes("try again")) && (
+                <button className="rbtn-p" onClick={() => { setStep("idle"); setErrMsg(""); setSteps([]); setTimeout(() => analyze(), 300); }} style={{ fontSize: 13, padding: "7px 16px" }}>↺ Retry</button>
+              )}
+            </div>
+          )}
 
           {step === "done" && result && (
             <div className="rfade">
@@ -1275,20 +1282,30 @@ Return ONLY valid JSON (no markdown fences):
       const videoId = extractVid(url);
 
       useEffect(() => {
+        (async () => {
         setMeta(null); setResult(null); setStep("idle"); setErrMsg(""); setSteps([]); setElapsed(0);
         if (!videoId) return;
-        // Check if video already in library by videoId (strips tracking params)
+        // Check local state first (fast)
         const existing = existingVideos.find((v) => v.videoId === videoId);
         if (existing) {
           setErrMsg(`This video is already in your library: "${existing.title}"`);
           setStep("error");
           return;
         }
+        // Also check DB to catch race conditions or duplicates
+        try {
+          const dbCheck = await sbReq(`youtube_videos?select=id,title&owner=eq.${OWNER}&video_id=eq.${videoId}&limit=1`);
+          if (dbCheck?.length) {
+            setErrMsg(`This video is already in your library: "${dbCheck[0].title}"`);
+            setStep("error");
+            return;
+          }
+        } catch {}
         fetchOEmbed(url).then((d) => {
           setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId });
-          // Auto-analyze if URL was pre-filled from library page
           if (prefillUrl) setTimeout(() => analyze(), 300);
         });
+        })();
       }, [videoId]);
 
       function startTimer() {
@@ -1316,19 +1333,34 @@ Return ONLY valid JSON (no markdown fences):
         startTimer();
 
         try {
-          // ── Step 1: Fetch transcript (check cache first) ──
+          // ── Step 1: Check full analysis cache first ──
           setStepStatus("transcript", "active");
 
-          // Check if any user already has this video with a transcript cached
           let transcript = null, titleResolved = meta?.title || "", channelResolved = meta?.channel || "", txData = null;
+          let cachedAnalysis = null;
+
           try {
-            const cached = await sbReq(`youtube_videos?select=transcript,title,channel&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
+            const cached = await sbReq(`youtube_videos?select=transcript,title,channel,summary,key_points,quotes,whats_new,action_suggestions,tags,duration&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
             if (cached?.length && cached[0].transcript) {
               transcript = cached[0].transcript;
               titleResolved = cached[0].title || titleResolved;
               channelResolved = cached[0].channel || channelResolved;
+              // If we have a full analysis cached, use it
+              if (cached[0].summary) {
+                cachedAnalysis = {
+                  title: cached[0].title,
+                  channel: cached[0].channel,
+                  summary: cached[0].summary,
+                  keyPoints: cached[0].key_points || [],
+                  quotes: cached[0].quotes || [],
+                  whatsNew: cached[0].whats_new || "",
+                  actionSuggestions: cached[0].action_suggestions || [],
+                  tags: cached[0].tags || [],
+                  duration: cached[0].duration,
+                };
+              }
             }
-          } catch { /* cache miss is fine */ }
+          } catch { /* cache miss */ }
 
           if (!transcript) {
             // Not cached — fetch from NUC via yt-dlp
@@ -1375,8 +1407,21 @@ Return ONLY valid JSON (no markdown fences):
 
           setStepStatus("transcript", "done");
 
-          // ── Step 2: Claude analysis ──
+          // ── Step 2: Claude analysis (skip if cached) ──
           setStepStatus("analyze", "active");
+
+          let parsed;
+
+          if (cachedAnalysis) {
+            // Use cached analysis — skip Claude entirely
+            parsed = cachedAnalysis;
+            parsed._transcript = transcript;
+            setStepStatus("analyze", "done");
+            setStepStatus("save", "done");
+            stopTimer();
+            setResult(parsed); setTags(parsed.tags || []); setStep("done");
+            return;
+          }
 
           const priorCount = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase()).length;
           const channelNote = priorCount > 0 ? `\n\nNote: This is video #${priorCount + 1} from ${channelResolved} in this library.` : "";
@@ -1384,14 +1429,14 @@ Return ONLY valid JSON (no markdown fences):
           const transcriptTruncated = transcript; // Full transcript — no truncation
 
           // Dynamic key point count based on video duration
-          const dur = txData?.duration || null;
+          const dur = txData?.duration || cachedAnalysis?.duration || null;
           const kpCount = dur
-            ? dur < 600 ? 5        // under 10 min: 5 points
-            : dur < 1800 ? 9       // 10-30 min: 9 points
-            : dur < 3600 ? 12      // 30-60 min: 12 points
-            : dur < 5400 ? 18      // 1-1.5 hours: 18 points
-            : 22                   // 1.5+ hours: 22 points
-            : 8;                   // unknown duration: default 8
+            ? dur < 600 ? 5
+            : dur < 1800 ? 9
+            : dur < 3600 ? 12
+            : dur < 5400 ? 18
+            : 22
+            : 8;
 
           let data;
           try {
@@ -1428,7 +1473,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
           // Try to parse — repair truncated JSON if needed
           const rawText = getText(data);
-          let parsed = parseJSON(rawText);
+          parsed = parseJSON(rawText);
           if (!parsed?.summary) {
             // Try to repair truncated JSON by finding last complete field
             try {
@@ -1530,7 +1575,17 @@ Return ONLY valid JSON (no markdown fences, no extra text):
               )}
             </div>
           )}
-          {step === "error" && <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, color: "var(--red)", fontSize: 14, marginBottom: 16 }}>{errMsg}</div>}
+          {step === "error" && (
+            <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <p style={{ color: "var(--red)", fontSize: 14, marginBottom: 10 }}>{errMsg}</p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {!errMsg.includes("already in your library") && !errMsg.includes("private") && !errMsg.includes("unavailable") && (
+                  <button className="rbtn-p" onClick={() => { setStep("idle"); setErrMsg(""); setSteps([]); setTimeout(() => analyze(), 300); }} style={{ fontSize: 13, padding: "7px 16px" }}>↺ Retry</button>
+                )}
+                <button className="rbtn-g" onClick={() => { setStep("idle"); setErrMsg(""); setSteps([]); }} style={{ fontSize: 13, padding: "7px 16px" }}>← Try different URL</button>
+              </div>
+            </div>
+          )}
 
           {step === "done" && result && (
             <div className="rfade">
@@ -1650,16 +1705,17 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       async function toggleShare() {
         const newShared = !video.shared;
+        const newShareCount = newShared ? (video.shareCount || 0) + 1 : video.shareCount;
         setSt(newShared ? "shared" : "idle");
-        onUpdate({ ...video, shared: newShared });
-        await sbPatch(video.id, { shared: newShared });
+        onUpdate({ ...video, shared: newShared, shareCount: newShareCount });
+        await sbPatch(video.id, { shared: newShared, share_count: newShareCount });
         if (newShared) {
-          // Auto-copy link immediately on share
           navigator.clipboard.writeText(shareUrl).catch(() => {});
           setCopied(true);
           setTimeout(() => setCopied(false), 2500);
           grantReward(`share_${video.id}`, 2, 7);
           sbReq("reel_share_views", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ video_id: video.id, owner: OWNER }) }).catch(() => {});
+          sbCacheBust();
         }
       }
 
@@ -1694,6 +1750,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [qaLoading, setQaLoading] = useState(false);
       const [videoTranscript, setVideoTranscript] = useState(video.transcript || null);
       const [transcriptLoading, setTranscriptLoading] = useState(!video.transcript);
+      const [qaLoaded, setQaLoaded] = useState(video.qa?.length > 0);
       const [captureText, setCaptureText] = useState("");
       const [captureType, setCaptureType] = useState("note");
       const [captureStatus, setCaptureStatus] = useState("idle");
@@ -1703,7 +1760,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const qaEndRef = useRef(null);
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [video.qa?.length]);
 
-      // Fetch transcript on demand if not already loaded
+      // Fetch transcript on demand
       useEffect(() => {
         if (videoTranscript) { setTranscriptLoading(false); return; }
         setTranscriptLoading(true);
@@ -1711,6 +1768,19 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           .then((rows) => { if (rows?.[0]?.transcript) setVideoTranscript(rows[0].transcript); })
           .catch(() => {})
           .finally(() => setTranscriptLoading(false));
+      }, [video.id]);
+
+      // Fetch QA on demand — excluded from library load for performance
+      useEffect(() => {
+        if (qaLoaded) return;
+        sbReq(`youtube_videos?select=qa&id=eq.${video.id}`)
+          .then((rows) => {
+            if (rows?.[0]?.qa?.length > 0) {
+              onUpdate({ ...video, qa: rows[0].qa });
+            }
+          })
+          .catch(() => {})
+          .finally(() => setQaLoaded(true));
       }, [video.id]);
 
       const ps = video.pointStatus?.length === video.keyPoints?.length ? video.pointStatus : (video.keyPoints || []).map(() => null);
@@ -1725,7 +1795,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       async function askQuestion() {
         const q = qaInput.trim(); if (!q || qaLoading) return;
         setQaInput(""); setQaLoading(true);
-        const withUser = [...(video.qa || []), { id: genId(), role: "user", content: q }];
+        const currentQa = video.qa || [];
+        const withUser = [...currentQa, { id: genId(), role: "user", content: q }];
         onUpdate({ ...video, qa: withUser });
         try {
           const data = await callClaude({
