@@ -533,12 +533,50 @@
 
           {/* URL Input */}
           <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            <input placeholder="Paste a YouTube video or channel URL..." value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (isChannelUrl ? setShowChannelModal(true) : handleAnalyze())} />
-            {isChannelUrl ? (
-              <button className="rbtn-p" onClick={() => setShowChannelModal(true)} style={{ flexShrink: 0, whiteSpace: "nowrap" }}>📺 Browse Channel</button>
-            ) : (
-              <button className="rbtn-p" onClick={handleAnalyze} disabled={!urlInput.trim()} style={{ flexShrink: 0 }}>Analyze</button>
-            )}
+            <input
+              placeholder="Paste a YouTube video or channel URL..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (isChannelUrl ? setShowChannelModal(true) : handleAnalyze())}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text").trim();
+                if (!pasted) return;
+                setTimeout(() => {
+                  const isChannel = pasted.match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || pasted.startsWith("@");
+                  if (isChannel) setShowChannelModal(true);
+                  else if (pasted.includes("youtube") || pasted.includes("youtu.be")) onAddNew(pasted);
+                }, 50);
+              }}
+            />
+            <button
+              className="rbtn-p"
+              onClick={async () => {
+                // If URL already in box, just analyze
+                if (urlInput.trim()) {
+                  if (isChannelUrl) setShowChannelModal(true);
+                  else handleAnalyze();
+                  return;
+                }
+                // Otherwise read from clipboard
+                try {
+                  const text = await navigator.clipboard.readText();
+                  const u = text.trim();
+                  if (!u) return;
+                  setUrlInput(u);
+                  const isChannel = u.match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || u.startsWith("@");
+                  setTimeout(() => {
+                    if (isChannel) setShowChannelModal(true);
+                    else onAddNew(u);
+                  }, 50);
+                } catch {
+                  // Clipboard read failed — just focus the input
+                  document.querySelector("input")?.focus();
+                }
+              }}
+              style={{ flexShrink: 0, whiteSpace: "nowrap" }}
+            >
+              {urlInput.trim() ? (isChannelUrl ? "📺 Browse" : "Analyze") : "Paste & Analyze"}
+            </button>
             <button className="rbtn-g" onClick={onPaste} style={{ flexShrink: 0 }} title="Paste a transcript instead">📋</button>
           </div>
 
@@ -2064,6 +2102,21 @@ Instructions:
             )}
           </div>
 
+          {/* Q&A Input — above video grid */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+            <input
+              placeholder={scoped.length > 0 ? `Ask anything across ${scoped.length} selected video${scoped.length !== 1 ? "s" : ""}...` : "Select videos below, then ask anything..."}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()}
+              disabled={loading || !scoped.length}
+              style={{ fontSize: 14 }}
+            />
+            <button className="rbtn-p" onClick={ask} disabled={loading || !query.trim() || !scoped.length} style={{ flexShrink: 0, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8 }}>
+              {loading ? <Spinner size={15} /> : "Ask"}
+            </button>
+          </div>
+
           {/* Video thumbnail picker */}
           <div className="rcard" style={{ padding: 14, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -2134,20 +2187,6 @@ Instructions:
             </div>
           )}
 
-          {/* Input */}
-          <div style={{ display: "flex", gap: 10, marginBottom: qa.length > 0 ? 14 : 0 }}>
-            <input
-              placeholder={scoped.length > 0 ? `Ask anything across ${scoped.length} selected video${scoped.length !== 1 ? "s" : ""}...` : "Select videos above first..."}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()}
-              disabled={loading || !scoped.length}
-            />
-            <button className="rbtn-p" onClick={ask} disabled={loading || !query.trim() || !scoped.length} style={{ flexShrink: 0, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8 }}>
-              {loading ? <Spinner size={15} /> : "Ask"}
-            </button>
-          </div>
-
           {/* Actions */}
           {qa.length > 0 && (
             <div style={{ display: "flex", gap: 10 }}>
@@ -2178,7 +2217,7 @@ Instructions:
       const qaEndRef = useRef(null);
 
       const PITCHES = [
-        { headline: "Your personal YouTube knowledge base", sub: "AI summaries, key points, and full Q&A — free for 60 days or 30 videos" },
+        { headline: "Your personal YouTube knowledge base", sub: "AI summaries, key points, and full Q&A — saved forever" },
         { headline: "Ask questions across all your videos", sub: "Cross-query any channel or topic to find connections instantly" },
         { headline: "Import entire channels at once", sub: "Browse, select, and bulk-analyze any YouTube channel" },
         { headline: "Remember every insight", sub: "Star key points, save Q&A sessions, build your knowledge over time" },
