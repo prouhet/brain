@@ -1831,7 +1831,8 @@ score guide:
     // ─── Credibility Warning ──────────────────────────────────────────────────
     function CredibilityWarning({ video, onUpdate, videoTranscript }) {
       const [checking, setChecking] = useState(false);
-      const [deepResult, setDeepResult] = useState(null);
+      // Load saved deep check from DB if exists
+      const [deepResult, setDeepResult] = useState(video.credibility?.deepCheck || null);
       const c = video.credibility;
       const isLow = c?.score === "low";
 
@@ -1858,7 +1859,12 @@ Return a detailed assessment with:
             messages: [{ role: "user", content: `Video: "${video.title}" by ${video.channel}\n\n${videoTranscript ? `TRANSCRIPT:\n${videoTranscript.slice(0, 20000)}` : `Summary: ${video.summary}`}` }],
             maxTokens: 1500,
           });
-          setDeepResult(getText(data));
+          const result = getText(data);
+          setDeepResult(result);
+          // Save to DB so it persists
+          const updatedCredibility = { ...(c || {}), deepCheck: result, deepCheckedAt: new Date().toISOString() };
+          await sbPatch(video.id, { credibility: updatedCredibility });
+          onUpdate({ ...video, credibility: updatedCredibility });
         } catch (e) {
           setDeepResult(`Error: ${e.message}`);
         } finally { setChecking(false); }
@@ -1883,9 +1889,12 @@ Return a detailed assessment with:
                 )}
               </div>
             </div>
-            <button onClick={deepCheck} disabled={checking} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 8, background: isLow ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", border: `1px solid ${isLow ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, color: isLow ? "#ef4444" : "var(--warn)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
-              {checking ? <><Spinner size={12} /> Checking...</> : "🔍 Deep Check"}
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+              <button onClick={deepCheck} disabled={checking} style={{ padding: "7px 14px", borderRadius: 8, background: isLow ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", border: `1px solid ${isLow ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, color: isLow ? "#ef4444" : "var(--warn)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+                {checking ? <><Spinner size={12} /> Checking...</> : deepResult ? "↺ Re-check" : "🔍 Deep Check"}
+              </button>
+              {c?.deepCheckedAt && <span style={{ fontSize: 10, color: "var(--t3)" }}>Checked {fmtDate(c.deepCheckedAt)}</span>}
+            </div>
           </div>
           {deepResult && (
             <div style={{ marginTop: 12, padding: "12px 14px", background: "var(--s1)", borderRadius: 8, border: "1px solid var(--b)" }}>
