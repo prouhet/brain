@@ -1082,14 +1082,28 @@ Return ONLY valid JSON (no markdown fences):
           const v = toImport[i];
           setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "active" } : p));
           try {
-            // Fetch transcript (check cache first)
+            // Check full analysis cache first (any owner)
             let tData = null;
+            let cachedAnalysis = null;
             try {
-              const cached = await sbReq(`youtube_videos?select=transcript,title,channel&video_id=eq.${v.videoId}&transcript=not.is.null&limit=1`);
+              const cached = await sbReq(`youtube_videos?select=transcript,title,channel,summary,key_points,quotes,whats_new,action_suggestions,tags,duration,credibility&video_id=eq.${v.videoId}&transcript=not.is.null&limit=1`);
               if (cached?.length && cached[0].transcript) {
-                tData = { transcript: cached[0].transcript, title: cached[0].title, channel: cached[0].channel };
+                tData = { transcript: cached[0].transcript, title: cached[0].title, channel: cached[0].channel, duration: cached[0].duration };
+                if (cached[0].summary) {
+                  cachedAnalysis = {
+                    summary: cached[0].summary,
+                    keyPoints: cached[0].key_points || [],
+                    quotes: cached[0].quotes || [],
+                    whatsNew: cached[0].whats_new || "",
+                    actionSuggestions: cached[0].action_suggestions || [],
+                    tags: cached[0].tags || [],
+                    credibility: cached[0].credibility || null,
+                  };
+                }
               }
             } catch { /* cache miss */ }
+
+            // Fetch transcript from NUC if not cached
             if (!tData) {
               const tRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
                 method: "POST",
@@ -1100,43 +1114,66 @@ Return ONLY valid JSON (no markdown fences):
             }
             if (tData.error) throw new Error(tData.error);
 
-            // Analyze
-            const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
-              body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 1500,
-                system: `Analyze this YouTube video transcript. Return ONLY a JSON object with: summary (2-3 sentences), keyPoints (array of 5-8 strings), tags (array of 3-6 lowercase strings), actionSuggestions (array of 2-4 strings), whatsNew (1 sentence on what's new or unique, or empty string).`,
-                messages: [{ role: "user", content: `Title: ${tData.title || v.title}\nChannel: ${tData.channel || v.channel}\n\nTranscript:\n${tData.transcript || "No transcript available."}` }],
-              }),
-            });
-            const aData = await aRes.json();
-            const text = (aData.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
-            const parsed = (() => { try { return JSON.parse(text.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim()); } catch { return {}; } })();
+            // Run Claude analysis only if not cached
+            let parsed = cachedAnalysis;
+            if (!parsed) {
+              const dur = tData.duration;
+              const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
+              const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+                body: JSON.stringify({
+                  model: "claude-sonnet-4-20250514",
+                  max_tokens: 2000,
+                  system: `Analyze this YouTube video transcript for a personal knowledge base. Return ONLY valid JSON:
+{
+  "summary": "2-3 paragraph narrative arc",
+  "keyPoints": ["specific fact with data/numbers", "...up to ${kpCount}"],
+  "quotes": ["short direct quote under 20 words", "another"],
+  "tags": ["tag1", "...up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "actionSuggestions": ["specific action", "...up to 3"],
+  "whatsNew": "one contrarian or surprising claim",
+  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }
+}`,
+                  messages: [{ role: "user", content: `Title: ${tData.title || v.title}\nChannel: ${tData.channel || v.channel}\n\nFULL TRANSCRIPT:\n${tData.transcript || ""}` }],
+                }),
+              });
+              const aData = await aRes.json();
+              const text = (aData.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+              parsed = (() => { try { return JSON.parse(text.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim()); } catch { return {}; } })();
+            }
 
             const videoRecord = {
               id: genId(),
-              videoId: v.videoId,
-              url: v.url,
+              video_id: v.videoId,
+              url: canonicalUrl(v.url, v.videoId),
               title: tData.title || v.title,
               channel: tData.channel || v.channel || channelName,
               summary: parsed.summary || "",
               key_points: parsed.keyPoints || [],
               point_status: [],
               tags: parsed.tags || [],
+              quotes: parsed.quotes || [],
+              credibility: parsed.credibility || null,
               qa: [],
               whats_new: parsed.whatsNew || "",
               action_suggestions: parsed.actionSuggestions || [],
               transcript: tData.transcript || null,
+              duration: tData.duration || null,
               shared: false,
+              open_count: 0,
+              share_count: 0,
               date_added: new Date().toISOString(),
               owner: OWNER,
             };
-            await sbInsert(videoRecord);
+
+            // Use auth client to respect RLS
+            const { error } = await sbAuth.from("youtube_videos").insert(videoRecord);
+            if (error) throw new Error(error.message);
+
             onSave(fromDb(videoRecord));
             setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "done" } : p));
-              checkMilestone("milestone_channel", 2, 0);
+            checkMilestone("milestone_channel", 2, 0);
           } catch (e) {
             setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "error", error: e.message } : p));
           }
@@ -1744,6 +1781,53 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       );
     }
 
+    // ─── Credibility Check Button (for existing videos without score) ─────────
+    function CredibilityCheckBtn({ video, onUpdate, videoTranscript }) {
+      const [checking, setChecking] = useState(false);
+
+      async function check() {
+        setChecking(true);
+        try {
+          // Fetch transcript if not loaded yet
+          let transcript = videoTranscript;
+          if (!transcript) {
+            const rows = await sbReq(`youtube_videos?select=transcript&id=eq.${video.id}`);
+            transcript = rows?.[0]?.transcript || null;
+          }
+          const data = await callClaude({
+            system: `You are assessing the credibility of a YouTube video. Analyze for misinformation signals.
+
+Return ONLY valid JSON:
+{
+  "score": "high|medium|low",
+  "flags": ["specific concern 1", "specific concern 2"],
+  "note": "one sentence plain English assessment — empty string if no concerns"
+}
+
+score guide:
+- high: factual, well-sourced, no manipulation
+- medium: some unverified claims or missing context, worth verifying  
+- low: clear misinformation signals, clickbait, emotional manipulation, extraordinary unverified claims`,
+            messages: [{ role: "user", content: `Video: "${video.title}" by ${video.channel}\n\n${transcript ? `TRANSCRIPT:\n${transcript.slice(0, 20000)}` : `Summary: ${video.summary}\n\nKey Points:\n${(video.keyPoints || []).join("\n")}`}` }],
+            maxTokens: 400,
+          });
+          const credibility = parseJSON(getText(data));
+          if (credibility?.score) {
+            const updated = { ...video, credibility };
+            onUpdate(updated);
+            await sbPatch(video.id, { credibility });
+          }
+        } catch (e) { console.error(e); }
+        finally { setChecking(false); }
+      }
+
+      return (
+        <button onClick={check} disabled={checking} className="rbtn-g" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+          {checking ? <><Spinner size={13} /> Checking...</> : "🔍 Check Credibility"}
+        </button>
+      );
+    }
+
     // ─── Credibility Warning ──────────────────────────────────────────────────
     function CredibilityWarning({ video, onUpdate, videoTranscript }) {
       const [checking, setChecking] = useState(false);
@@ -1970,8 +2054,11 @@ Answer questions accurately and specifically based on the content above.`,
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
             <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {video.url && <a href={video.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}><button className="rbtn-g" style={{ color: "var(--yt)", borderColor: "rgba(255,68,68,.3)" }}>▶ YouTube</button></a>}
+              {!video.credibility && (
+                <CredibilityCheckBtn video={video} onUpdate={onUpdate} videoTranscript={videoTranscript} />
+              )}
               <ShareBtn video={video} onUpdate={onUpdate} />
               <button className="rbtn-d" onClick={onDelete}>Delete</button>
             </div>
