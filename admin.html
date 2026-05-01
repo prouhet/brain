@@ -86,6 +86,37 @@
             <tbody id="tbody"></tbody>
           </table>
         </div>
+      <div class="card" style="margin-top:20px">
+        <div class="card-head">
+          <h2>🔍 Bulk Re-analyze Videos</h2>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <p style="color:var(--t2);font-size:13px;line-height:1.6">Re-runs full AI analysis on stored transcripts. Updates summary, key points, quotes, and <strong style="color:#fff">adds credibility scoring</strong> to all matching videos. Leave the tab open — processes ~1 video/second.</p>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <div>
+              <label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Owner (blank = all)</label>
+              <input id="bulk-owner" placeholder="e.g. dave" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;outline:none;width:160px">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:18px">
+              <input type="checkbox" id="bulk-missing" checked style="width:14px;height:14px;cursor:pointer">
+              <label for="bulk-missing" style="font-size:13px;color:var(--t2);cursor:pointer">Only videos missing credibility score</label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn-acc" onclick="startBulkReanalyze()" style="padding:8px 18px;font-size:13px;font-weight:600">▶ Start Bulk Re-analyze</button>
+            <button class="btn-red" onclick="stopBulk()" style="padding:8px 14px;font-size:13px">■ Stop</button>
+            <span id="bulk-pct" style="font-size:12px;color:var(--t3)">0/0 (0%)</span>
+          </div>
+
+          <div>
+            <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:8px">
+              <div id="bulk-bar-fill" style="height:100%;background:var(--acc);border-radius:3px;width:0%;transition:width .3s"></div>
+            </div>
+            <p id="bulk-status" style="font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace">Ready</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -201,6 +232,117 @@
     async function setTier(id, tier) {
       await sb.from("reel_users").update({ tier: parseInt(tier) }).eq("id", id);
       users = users.map(u => u.id === id ? { ...u, tier: parseInt(tier) } : u);
+    }
+
+    // ── Bulk Re-analyze ────────────────────────────────────────────────────────
+    let bulkRunning = false;
+
+    async function startBulkReanalyze() {
+      if (bulkRunning) return;
+      bulkRunning = true;
+
+      const ownerFilter = document.getElementById("bulk-owner").value.trim() || null;
+      const onlyMissing = document.getElementById("bulk-missing").checked;
+
+      // Fetch videos
+      let query = sb.from("youtube_videos").select("id,title,channel,transcript,summary,key_points,tags,duration,owner").not("transcript", "is", null);
+      if (ownerFilter) query = query.eq("owner", ownerFilter);
+      if (onlyMissing) query = query.is("credibility", null);
+
+      const { data: videos, error } = await query.order("date_added", { ascending: false });
+      if (error || !videos?.length) {
+        setStatus(`No videos found. ${error?.message || ""}`);
+        bulkRunning = false;
+        return;
+      }
+
+      const total = videos.length;
+      setStatus(`Found ${total} videos to process...`);
+      setProgress(0, total);
+
+      let done = 0, errors = 0;
+
+      for (const video of videos) {
+        if (!bulkRunning) break;
+        setStatus(`Processing: ${video.title?.slice(0, 60) || video.id} (${done + 1}/${total})`);
+
+        try {
+          const dur = video.duration;
+          const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
+          const transcript = video.transcript || "";
+
+          const body = {
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2500,
+            system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the provided transcript.
+
+IMPORTANT DISTINCTIONS:
+- summary: NARRATIVE ARC — what is this video about, what argument does it make. Flowing prose.
+- keyPoints: SPECIFIC QUOTABLE FACTS — numbers, protocols, contrarian claims. Be specific not generic.
+- quotes: 2-3 short direct quotes under 20 words each from the transcript.
+- credibility: Assess for misinformation signals.
+
+Return ONLY valid JSON:
+{
+  "summary": "2-3 paragraph narrative arc",
+  "keyPoints": ["specific fact", "...up to ${kpCount}"],
+  "quotes": ["short direct quote", "another quote"],
+  "whatsNew": "one contrarian or surprising claim",
+  "actionSuggestions": ["specific action", "...up to 3"],
+  "tags": ["tag1", "...up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "credibility": {
+    "score": "high|medium|low",
+    "flags": ["specific flags if any"],
+    "note": "one sentence — empty string if no concerns"
+  }
+}`,
+            messages: [{ role: "user", content: `Video: "${video.title}" by ${video.channel}\n\nFULL TRANSCRIPT:\n${transcript}` }]
+          };
+
+          const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+            body: JSON.stringify(body)
+          });
+          const respData = await resp.json();
+          const text = (respData.content || []).map(c => c.text || "").join("");
+          const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+          const parsed = JSON.parse(clean);
+
+          if (parsed.summary) {
+            await sb.from("youtube_videos").update({
+              summary: parsed.summary,
+              key_points: parsed.keyPoints || [],
+              quotes: parsed.quotes || [],
+              whats_new: parsed.whatsNew || "",
+              action_suggestions: parsed.actionSuggestions || [],
+              tags: parsed.tags || [],
+              credibility: parsed.credibility || null
+            }).eq("id", video.id);
+          }
+          done++;
+        } catch (e) {
+          errors++;
+          console.error(`Failed: ${video.id}`, e);
+        }
+
+        setProgress(done + errors, total);
+        // Small delay to avoid rate limiting
+        await new Promise(r => setTimeout(r, 800));
+      }
+
+      bulkRunning = false;
+      setStatus(`✓ Done — ${done} updated, ${errors} errors`);
+      setProgress(total, total);
+    }
+
+    function stopBulk() { bulkRunning = false; setStatus("Stopped."); }
+
+    function setStatus(msg) { document.getElementById("bulk-status").textContent = msg; }
+    function setProgress(done, total) {
+      const pct = total > 0 ? Math.round(done / total * 100) : 0;
+      document.getElementById("bulk-bar-fill").style.width = pct + "%";
+      document.getElementById("bulk-pct").textContent = `${done}/${total} (${pct}%)`;
     }
   </script>
 </body>
