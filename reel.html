@@ -234,7 +234,7 @@
         }
       } catch {}
       // Fetch without transcript/qa (heavy fields loaded on demand)
-      const rows = await sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,point_status,tags,whats_new,action_suggestions,quotes,shared,duration,date_added,open_count,last_opened_at,share_count&owner=eq.${OWNER}&order=date_added.desc`);
+      const rows = await sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,point_status,tags,whats_new,action_suggestions,quotes,credibility,shared,duration,date_added,open_count,last_opened_at,share_count&owner=eq.${OWNER}&order=date_added.desc`);
       try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ owner: OWNER, data: rows })); } catch {}
       return rows;
     }
@@ -256,8 +256,8 @@
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
 
     // ─── Data mapping ─────────────────────────────────────────────────────────
-    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], quotes: r.quotes || [], transcript: r.transcript || null, shared: r.shared || false, duration: r.duration || null, dateAdded: r.date_added, openCount: r.open_count || 0, lastOpenedAt: r.last_opened_at || null, shareCount: r.share_count || 0 });
-    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, quotes: v.quotes || [], transcript: v.transcript || null, shared: v.shared || false, duration: v.duration || null, date_added: v.dateAdded, owner: OWNER });
+    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], quotes: r.quotes || [], credibility: r.credibility || null, transcript: r.transcript || null, shared: r.shared || false, duration: r.duration || null, dateAdded: r.date_added, openCount: r.open_count || 0, lastOpenedAt: r.last_opened_at || null, shareCount: r.share_count || 0 });
+    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, quotes: v.quotes || [], credibility: v.credibility || null, transcript: v.transcript || null, shared: v.shared || false, duration: v.duration || null, date_added: v.dateAdded, owner: OWNER });
 
     // ─── Utilities ────────────────────────────────────────────────────────────
     const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -916,7 +916,7 @@ Return ONLY valid JSON (no markdown fences):
       async function save() {
         if (!result) return;
         const videoId = url ? extractVid(url) : null;
-        const video = { id: genId(), videoId, url: canonicalUrl(url, videoId), title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], transcript: transcript || null, duration: txData?.duration || null, dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url: canonicalUrl(url, videoId), title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: transcript || null, duration: txData?.duration || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
@@ -1744,6 +1744,74 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       );
     }
 
+    // ─── Credibility Warning ──────────────────────────────────────────────────
+    function CredibilityWarning({ video, onUpdate, videoTranscript }) {
+      const [checking, setChecking] = useState(false);
+      const [deepResult, setDeepResult] = useState(null);
+      const c = video.credibility;
+      const isLow = c?.score === "low";
+
+      async function deepCheck() {
+        setChecking(true);
+        try {
+          const data = await callClaude({
+            system: `You are a fact-checking assistant. Analyze this video transcript for misinformation, misleading claims, and credibility issues.
+
+Be specific and direct. Look for:
+- Claims that contradict established facts or consensus
+- Missing context that changes meaning
+- Emotional manipulation tactics
+- Cherry-picked data or misleading statistics  
+- Unverified or anonymous sources
+- Logical fallacies
+- Clickbait or sensationalist framing
+
+Return a detailed assessment with:
+1. Specific claims that are problematic (quote them)
+2. What's missing or misleading
+3. What to verify before sharing
+4. Overall verdict: VERIFIED CONCERNS / NEEDS VERIFICATION / APPEARS CREDIBLE`,
+            messages: [{ role: "user", content: `Video: "${video.title}" by ${video.channel}\n\n${videoTranscript ? `TRANSCRIPT:\n${videoTranscript.slice(0, 20000)}` : `Summary: ${video.summary}`}` }],
+            maxTokens: 1500,
+          });
+          setDeepResult(getText(data));
+        } catch (e) {
+          setDeepResult(`Error: ${e.message}`);
+        } finally { setChecking(false); }
+      }
+
+      return (
+        <div style={{ background: isLow ? "rgba(239,68,68,.06)" : "rgba(245,166,35,.06)", border: `1px solid ${isLow ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: c?.note ? 8 : 0 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{isLow ? "⚠️" : "🔍"}</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: isLow ? "#ef4444" : "var(--warn)", marginBottom: 4 }}>
+                  {isLow ? "Credibility Concerns Detected" : "Verify Before Sharing"}
+                </p>
+                {c?.note && <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.6 }}>{c.note}</p>}
+                {c?.flags?.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                    {c.flags.filter(f => f).map((f, i) => (
+                      <span key={i} style={{ fontSize: 11, background: isLow ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", color: isLow ? "#ef4444" : "var(--warn)", border: `1px solid ${isLow ? "rgba(239,68,68,.2)" : "rgba(245,166,35,.2)"}`, borderRadius: 4, padding: "2px 8px" }}>{f}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button onClick={deepCheck} disabled={checking} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 8, background: isLow ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", border: `1px solid ${isLow ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, color: isLow ? "#ef4444" : "var(--warn)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+              {checking ? <><Spinner size={12} /> Checking...</> : "🔍 Deep Check"}
+            </button>
+          </div>
+          {deepResult && (
+            <div style={{ marginTop: 12, padding: "12px 14px", background: "var(--s1)", borderRadius: 8, border: "1px solid var(--b)" }}>
+              <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--t2)", whiteSpace: "pre-wrap" }}>{deepResult}</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // ─── Video Detail View ────────────────────────────────────────────────────
     function VideoDetailView({ video, onUpdate, onDelete, onBack }) {
       const [qaInput, setQaInput] = useState("");
@@ -1925,6 +1993,10 @@ Answer questions accurately and specifically based on the content above.`,
               </div>
             </div>
           </div>
+
+          {video.credibility?.score === "low" || video.credibility?.score === "medium" ? (
+            <CredibilityWarning video={video} onUpdate={onUpdate} videoTranscript={videoTranscript} />
+          ) : null}
 
           {video.whatsNew && (
             <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 12, padding: "16px 20px", marginBottom: 14 }}>
@@ -2469,6 +2541,10 @@ Answer questions accurately and specifically based on the content above.`,
                 </div>
               </div>
             </div>
+
+            {(video.credibility?.score === "low" || video.credibility?.score === "medium") && (
+              <CredibilityWarning video={video} onUpdate={() => {}} videoTranscript={video.transcript} />
+            )}
 
             <Sec title="Summary" accent>
               <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.8 }}>{video.summary}</p>
