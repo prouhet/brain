@@ -1610,6 +1610,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
                   Trying multiple YouTube API clients — should complete shortly.
                 </p>
               )}
+              {/* Did You Know tips */}
+              <DidYouKnow />
             </div>
           )}
           {step === "error" && (
@@ -1676,6 +1678,85 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           {(step === "idle" || step === "meta" || step === "error") && videoId && !prefillUrl && (
             <button className="rbtn-p" onClick={analyze} style={{ width: "100%" }}>Analyze Video</button>
           )}
+        </div>
+      );
+    }
+
+    // ─── Did You Know ─────────────────────────────────────────────────────────
+    const DID_YOU_KNOW = [
+      "Share any video to earn +2 free videos and +7 days membership — no limit.",
+      "Click 'Ask →' next to any key point to instantly ask a question about it.",
+      "Paste a channel URL like @ChannelName to browse and bulk import recent videos.",
+      "Cross-Query lets you ask one question across up to 20 videos simultaneously.",
+      "Star key points with ☆ Recall to highlight the insights worth remembering.",
+      "Your Q&A history is saved automatically — find it in the Q&A History tab.",
+      "The 📋 button lets you paste a transcript if a video has no captions.",
+      "In Cross-Query, type in the Who or About boxes to filter videos before selecting.",
+      "Every shared video link includes your referral — if someone signs up, you earn +15 videos.",
+      "Expand any Q&A History session to continue asking follow-up questions.",
+      "The Summary tells the story of the video — Key Points give you the specific facts.",
+      "Key Quotes show the creator's exact words — the most memorable lines from the video.",
+      "Click [Recently Opened] to see videos you've actually been using most.",
+      "Click [Most Shared] to see which of your videos are driving the most interest.",
+      "Toggle between Grid and List view using the ⊞ ≡ buttons in the library.",
+      "In list view, hover over a video card to reveal the delete button.",
+      "Long-press a thumbnail in grid view to get quick actions without opening the video.",
+      "The 🔴 New badge shows videos added in the last 3 days.",
+      "Green 'Unread' badge on thumbnails shows videos you haven't opened yet.",
+      "Duration shows bottom-right of each thumbnail — plan your watching time at a glance.",
+      "Use Who: and Topic/About: search boxes together for AND searches.",
+      "✦ Smart Find uses AI to find videos from fuzzy descriptions — try 'that crude oil video'.",
+      "The analysis uses the full transcript — so you can ask very specific questions.",
+      "Videos already in the system load from cache — adding popular videos is nearly instant.",
+      "Each video's Q&A builds context — ask follow-up questions for deeper answers.",
+      "The credibility score flags potential misinformation before you share a video.",
+      "Use Deep Check on flagged videos for a detailed fact-checking analysis.",
+      "Action Suggestions are specific steps extracted from the video — save them to your brain.",
+      "Tags are auto-assigned but you can add your own in the video detail page.",
+      "The 'Back to Library' button at the bottom means you never have to scroll back up.",
+      "Browser back button stays within ReelCall — it never takes you out of the app.",
+      "Videos from the same channel get compared for what's new vs what's already captured.",
+      "Cross-Query sessions are saved automatically — continue any session from Q&A History.",
+      "Paste & Analyze button reads your clipboard and starts analysis in one click.",
+      "Your video library loads fast because transcripts are only fetched when you need them.",
+      "The membership bar shows videos used and days remaining — share to extend both.",
+      "Refer someone who signs up from your shared video and earn +15 videos +15 days.",
+      "First time using channel import? Earn +2 bonus videos as a one-time milestone.",
+      "First cross-query earns +2 videos — the system rewards you for exploring.",
+      "Ask 5 Q&A questions total and earn +2 bonus videos as a milestone reward.",
+      "The Guide at reelcall.app/guide.html explains every feature in detail.",
+      "You can paste @ChannelName directly — no need for the full YouTube URL.",
+      "Share links include the video title so text messages show what you're sharing.",
+      "Shared video viewers can ask Q&A questions too — even without an account.",
+      "Videos never get deleted from the system even if you delete them from your library.",
+      "The analysis prompt scales key points by video length — longer videos get more points.",
+      "Sort by A-Z Channel to visually group all videos from the same creator.",
+      "In Cross-Query, 'Ask More' button changes after first answer — conversation keeps going.",
+      "ReelCall works on mobile — the grid adjusts to 2-3 columns automatically.",
+      "Every feature you use helps train you to get more value from your video library.",
+    ];
+
+    function DidYouKnow() {
+      const [idx, setIdx] = useState(() => Math.floor(Math.random() * DID_YOU_KNOW.length));
+      const [visible, setVisible] = useState(true);
+
+      useEffect(() => {
+        const t = setInterval(() => {
+          setVisible(false);
+          setTimeout(() => {
+            setIdx((i) => (i + 1) % DID_YOU_KNOW.length);
+            setVisible(true);
+          }, 400);
+        }, 5000);
+        return () => clearInterval(t);
+      }, []);
+
+      return (
+        <div style={{ marginTop: 16, borderTop: "1px solid var(--b)", paddingTop: 14 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>💡 Did You Know?</p>
+          <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.6, opacity: visible ? 1 : 0, transition: "opacity .4s ease", minHeight: 40 }}>
+            {DID_YOU_KNOW[idx]}
+          </p>
         </div>
       );
     }
@@ -2341,20 +2422,23 @@ Instructions:
             )}
           </div>
 
-          {/* Q&A Input — above video grid */}
+          {/* Q&A Input — above video grid, always visible */}
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
             <input
-              placeholder={scoped.length > 0 ? `Ask anything across ${scoped.length} selected video${scoped.length !== 1 ? "s" : ""}...` : "Select videos below, then ask anything..."}
+              placeholder={qa.length > 0 ? "Ask a follow-up question..." : scoped.length > 0 ? `Ask anything across ${scoped.length} selected video${scoped.length !== 1 ? "s" : ""}...` : "Select videos below, then ask anything..."}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && ask()}
               disabled={loading || !scoped.length}
-              style={{ fontSize: 14 }}
+              style={{ fontSize: 14, borderColor: qa.length > 0 ? "var(--acc)" : undefined }}
             />
             <button className="rbtn-p" onClick={ask} disabled={loading || !query.trim() || !scoped.length} style={{ flexShrink: 0, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8 }}>
-              {loading ? <Spinner size={15} /> : "Ask"}
+              {loading ? <Spinner size={15} /> : qa.length > 0 ? "Ask More" : "Ask"}
             </button>
           </div>
+          {qa.length > 0 && !loading && (
+            <p style={{ fontSize: 11, color: "var(--t3)", marginBottom: 10, marginTop: -8 }}>↑ Ask a follow-up above · answers build on previous context</p>
+          )}
 
           {/* Video thumbnail picker */}
           <div className="rcard" style={{ padding: 14, marginBottom: 20 }}>
