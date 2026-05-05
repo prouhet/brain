@@ -264,10 +264,10 @@
     const extractVid = (url) => {
       // Strip tracking params like ?si=xxx before matching
       const clean = (url || "").split("?")[0].split("&")[0];
-      // Try standard patterns on cleaned URL, then fall back to original for ?v= param
       return clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)?.[1] ||
              clean.match(/\/embed\/([a-zA-Z0-9_-]{11})/)?.[1] ||
              clean.match(/\/shorts\/([a-zA-Z0-9_-]{11})/)?.[1] ||
+             clean.match(/\/live\/([a-zA-Z0-9_-]{11})/)?.[1] ||
              url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)?.[1] || null;
     };
     const canonicalUrl = (url, vid) => vid ? `https://www.youtube.com/watch?v=${vid}` : url;
@@ -434,7 +434,7 @@
       useEffect(() => { setPage(1); }, [whoSearch, topicSearch, sort]);
 
       const isChannelUrl = urlInput.trim().match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || urlInput.trim().startsWith("@");
-      function handleAnalyze() { const u = urlInput.trim(); if (!u) return; onAddNew(u); }
+      function handleAnalyze() { const u = urlInput.trim(); if (!u) return; if (isChannelUrl) { setShowChannelModal(true); } else { onAddNew(u); } }
 
       // Filter
       const filtered = videos.filter((v) => {
@@ -1556,6 +1556,26 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           {!prefillUrl && <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Add YouTube Video</h2>}
           {!prefillUrl && <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Paste a URL — Claude finds the transcript and analyzes it against your existing library.</p>}
           {!prefillUrl && <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 16 }} autoFocus />}
+
+          {url.trim() && !videoId && (
+            <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              {(url.includes("/@") || url.includes("/channel/") || url.includes("/c/") || url.trim().startsWith("@")) ? (<>
+                <p style={{ color: "var(--acc)", fontSize: 14, marginBottom: 6, fontWeight: 600 }}>📺 That's a channel URL</p>
+                <p style={{ color: "var(--t2)", fontSize: 13, lineHeight: 1.6, marginBottom: 10 }}>
+                  To import videos from a channel, go back to the library and use the channel browser — paste this URL there.
+                </p>
+                <button className="rbtn-p" onClick={onBack} style={{ fontSize: 13 }}>← Back to Library to Browse Channel</button>
+              </>) : (<>
+                <p style={{ color: "var(--red)", fontSize: 14, marginBottom: 6, fontWeight: 600 }}>URL not recognized</p>
+                <p style={{ color: "var(--t2)", fontSize: 13, lineHeight: 1.6 }}>
+                  {url.includes("/live/") ? "This looks like a YouTube Live stream — live streams don't have transcripts yet. Try again after the stream ends." :
+                   url.includes("youtube.com") || url.includes("youtu.be") ? "Couldn't find a video ID in that URL. Try copying the URL directly from the YouTube app or browser." :
+                   "Please paste a YouTube video URL — it should contain youtube.com or youtu.be"}
+                </p>
+                <button className="rbtn-g" onClick={() => setUrl("")} style={{ marginTop: 10, fontSize: 13 }}>Clear</button>
+              </>)}
+            </div>
+          )}
 
           {videoId && meta && (
             <div className="rcard rfade" style={{ padding: 16, marginBottom: 20 }}>
