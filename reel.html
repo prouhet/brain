@@ -884,6 +884,15 @@
       async function analyze() {
         if (!transcript.trim()) return;
         setStep("analyzing"); setErrMsg("");
+
+        // Strip YouTube transcript timestamps (lines like "0:42", "59 minutes, 42 seconds", "1 hour, 1 second")
+        const cleanedTranscript = transcript
+          .split("\n")
+          .filter(line => !line.match(/^\d+:\d+$/) && !line.match(/^\d+ (minute|hour|second)/i))
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+
         const labels = ["Reading transcript...", "Checking prior library...", "Generating analysis..."];
         let si = 0; setStepLabel(labels[0]);
         const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
@@ -895,14 +904,16 @@ Return ONLY valid JSON (no markdown fences):
 {
   "title": "${title || "derive from transcript"}",
   "channel": "${channel || "derive from transcript if possible"}",
-  "summary": "3-4 paragraph comprehensive summary",
-  "keyPoints": ["specific point 1", "...up to 8"],
+  "summary": "2-3 paragraph narrative arc — tell the story of the video",
+  "keyPoints": ["specific fact with numbers/data", "...up to 8 — be specific not generic"],
+  "quotes": ["short direct quote under 20 words", "another memorable quote"],
   "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
-  "whatsNew": "First entry from this source.",
-  "actionSuggestions": ["specific action 1", "...up to 3"]
+  "whatsNew": "one contrarian or surprising claim from this content",
+  "actionSuggestions": ["specific action 1", "...up to 3"],
+  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }
 }`,
-            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nFULL TRANSCRIPT:\n${transcript}` }],
-            maxTokens: 1600,
+            messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nFULL TRANSCRIPT:\n${cleanedTranscript}` }],
+            maxTokens: 2000,
           });
           clearInterval(ticker);
           const parsed = parseJSON(getText(data));
@@ -915,10 +926,33 @@ Return ONLY valid JSON (no markdown fences):
 
       async function save() {
         if (!result) return;
-        const videoId = url ? extractVid(url) : null;
-        const video = { id: genId(), videoId, url: canonicalUrl(url, videoId), title: result.title || title || "Untitled", channel: result.channel || channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: transcript || null, duration: txData?.duration || null, dateAdded: new Date().toISOString() };
-        const rows = await sbInsert(toDb(video));
-        onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
+        try {
+          const videoId = url ? extractVid(url) : null;
+          // Strip timestamps from transcript before saving
+          const cleanedTranscript = transcript
+            .split("\n")
+            .filter(line => !line.match(/^\d+:\d+$/) && !line.match(/^\d+ (minute|hour|second)/i))
+            .join(" ").replace(/\s+/g, " ").trim();
+          const video = {
+            id: genId(), videoId, url: canonicalUrl(url, videoId),
+            title: result.title || title || "Untitled",
+            channel: result.channel || channel || "",
+            summary: result.summary, keyPoints: result.keyPoints || [],
+            pointStatus: (result.keyPoints || []).map(() => null),
+            tags, qa: [], whatsNew: result.whatsNew || "",
+            actionSuggestions: result.actionSuggestions || [],
+            quotes: result.quotes || [], credibility: result.credibility || null,
+            transcript: cleanedTranscript || null, duration: null,
+            shared: false, open_count: 0, share_count: 0,
+            dateAdded: new Date().toISOString()
+          };
+          const { error } = await sbAuth.from("youtube_videos").insert({ ...toDb(video), owner: OWNER });
+          if (error) throw new Error(error.message);
+          onSave(video);
+        } catch (e) {
+          setErrMsg(`Save failed: ${e.message}`);
+          setStep("error");
+        }
       }
 
       return (
@@ -1339,8 +1373,12 @@ Return ONLY valid JSON (no markdown fences):
           }
         } catch {}
         fetchOEmbed(url).then((d) => {
-          setMeta({ title: d?.title || "", channel: d?.author_name || "", videoId });
-          if (prefillUrl) setTimeout(() => analyze(), 300);
+          const ch = d?.author_name || "";
+          setMeta({ title: d?.title || "", channel: ch, videoId });
+          if (ch.toLowerCase().includes("youtube movies")) {
+            setErrMsg("YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy all, then use 📋 Paste Transcript.");
+            setStep("error");
+          } else if (prefillUrl) setTimeout(() => analyze(), 300);
         });
         })();
       }, [videoId]);
@@ -1415,12 +1453,16 @@ Return ONLY valid JSON (no markdown fences):
               let msg = `Transcript error: ${raw}`;
               if (raw.includes("429") || raw.includes("Too Many Requests")) {
                 msg = "YouTube is temporarily rate limiting. Please wait a few minutes and try again.";
+              } else if (raw.includes("payment") || raw.includes("rental") || raw.includes("purchase") || raw.includes("rent") || raw.includes("buy")) {
+                msg = "This is a paid/rental YouTube Movie — captions are behind the paywall. Open the video on YouTube, click ··· → Open transcript, copy all, then use 📋 Paste Transcript.";
               } else if (raw.includes("Requested format is not available") || raw.includes("list-formats")) {
-                msg = "This video has no accessible captions. Try 📋 Paste Transcript instead.";
+                msg = "This video has no accessible captions. If you can see a transcript on YouTube, copy it and use 📋 Paste Transcript instead.";
               } else if (raw.includes("private") || raw.includes("Private")) {
                 msg = "This video is private and can't be accessed.";
               } else if (raw.includes("unavailable") || raw.includes("not available")) {
                 msg = "This video is unavailable or has been removed.";
+              } else if (channelResolved?.toLowerCase().includes("youtube movies") || raw.includes("movie")) {
+                msg = "YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy, then use 📋 Paste Transcript.";
               }
               setErrMsg(msg);
               setStep("error"); return;
