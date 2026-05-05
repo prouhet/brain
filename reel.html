@@ -1492,7 +1492,9 @@ Return ONLY valid JSON (no markdown fences):
           let parsed;
 
           if (cachedAnalysis) {
-            // Use cached analysis — skip Claude entirely
+            // Use cached analysis — skip Claude entirely but show steps briefly
+            setStepStatus("analyze", "active");
+            await new Promise(r => setTimeout(r, 800)); // brief pause to show tips
             parsed = cachedAnalysis;
             parsed._transcript = transcript;
             setStepStatus("analyze", "done");
@@ -1633,6 +1635,13 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           )}
 
           {step === "analyzing" && steps.length > 0 && (
+            <>
+            {/* Did You Know — above processing steps, own card */}
+            <div className="rcard rfade" style={{ padding: "14px 18px", marginBottom: 10, borderLeft: "3px solid var(--acc)" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "var(--acc)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 5 }}>💡 Did You Know?</p>
+              <DidYouKnow inline={true} />
+            </div>
+
             <div className="rcard rfade" style={{ padding: 20, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Processing video...</p>
@@ -1672,9 +1681,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
                   Trying multiple YouTube API clients — should complete shortly.
                 </p>
               )}
-              {/* Did You Know tips */}
-              <DidYouKnow />
             </div>
+            </>
           )}
           {step === "error" && (
             <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
@@ -1796,9 +1804,16 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       "In Cross-Query, 'Ask More' button changes after first answer — conversation keeps going.",
       "ReelCall works on mobile — the grid adjusts to 2-3 columns automatically.",
       "Every feature you use helps train you to get more value from your video library.",
+      "YouTube Movies captions can't be fetched automatically — use 📋 Paste Transcript instead.",
+      "To paste a YouTube transcript: tap ··· below the video → Open transcript → copy all → 📋.",
+      "Timestamps are stripped automatically when you paste a YouTube transcript.",
+      "If a video fails to load, tap ↺ Retry — it often succeeds on the second attempt.",
+      "Channel URLs (like @ChannelName) open the channel browser — not the video analyzer.",
+      "The channel browser lets you preview and select which videos to import in bulk.",
+      "Paste Transcript works for any content — audiobooks, podcasts, movies, anything with text.",
     ];
 
-    function DidYouKnow() {
+    function DidYouKnow({ inline = false }) {
       const [idx, setIdx] = useState(() => Math.floor(Math.random() * DID_YOU_KNOW.length));
       const [visible, setVisible] = useState(true);
 
@@ -1812,6 +1827,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         }, 5000);
         return () => clearInterval(t);
       }, []);
+
+      if (inline) return (
+        <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.6, opacity: visible ? 1 : 0, transition: "opacity .4s ease", minHeight: 36 }}>
+          {DID_YOU_KNOW[idx]}
+        </p>
+      );
 
       return (
         <div style={{ marginTop: 16, borderTop: "1px solid var(--b)", paddingTop: 14 }}>
