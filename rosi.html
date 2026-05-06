@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌻</text></svg>">
 <title>Rosi · Home</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -408,9 +411,12 @@ async function loadKnowledge() {
     items.forEach(i => { (grouped[i.category] = grouped[i.category]||[]).push(i); });
     body.innerHTML = Object.entries(grouped).map(([cat, arr]) =>
       `<div class="section-cap">${esc(cat)}</div>` + arr.map(i =>
-        `<div class="k-row">
-          <div class="k-title">${esc(i.title)}${i.sensitive?'<span class="k-sensitive">private</span>':''}</div>
-          <div class="k-cat">${esc(i.category)}</div>
+        `<div class="k-row" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div>
+            <div class="k-title">${esc(i.title)}${i.sensitive?'<span class="k-sensitive">private</span>':''}</div>
+            <div class="k-cat">${esc(i.category)}</div>
+          </div>
+          <button onclick="deleteKnowledge('${i.id}',this)" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:14px;padding:2px 4px;border-radius:4px;transition:color .15s" title="Delete">×</button>
         </div>`
       ).join('')
     ).join('');
@@ -428,7 +434,17 @@ function knowledgeSummary() {
   ).join('\n\n');
 }
 
-// ── GROCERY ──────────────────────────────────────────────────────
+async function deleteKnowledge(id, btn) {
+  btn.textContent = '…';
+  try {
+    await fetch(`${SB_URL}/rest/v1/rosi_knowledge?id=eq.${id}`, {
+      method: 'DELETE', headers: { ...sbHeaders, 'Prefer': 'return=minimal' }
+    });
+    loadKnowledge();
+  } catch(e) { btn.textContent = '×'; }
+}
+
+
 async function loadGrocery() {
   const body = document.getElementById('groceryBody');
   body.innerHTML = '<div class="empty-state">Loading…</div>';
@@ -609,8 +625,33 @@ async function processActions(text) {
           refreshPanels.add('reminders');
           break;
 
-        case 'refresh':
-          (action.panels || []).forEach(p => refreshPanels.add(p));
+        case 'delete_grocery':
+          await sbPatch('rosi_grocery', action.id, { done: true, done_by: USER, done_at: new Date().toISOString() });
+          refreshPanels.add('grocery');
+          break;
+
+        case 'delete_knowledge':
+          await fetch(`${SB_URL}/rest/v1/rosi_knowledge?id=eq.${action.id}`, {
+            method: 'DELETE', headers: { ...sbHeaders, 'Prefer': 'return=minimal' }
+          });
+          refreshPanels.add('knowledge');
+          break;
+
+        case 'update_knowledge':
+          await fetch(`${SB_URL}/rest/v1/rosi_knowledge?household_key=eq.${KEY}&title=eq.${encodeURIComponent(action.title)}`, {
+            method: 'PATCH', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ content: action.content, category: action.category, sensitive: action.sensitive ?? false })
+          });
+          refreshPanels.add('knowledge');
+          break;
+
+        case 'clear_grocery':
+          // Mark all done items or a specific item by name
+          if (action.item) {
+            const matches = groceryCache.filter(g => g.item.toLowerCase().includes(action.item.toLowerCase()));
+            for (const g of matches) await sbPatch('rosi_grocery', g.id, { done: true, done_by: USER, done_at: new Date().toISOString() });
+          }
+          refreshPanels.add('grocery');
           break;
       }
     } catch(e) { console.error('Action error:', e, m[1]); }
@@ -666,7 +707,13 @@ SET A REMINDER:
 SAVE KNOWLEDGE (wifi, contacts, passwords, tips, etc.):
 <rosi_action>{"type":"save_knowledge","category":"Contacts","title":"Plumber","content":"ABC Plumbing 618-555-0123","sensitive":false}</rosi_action>
 
-RULES:
+REMOVE A GROCERY ITEM (use item name, not id):
+<rosi_action>{"type":"clear_grocery","item":"milk"}</rosi_action>
+
+UPDATE KNOWLEDGE (match by exact title):
+<rosi_action>{"type":"update_knowledge","title":"Plumber","category":"Contacts","content":"John Smith 618-555-0123","sensitive":false}</rosi_action>
+
+
 - ALWAYS emit a <rosi_action> tag when the user asks you to add, save, or remember something
 - You can emit multiple action tags in one reply
 - Use memory first — check household knowledge before searching the web
