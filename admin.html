@@ -238,6 +238,7 @@
               <select onchange="setTier('${u.id}', this.value)" style="background:var(--s2);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:5px 6px;font-size:12px;outline:none;cursor:pointer">
                 ${[1,2,3,4,5].map(t => `<option value="${t}" ${(u.tier||1)==t?"selected":""}>\$${t}/mo</option>`).join("")}
               </select>
+              <button class="btn-acc" onclick='openEditUser(${JSON.stringify(u)})' style="font-size:11px;padding:5px 10px">Edit</button>
             </div>
           </td>
         </tr>`;
