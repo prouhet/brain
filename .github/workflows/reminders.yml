@@ -1,0 +1,38 @@
+name: Rosey Reminders
+
+# Checks brain for due reminders every hour and sends email.
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   ANTHROPIC_API_KEY  — your Anthropic key
+#   BRAIN_KEY          — the household key (same one used in the ?key= URL)
+#   EMAIL_TO           — recipient address(es), comma-separated
+#   SMTP_USER          — Gmail address used to send
+#   SMTP_PASS          — Gmail App Password (NOT your regular password)
+#                        Generate one at: myaccount.google.com/apppasswords
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # top of every hour
+  workflow_dispatch:       # also runnable manually from the Actions tab
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Check and send reminders
+        run: python scripts/send_reminders.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRAIN_KEY:         ${{ secrets.BRAIN_KEY }}
+          EMAIL_TO:          ${{ secrets.EMAIL_TO }}
+          SMTP_USER:         ${{ secrets.SMTP_USER }}
+          SMTP_PASS:         ${{ secrets.SMTP_PASS }}
