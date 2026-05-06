@@ -217,11 +217,11 @@
         // Pass session tokens explicitly so reel.html can set session directly
         const { data: { session: sess } } = await sb.auth.getSession();
         if (sess) {
-          window.location.href = "/reel.html#access_token=" + sess.access_token + "&refresh_token=" + sess.refresh_token + "&type=signup";
+          window.location.href = "/guide.html?new=1";
         } else {
           const returnTo = sessionStorage.getItem("reelcall_return_to");
-        sessionStorage.removeItem("reelcall_return_to");
-        window.location.href = returnTo || "/reel.html";
+          sessionStorage.removeItem("reelcall_return_to");
+          window.location.href = returnTo || "/guide.html?new=1";
         }
       } catch (e) {
         setMsg("msg-signup", e.message, "err");
