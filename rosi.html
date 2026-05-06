@@ -264,6 +264,8 @@ const POLL_MS   = 10 * 60 * 1000;
 
 let KEY = '', USER = '', USER_COLOR = 0, convo = [], busy = false;
 let knowledgeCache = [];
+let groceryCache = [];
+let mealCache = {};
 
 // ── SUPABASE REST HELPERS ────────────────────────────────────────
 const sbHeaders = {
@@ -433,6 +435,7 @@ async function loadGrocery() {
   try {
     const items = await sbGet('rosi_grocery',
       `household_key=eq.${KEY}&done=eq.false&select=id,item,category,note,store_preference,quantity,requested_by&order=created_at.asc`);
+    groceryCache = items;
     document.getElementById('groceryCount').textContent = items.length || '—';
     if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing on the list —<br>ask Rosi to add some!</div>'; return; }
     const g = {};
@@ -472,6 +475,7 @@ async function loadMeals() {
       `household_key=eq.${KEY}&week_of=eq.${weekOf}&select=day_of_week,meal`);
     const plan = {};
     meals.forEach(m => { plan[m.day_of_week] = m.meal; });
+    mealCache = plan;
     grid.innerHTML = DAYS.map(d =>
       `<div class="meal-cell"><div class="meal-day">${d}</div><div class="meal-val${plan[d]?'':' empty'}">${plan[d]?esc(plan[d]):'—'}</div></div>`
     ).join('') + '<div></div>';
@@ -622,40 +626,52 @@ async function processActions(text) {
 function buildSystem() {
   const now = new Date();
   const weekOf = getMondayOf();
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // Current grocery list
+  const groceryStr = groceryCache.length
+    ? groceryCache.map(i => `- ${i.item}${i.quantity&&i.quantity!=='1'?' ('+i.quantity+')':''}${i.note?' — '+i.note:''}${i.store_preference?' ['+i.store_preference+']':''}${i.requested_by?' ('+i.requested_by+')':''}`).join('\n')
+    : 'Empty — nothing on the list yet.';
+
+  // Current meal plan
+  const mealStr = DAYS.map(d => `${d}: ${mealCache[d] || '—'}`).join('  |  ');
+
   return `You are Rosi, a warm and practical household assistant for the Prouhet family.
 Current user: ${USER}
 Today: ${now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
 Current week starts: ${weekOf}
 
-━━━ HOUSEHOLD KNOWLEDGE (always check this before searching the web) ━━━
+━━━ CURRENT GROCERY LIST ━━━
+${groceryStr}
+
+━━━ CURRENT MEAL PLAN ━━━
+${mealStr}
+
+━━━ HOUSEHOLD KNOWLEDGE ━━━
 ${knowledgeSummary()}
 
-━━━ HOW YOU WORK ━━━
-1. MEMORY FIRST: Before searching the web, check the household knowledge above. If you find the answer there, use it and say "I have that stored."
-2. SEARCH SECOND: If the knowledge doesn't have it or might be outdated, use web_search and web_fetch to find the answer.
-3. SAVE IT: After finding useful info via web search (plumber numbers, recipes, how-to guides, local business info, etc.), save it using <rosi_action> so you remember it next time.
-4. ACTIONS: Use <rosi_action> tags to save data to the household. Multiple actions are fine.
+━━━ CRITICAL: HOW TO TAKE ACTION ━━━
+You MUST use <rosi_action> JSON tags to make any changes. Without these tags nothing is saved.
+These tags MUST appear at the very end of your reply, after your conversational response.
 
-━━━ AVAILABLE ACTIONS ━━━
-Emit these at the END of your reply. The app will execute them automatically.
+ADD A GROCERY ITEM — use this exact format:
+<rosi_action>{"type":"add_grocery","item":"milk","category":"Dairy","note":"whole milk","store":null,"quantity":"1"}</rosi_action>
 
-Save knowledge (anything useful to remember):
-<rosi_action>{"type":"save_knowledge","category":"Contacts","title":"Plumber","content":"Bay Plumbing (650) 555-0123, available 24/7","sensitive":false}</rosi_action>
-
-Add grocery item:
-<rosi_action>{"type":"add_grocery","item":"gluten free bread","category":"Bakery","note":"for Alexa","store":"Costco","quantity":"1"}</rosi_action>
-
-Plan a meal (use week_of = Monday's date in YYYY-MM-DD):
+PLAN A MEAL:
 <rosi_action>{"type":"add_meal","day":"Mon","week_of":"${weekOf}","meal":"Chicken Tacos"}</rosi_action>
 
-Set a reminder:
-<rosi_action>{"type":"add_reminder","text":"Take out trash","due_at":"${new Date(Date.now()+3600000).toISOString()}","recurrence":null,"for_member":null}</rosi_action>
+SET A REMINDER:
+<rosi_action>{"type":"add_reminder","text":"Take out trash","due_at":"2026-05-07T18:00:00Z","recurrence":null,"for_member":null}</rosi_action>
 
-Refresh panels after changes:
-<rosi_action>{"type":"refresh","panels":["grocery","meals","knowledge","reminders"]}</rosi_action>
+SAVE KNOWLEDGE (wifi, contacts, passwords, tips, etc.):
+<rosi_action>{"type":"save_knowledge","category":"Contacts","title":"Plumber","content":"ABC Plumbing 618-555-0123","sensitive":false}</rosi_action>
 
-━━━ STYLE ━━━
-Be warm, concise, and use the person's first name occasionally. For sensitive info (passwords, alarm codes), reveal if directly asked but don't volunteer. Emoji is fine but light-handed.`;
+RULES:
+- ALWAYS emit a <rosi_action> tag when the user asks you to add, save, or remember something
+- You can emit multiple action tags in one reply
+- Use memory first — check household knowledge before searching the web
+- After web searches, save useful findings with save_knowledge
+- Be warm and concise. Use ${USER.split(' ')[0]}'s name occasionally.`;
 }
 
 async function send() {
