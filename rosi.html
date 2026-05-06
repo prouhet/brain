@@ -679,6 +679,12 @@ async function send() {
     });
 
     const data = await resp.json();
+    if (!resp.ok) {
+      removeTyping(tid);
+      addMsg('rosi', `Error ${resp.status}: ${data.error || JSON.stringify(data)}`);
+      busy = false; document.getElementById('sendBtn').disabled = false;
+      return;
+    }
 
     // Extract text — may be across multiple content blocks if web search was used
     let reply = '';
