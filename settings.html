@@ -101,6 +101,42 @@
     <p class="card-title">Account</p>
     <p class="card-sub">Sign out of ReelCall on this device.</p>
     <button class="btn btn-ghost" onclick="signOut()" style="margin-top:0">Sign Out</button>
+
+    <div class="divider" style="margin:24px 0"></div>
+
+    <p class="card-title" style="color:#ef4444">Danger Zone</p>
+    <p class="card-sub">Deactivating your account hides your library but keeps your data. Deleting removes your account — your videos stay in the system for others to benefit from but are no longer in your library.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="deactivateAccount()" style="flex:1;padding:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;border-radius:10px;cursor:pointer;font-size:13px;font-family:'Figtree',sans-serif;font-weight:600">Deactivate Account</button>
+      <button onclick="deleteAccount()" style="flex:1;padding:10px;background:#ef4444;border:none;color:#fff;border-radius:10px;cursor:pointer;font-size:13px;font-family:'Figtree',sans-serif;font-weight:600">Delete Account</button>
+    </div>
+    <div id="msg-account"></div>
+  </div>
+
+  <!-- Home Screen Install Card -->
+  <div class="card" id="card-homescreen" style="display:none">
+    <p class="card-title">📱 Add ReelCall to Your Home Screen</p>
+    <p class="card-sub">ReelCall works like a native app — add it to your home screen for one-tap access.</p>
+
+    <div style="background:var(--s2);border-radius:10px;padding:16px;margin-bottom:12px">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🍎 iPhone (Safari)</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Safari</li>
+        <li style="font-size:13px;color:var(--t2)">Tap the <strong>Share icon</strong> (square with up arrow) at the bottom</li>
+        <li style="font-size:13px;color:var(--t2)">Scroll down and tap <strong>Add to Home Screen</strong></li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add</strong></li>
+      </ol>
+    </div>
+
+    <div style="background:var(--s2);border-radius:10px;padding:16px">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🌍 Android (Chrome)</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Chrome</li>
+        <li style="font-size:13px;color:var(--t2)">Tap the <strong>3-dot menu</strong> (top right)</li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add / Install</strong></li>
+      </ol>
+    </div>
   </div>
 
   <div id="msg-loading" class="user-badge">Loading your settings...</div>
@@ -128,6 +164,7 @@
       document.getElementById("card-username").style.display = "block";
       document.getElementById("card-password").style.display = "block";
       document.getElementById("card-signout").style.display = "block";
+      document.getElementById("card-homescreen").style.display = "block";
     }
 
     function togglePw(id, btn) {
@@ -177,6 +214,31 @@
     async function signOut() {
       await sb.auth.signOut();
       window.location.href = "/signup.html";
+    }
+
+    async function deactivateAccount() {
+      if (!confirm("Deactivate your account? Your library will be hidden but your data is kept. You can reactivate by contacting us.")) return;
+      const { error } = await sb.from("reel_users").update({ active: false }).eq("id", currentUser.id);
+      if (error) { setMsg("msg-account", "Error: " + error.message, "err"); return; }
+      await sb.auth.signOut();
+      window.location.href = "/signup.html";
+    }
+
+    async function deleteAccount() {
+      const confirm1 = confirm("⚠️ Delete your account permanently?\n\nYour profile and library association will be removed. This CANNOT be undone.");
+      if (!confirm1) return;
+      const typed = prompt("Type DELETE to confirm:");
+      if (typed !== "DELETE") { setMsg("msg-account", "Account not deleted — confirmation didn't match.", "err"); return; }
+      try {
+        // Disassociate videos from this owner (keep in DB for cache — set owner to null)
+        await sb.from("youtube_videos").update({ owner: null, shared: false }).eq("owner", currentProfile.owner);
+        // Deactivate their profile
+        await sb.from("reel_users").update({ active: false, owner: "deleted_" + currentProfile.owner }).eq("id", currentUser.id);
+        await sb.auth.signOut();
+        window.location.href = "/signup.html";
+      } catch (e) {
+        setMsg("msg-account", "Delete failed: " + e.message + " — please contact support.", "err");
+      }
     }
 
     init();
