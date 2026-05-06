@@ -2748,6 +2748,7 @@ Instructions:
       const [authUser, setAuthUser] = useState(null);
       const [saving, setSaving] = useState(false);
       const [saved, setSaved] = useState(false);
+      const [shouldAutoSave, setShouldAutoSave] = useState(false);
       const [pitchIdx, setPitchIdx] = useState(0);
       const qaEndRef = useRef(null);
 
@@ -2772,6 +2773,13 @@ Instructions:
       useEffect(() => { qaEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [qa.length]);
 
       useEffect(() => {
+        if (shouldAutoSave && video && authUser && !saved && !saving) {
+          setShouldAutoSave(false);
+          saveToLibrary();
+        }
+      }, [shouldAutoSave, video, authUser]);
+
+      useEffect(() => {
         // Check auth — Supabase session OR privileged ?user= param
         const urlParams = new URLSearchParams(window.location.search);
         const userParam = (urlParams.get("user") || "").toLowerCase();
@@ -2780,7 +2788,16 @@ Instructions:
           setAuthUser({ id: userParam, owner: userParam, privileged: true });
         } else {
           sbAuth.auth.getSession().then(({ data: { session } }) => {
-            if (session) setAuthUser(session.user);
+            if (session) {
+              setAuthUser(session.user);
+              // Auto-save if user just logged in from this shared video
+              const autoSave = sessionStorage.getItem("reelcall_auto_save_share");
+              if (autoSave === videoId) {
+                sessionStorage.removeItem("reelcall_auto_save_share");
+                // Small delay to let video load first
+                setTimeout(() => setShouldAutoSave(true), 1500);
+              }
+            }
           });
         }
         // Store referral info for signup attribution
@@ -2881,6 +2898,7 @@ Answer questions accurately and specifically based on the content above.`,
               // Store share URL so after login we can redirect back
               function goSignIn() {
                 sessionStorage.setItem("reelcall_return_to", shareUrl);
+                sessionStorage.setItem("reelcall_auto_save_share", videoId);
                 window.location.href = "/signup.html";
               }
 
@@ -3061,7 +3079,15 @@ Answer questions accurately and specifically based on the content above.`,
           if (!ok) { setAuthState(reason || "noauth"); setLoaded(true); return; }
           setAuthState("ok");
           sbLoad()
-            .then((rows) => setVideos((rows || []).map(fromDb)))
+            .then((rows) => {
+              setVideos((rows || []).map(fromDb));
+              // Check if user just logged in from a shared video — auto-redirect back
+              const returnTo = sessionStorage.getItem("reelcall_return_to");
+              if (returnTo && returnTo.includes("?share=")) {
+                sessionStorage.removeItem("reelcall_return_to");
+                window.location.href = returnTo;
+              }
+            })
             .catch((e) => setLoadErr(e.message))
             .finally(() => setLoaded(true));
         });
