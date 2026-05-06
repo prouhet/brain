@@ -2440,11 +2440,12 @@ Answer questions accurately and specifically based on the content above.`,
         if (!currentOwner || currentOwner === "guest") { setError("Sign in to leave a comment."); return; }
         setPosting(true);
         try {
-          const comment = { id: genId(), video_id: videoId, owner: currentOwner, content: text, created_at: new Date().toISOString() };
-          await sbReq("video_comments", { method: "POST", headers: { "Prefer": "return=minimal" }, body: JSON.stringify(comment) });
-          setComments((prev) => [...prev, comment]);
+          const newComment = { video_id: videoId, owner: currentOwner, content: text };
+          const result = await sbReq("video_comments", { method: "POST", headers: { "Prefer": "return=representation" }, body: JSON.stringify(newComment) });
+          const saved = Array.isArray(result) ? result[0] : result;
+          setComments((prev) => [...prev, saved || { ...newComment, id: Date.now().toString(), created_at: new Date().toISOString() }]);
           setInput(""); setError(null);
-        } catch (e) { setError("Failed to post — try again."); }
+        } catch (e) { console.error("comment post error", e); setError("Failed to post — try again."); }
         finally { setPosting(false); }
       }
 
