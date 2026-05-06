@@ -121,6 +121,37 @@
     </div>
   </div>
 
+  <!-- Edit User Modal -->
+  <div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:20px">
+    <div style="background:var(--s1);border:1px solid var(--b);border-radius:16px;padding:28px;width:100%;max-width:460px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:18px;font-weight:700">Edit User</h2>
+        <button onclick="closeEditUser()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Email (read only)</label>
+          <input id="edit-email" readonly style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Username / Owner</label>
+          <input id="edit-owner" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
+        <div style="display:flex;gap:12px">
+          <div style="flex:1"><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Video Capacity</label>
+            <input id="edit-capacity" type="number" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
+          <div style="flex:1"><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Days Remaining</label>
+            <input id="edit-days" type="number" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="edit-active" style="width:14px;height:14px">
+          <label for="edit-active" style="font-size:13px;color:var(--t2)">Account active</label>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn-acc" onclick="saveEditUser()" style="flex:1;padding:10px;font-weight:600">Save Changes</button>
+          <button onclick="resetPassword(document.getElementById('edit-email').value)" style="padding:10px 14px;background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Send Reset Email</button>
+          <button onclick="closeEditUser()" style="padding:10px 14px;background:transparent;border:1px solid var(--b);color:var(--t2);border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
     const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
@@ -227,6 +258,51 @@
       await sb.from("reel_users").update({ trial_ends_at: newEnd }).eq("id", id);
       users = users.map(u => u.id === id ? { ...u, trial_ends_at: newEnd } : u);
       renderTable();
+    }
+
+    // ── Edit User ─────────────────────────────────────────────────────────────
+    let editingUser = null;
+
+    async function openEditUser(user) {
+      editingUser = user;
+      document.getElementById("edit-email").value = user.email || "";
+      document.getElementById("edit-owner").value = user.owner || "";
+      document.getElementById("edit-capacity").value = user.videos_capacity || 100;
+      document.getElementById("edit-days").value = user.qa_expires_at ? Math.max(0, Math.ceil((new Date(user.qa_expires_at) - Date.now()) / 86400000)) : 0;
+      document.getElementById("edit-active").checked = user.active !== false;
+      document.getElementById("edit-modal").style.display = "flex";
+    }
+
+    function closeEditUser() {
+      document.getElementById("edit-modal").style.display = "none";
+      editingUser = null;
+    }
+
+    async function saveEditUser() {
+      if (!editingUser) return;
+      const owner = document.getElementById("edit-owner").value.trim();
+      const capacity = parseInt(document.getElementById("edit-capacity").value);
+      const days = parseInt(document.getElementById("edit-days").value);
+      const active = document.getElementById("edit-active").checked;
+      const newExpiry = new Date(Date.now() + days * 86400000).toISOString();
+
+      const { error } = await sb.from("reel_users").update({
+        owner, videos_capacity: capacity, active,
+        qa_expires_at: newExpiry, trial_ends_at: newExpiry
+      }).eq("id", editingUser.id);
+
+      if (error) { alert("Save failed: " + error.message); return; }
+
+      // Update local list
+      users = users.map(u => u.id === editingUser.id ? { ...u, owner, videos_capacity: capacity, active, qa_expires_at: newExpiry } : u);
+      renderUsers();
+      closeEditUser();
+    }
+
+    async function resetPassword(email) {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://reelcall.app/reel.html" });
+      if (error) alert("Error: " + error.message);
+      else alert("Password reset email sent to " + email);
     }
 
     async function setTier(id, tier) {
