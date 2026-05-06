@@ -2357,6 +2357,8 @@ Answer questions accurately and specifically based on the content above.`,
             </div>
           </Sec>
 
+          <VideoComments videoId={video.videoId} currentOwner={OWNER} />
+
           {BRAIN_MCP && (
           <Sec title="Capture to Brain" subtitle="Personal scope — notes or tasks from this video">
             <textarea placeholder="Write a note or task idea..." value={captureText} onChange={(e) => setCaptureText(e.target.value)} rows={3} style={{ marginBottom: 12, resize: "vertical" }} />
@@ -2380,6 +2382,120 @@ Answer questions accurately and specifically based on the content above.`,
         </div>
       );
     }
+    // ─── Comment Teaser (for non-logged-in shared video viewers) ─────────────
+    function CommentTeaser({ videoId, onSignUp }) {
+      const [count, setCount] = useState(null);
+
+      useEffect(() => {
+        if (!videoId) return;
+        sbReq(`video_comments?video_id=eq.${videoId}&select=id`)
+          .then((rows) => setCount((rows || []).length))
+          .catch(() => setCount(0));
+      }, [videoId]);
+
+      return (
+        <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "18px 20px", marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ fontSize: 28 }}>💬</div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>
+                {count === null ? "Join the discussion" :
+                 count === 0 ? "Be the first to comment on this video" :
+                 `${count} comment${count !== 1 ? "s" : ""} on this video`}
+              </p>
+              <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.5 }}>
+                Save this video to your library to read and join the discussion.
+              </p>
+            </div>
+            <button
+              onClick={onSignUp}
+              style={{ flexShrink: 0, background: "var(--acc)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap" }}
+            >
+              {count > 0 ? "Sign in to see comments →" : "Create account →"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Video Comments ───────────────────────────────────────────────────────
+    function VideoComments({ videoId, currentOwner }) {
+      const [comments, setComments] = useState([]);
+      const [input, setInput] = useState("");
+      const [loading, setLoading] = useState(true);
+      const [posting, setPosting] = useState(false);
+      const [error, setError] = useState(null);
+
+      useEffect(() => {
+        if (!videoId) { setLoading(false); return; }
+        sbReq(`video_comments?video_id=eq.${videoId}&order=created_at.asc&limit=100`)
+          .then((rows) => setComments(rows || []))
+          .catch(() => {})
+          .finally(() => setLoading(false));
+      }, [videoId]);
+
+      async function postComment() {
+        const text = input.trim();
+        if (!text || posting) return;
+        if (!currentOwner || currentOwner === "guest") { setError("Sign in to leave a comment."); return; }
+        setPosting(true);
+        try {
+          const comment = { id: genId(), video_id: videoId, owner: currentOwner, content: text, created_at: new Date().toISOString() };
+          const { error: err } = await sbAuth.from("video_comments").insert(comment);
+          if (err) throw err;
+          setComments((prev) => [...prev, comment]);
+          setInput(""); setError(null);
+        } catch (e) { setError("Failed to post — try again."); }
+        finally { setPosting(false); }
+      }
+
+      async function deleteComment(id) {
+        await sbAuth.from("video_comments").delete().eq("id", id);
+        setComments((prev) => prev.filter((c) => c.id !== id));
+      }
+
+      if (!videoId) return null;
+
+      return (
+        <Sec title="Discussion" subtitle={comments.length > 0 ? `${comments.length} comment${comments.length !== 1 ? "s" : ""}` : "Be the first to share a thought"}>
+          {loading ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--t3)", fontSize: 13 }}><Spinner size={14} /> Loading...</div>
+          ) : comments.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+              {comments.map((c) => (
+                <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 13, fontWeight: 700, color: "var(--acc)" }}>
+                    {(c.owner || "?")[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{c.owner}</span>
+                      <span style={{ fontSize: 11, color: "var(--t3)" }}>{fmtDate(c.created_at)}</span>
+                      {(c.owner === currentOwner || MEMBERSHIP?.isPrivileged) && (
+                        <button onClick={() => deleteComment(c.id)} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", fontSize: 11, padding: "0 2px", fontFamily: "Figtree,system-ui", marginLeft: "auto" }}>✕</button>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.6 }}>{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {/* Input */}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 13, fontWeight: 700, color: "var(--acc)" }}>
+              {(currentOwner || "?")[0].toUpperCase()}
+            </div>
+            <input placeholder="Share a thought about this video..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && postComment()} style={{ flex: 1, fontSize: 14 }} />
+            <button className="rbtn-p" onClick={postComment} disabled={posting || !input.trim()} style={{ flexShrink: 0, padding: "10px 16px" }}>
+              {posting ? <Spinner size={14} /> : "Post"}
+            </button>
+          </div>
+          {error && <p style={{ fontSize: 12, color: "var(--red)", marginTop: 8 }}>{error}</p>}
+        </Sec>
+      );
+    }
+
     function CrossQueryView({ videos, onBack }) {
       const [selected, setSelected] = useState(new Set()); // default none selected
       const MAX_SELECTED = 20;
@@ -2878,6 +2994,14 @@ Answer questions accurately and specifically based on the content above.`,
                 </div>
               )
             )}
+
+            {/* Discussion */}
+            {authUser ? (
+              <VideoComments videoId={video.videoId} currentOwner={authUser?.owner || authUser?.email?.split("@")[0] || "guest"} />
+            ) : (
+              <CommentTeaser videoId={video.videoId} onSignUp={() => { sessionStorage.setItem("reelcall_return_to", window.location.href); window.location.href = "/signup.html"; }} />
+            )}
+
           </div>
         </div>
       );
