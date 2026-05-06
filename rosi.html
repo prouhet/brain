@@ -11,16 +11,14 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f8f8f6;--surface:#ffffff;--border:#e6e6e2;--border-light:#f0f0ec;
+  --bg:#f8f8f6;--surface:#fff;--border:#e6e6e2;--border-light:#f0f0ec;
   --text:#1a1a18;--muted:#9a9a94;--hint:#c4c4bc;
   --accent:#5b8def;--accent-bg:#eef3ff;--dot:#dededa;
   --r-bg:#fffbeb;--r-border:#fde68a;--r-text:#92400e;
   --ro-bg:#fef2f2;--ro-border:#fca5a5;--ro-text:#991b1b;
-  --pg:#fef9c3;--pg-t:#92400e;
-  --pm:#fce7f3;--pm-t:#9d174d;
+  --pg:#fef9c3;--pg-t:#92400e;--pm:#fce7f3;--pm-t:#9d174d;
+  --pk:#e0f2fe;--pk-t:#0369a1;
 }
-
-/* member color palette — cycles through 8 colors */
 .mc0{background:#dbeafe;color:#1e40af}
 .mc1{background:#dcfce7;color:#166534}
 .mc2{background:#fce7f3;color:#9d174d}
@@ -29,38 +27,34 @@
 .mc5{background:#ffedd5;color:#9a3412}
 .mc6{background:#f0fdf4;color:#14532d}
 .mc7{background:#fdf2f8;color:#701a75}
-
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative}
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,var(--dot) 1px,transparent 1px);background-size:22px 22px;pointer-events:none;z-index:0}
 
-/* GATE (key + name) */
+/* GATE */
 .gate{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;gap:12px;padding:24px;text-align:center}
 .gate-icon{font-size:44px;margin-bottom:4px}
 .gate-title{font-size:20px;font-weight:600}
 .gate-sub{font-size:13px;color:var(--muted);max-width:280px;line-height:1.5}
-.gate-section{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin-top:8px;margin-bottom:2px;align-self:flex-start;width:100%;max-width:340px}
+.gate-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin-top:8px;margin-bottom:2px;align-self:flex-start;width:100%;max-width:340px}
 .gate input{padding:11px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--surface);width:100%;max-width:340px;outline:none;transition:border-color .15s}
 .gate input:focus{border-color:var(--accent)}
 .gate input::placeholder{color:var(--hint)}
-.gate button{margin-top:6px;padding:11px 28px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
-.gate button:hover{opacity:.85}
+.gate-btn{margin-top:6px;padding:11px 28px;background:var(--text);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.gate-btn:hover{opacity:.85}
+.member-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:340px}
+.mchip{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.mchip:hover{opacity:.85;transform:scale(1.04)}
+.mchip.sel{border-color:var(--text)!important}
 .gate-hint{font-size:11px;color:var(--hint);max-width:300px;line-height:1.5}
 
-/* MEMBER CHIPS on gate */
-.member-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:340px}
-.member-chip{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
-.member-chip:hover{opacity:.85;transform:scale(1.04)}
-.member-chip.selected{border-color:var(--text)!important}
-
+/* APP */
 #app{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
-
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.hd-left{display:flex;align-items:center;gap:10px}
-.hd-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.hd-l{display:flex;align-items:center;gap:10px}
+.hd-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
 .hd-name{font-size:15px;font-weight:600}
 .hd-sub{font-size:11px;color:var(--muted);margin-top:1px}
-.hd-right{display:flex;gap:6px;align-items:center}
+.hd-r{display:flex;gap:6px;align-items:center}
 .btn-sm{display:flex;align-items:center;gap:4px;padding:5px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--muted);cursor:pointer;transition:all .15s}
 .btn-sm:hover{border-color:var(--accent);color:var(--accent)}
 .who-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer}
@@ -73,7 +67,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 @keyframes rIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .r-card.out{animation:rOut .2s ease forwards}
 @keyframes rOut{to{opacity:0;padding-top:0;padding-bottom:0;max-height:0;overflow:hidden}}
-.r-icon{font-size:14px;flex-shrink:0}
 .r-body{flex:1;min-width:0}
 .r-text{font-size:13px;color:var(--r-text);font-weight:500;line-height:1.3}
 .r-card.overdue .r-text{color:var(--ro-text)}
@@ -97,7 +90,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .pill{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;line-height:1.5}
 .p-g{background:var(--pg);color:var(--pg-t)}
 .p-m{background:var(--pm);color:var(--pm-t)}
-
+.p-k{background:var(--pk);color:var(--pk-t)}
 .list-row{display:flex;align-items:flex-start;gap:9px;padding:7px 13px;border-bottom:1px solid var(--border-light);transition:background .1s}
 .list-row:last-child{border-bottom:none}
 .list-row:hover{background:#fafaf8}
@@ -110,6 +103,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .row-note{font-size:11px;color:var(--muted);margin-top:1px}
 .row-by{display:flex;align-items:center;gap:4px;margin-top:3px}
 .by-chip{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:500}
+.row-store{font-size:10px;color:var(--hint);margin-top:1px}
 .section-cap{font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--hint);padding:8px 13px 3px}
 .empty-state{padding:16px 13px;font-size:12px;color:var(--hint);text-align:center;line-height:1.5}
 .meal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-light)}
@@ -117,6 +111,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .meal-day{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--hint);margin-bottom:2px}
 .meal-val{font-size:12px;color:var(--text);line-height:1.3}
 .meal-val.empty{color:var(--hint);font-style:italic}
+
+/* knowledge panel rows */
+.k-row{padding:7px 13px;border-bottom:1px solid var(--border-light);cursor:default}
+.k-row:last-child{border-bottom:none}
+.k-row:hover{background:#fafaf8}
+.k-title{font-size:12px;font-weight:500;color:var(--text)}
+.k-cat{font-size:10px;color:var(--muted);margin-top:1px}
+.k-sensitive{font-size:9px;background:#fef2f2;color:#991b1b;padding:1px 5px;border-radius:8px;margin-left:5px}
 
 /* CHAT */
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
@@ -132,6 +134,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .bubble{padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.5}
 .msg.rosi .bubble{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text)}
 .msg.user .bubble{color:#fff;border-top-right-radius:4px}
+.bubble .search-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:2px 7px;margin-bottom:4px}
 .typing{display:flex;gap:4px;padding:12px 14px;align-items:center}
 .tdot{width:6px;height:6px;border-radius:50%;background:var(--hint);animation:td 1.2s infinite}
 .tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
@@ -152,41 +155,38 @@ textarea::placeholder{color:var(--hint)}
 </head>
 <body>
 
-<!-- Gate: key + name -->
+<!-- GATE -->
 <div class="gate" id="gate" style="display:none">
   <div class="gate-icon">🏠</div>
   <div class="gate-title">Rosi</div>
-  <div class="gate-sub">Your household assistant for groceries, meals, and reminders.</div>
-
+  <div class="gate-sub">Your household assistant for groceries, meals, reminders, and anything the house needs to know.</div>
   <div id="gateKeySection">
-    <div class="gate-section">Household Key</div>
+    <div class="gate-label">Household Key</div>
     <input type="text" id="keyInput" placeholder="Paste your household key…" autocomplete="off" spellcheck="false">
   </div>
-
   <div id="gateNameSection" style="display:none;flex-direction:column;align-items:center;gap:10px;width:100%">
-    <div class="gate-section">Who are you?</div>
+    <div class="gate-label">Who are you?</div>
     <div class="member-chips" id="memberChips"></div>
     <div style="font-size:11px;color:var(--hint);margin:2px 0">or enter your name</div>
     <input type="text" id="nameInput" placeholder="Your name…" autocomplete="given-name" maxlength="24" style="max-width:340px;width:100%">
-    <div class="gate-hint">Your name appears on grocery requests and reminders so the household knows who asked.</div>
+    <div class="gate-hint">Your name appears on grocery requests and reminders.</div>
   </div>
-
-  <button id="gateBtn" onclick="gateNext()">Continue →</button>
+  <button class="gate-btn" id="gateBtn" onclick="gateNext()">Continue →</button>
 </div>
 
-<!-- App -->
+<!-- APP -->
 <div id="app" style="display:none">
   <header>
-    <div class="hd-left">
-      <div class="hd-avatar" id="hdAvatar">🏠</div>
+    <div class="hd-l">
+      <div class="hd-av" id="hdAv">🏠</div>
       <div>
         <div class="hd-name">Rosi</div>
         <div class="hd-sub" id="hdSub"></div>
       </div>
     </div>
-    <div class="hd-right">
-      <div class="who-badge" id="whoBadge" onclick="switchUser()" title="Switch user"></div>
-      <button class="btn-sm" onclick="refreshPanels()">↻ Refresh</button>
+    <div class="hd-r">
+      <div class="who-badge" id="whoBadge" onclick="switchUser()"></div>
+      <button class="btn-sm" onclick="refreshAll()">↻ Refresh</button>
     </div>
   </header>
 
@@ -217,6 +217,13 @@ textarea::placeholder{color:var(--hint)}
           <div class="meal-cell"><div class="meal-day">…</div><div class="meal-val empty">loading</div></div>
         </div>
       </div>
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-label">🧠 Household Knowledge</span>
+          <span class="pill p-k" id="knowledgeCount">—</span>
+        </div>
+        <div id="knowledgeBody"><div class="empty-state">Loading…</div></div>
+      </div>
     </div>
 
     <div class="chat">
@@ -224,7 +231,7 @@ textarea::placeholder{color:var(--hint)}
         <div class="welcome" id="welcomeState">
           <div class="welcome-icon">🌻</div>
           <div class="welcome-title" id="welcomeTitle">Hi there!</div>
-          <div class="welcome-sub">Tell me what you need — groceries, meal ideas, reminders, anything the house needs.</div>
+          <div class="welcome-sub">Ask me anything — groceries, meals, reminders, or "what's the wifi password?" I'll remember what I learn.</div>
         </div>
       </div>
       <div class="quick-row">
@@ -232,6 +239,7 @@ textarea::placeholder{color:var(--hint)}
         <button class="qp" onclick="qs('What\'s the meal plan this week?')">🍽️ Meal plan</button>
         <button class="qp" onclick="qs('Plan dinners for this week')">📅 Plan week</button>
         <button class="qp" onclick="qs('What should I make for dinner tonight?')">💡 Dinner idea</button>
+        <button class="qp" onclick="qs('What do we have stored in household knowledge?')">🧠 Knowledge</button>
       </div>
       <div class="input-bar">
         <textarea id="msgInput" placeholder="Ask Rosi…" rows="1"
@@ -248,313 +256,488 @@ textarea::placeholder{color:var(--hint)}
 </div>
 
 <script>
-const API  = 'https://api.anthropic.com/v1/messages';
-const MCP  = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/open-brain-mcp';
-const POLL = 10 * 60 * 1000;
+// ── CONFIG ──────────────────────────────────────────────────────
+const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+const SB_URL        = 'https://rzkrydqtgmuyeaipronh.supabase.co';
+const SB_KEY        = 'sb_publishable_8SmiK3mPZINqgT1uS4eODw_zvAlwpiS';
+const POLL_MS       = 10 * 60 * 1000; // reminder poll every 10 min
 
 let KEY = '', USER = '', USER_COLOR = 0, convo = [], busy = false;
+let knowledgeCache = []; // in-memory cache of knowledge for system prompt
 
-// ── MEMBER COLORS ──────────────────────────────────────────────
-// Stable color index based on name hash so the same person always gets the same color
-function colorIdx(name){
-  let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))&0xffff;
-  return h % 8;
+// ── SUPABASE REST HELPERS ────────────────────────────────────────
+const sbHeaders = {
+  'Content-Type': 'application/json',
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Prefer': 'return=representation'
+};
+
+async function sbGet(table, params = '') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, { headers: sbHeaders });
+  if (!r.ok) throw new Error(`sbGet ${table}: ${r.status}`);
+  return r.json();
 }
-function memberClass(name){ return 'mc' + colorIdx(name); }
-function initials(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
-// ── GATE ───────────────────────────────────────────────────────
-// Known members stored in localStorage per key so they appear as quick-pick chips
-function membersKey(){ return 'rosi_members_'+KEY; }
-function getMembers(){ try{ return JSON.parse(localStorage.getItem(membersKey())||'[]'); }catch(e){ return []; } }
-function addMember(name){ const m=getMembers(); if(!m.includes(name)){ m.push(name); localStorage.setItem(membersKey(),JSON.stringify(m)); } }
+async function sbPost(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST', headers: sbHeaders, body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`sbPost ${table}: ${r.status}`);
+  return r.json();
+}
 
-let gateStep = 'key'; // 'key' → 'name'
+async function sbPatch(table, id, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH', headers: { ...sbHeaders, 'Prefer': 'return=minimal' }, body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`sbPatch ${table}: ${r.status}`);
+}
 
-(function init(){
-  const p = new URLSearchParams(location.search);
-  KEY  = p.get('key')  || '';
-  USER = p.get('name') || localStorage.getItem('rosi_user_'+KEY) || '';
-  if(KEY && USER){ boot(); return; }
-  // Show gate
+// ── MEMBER UTILS ─────────────────────────────────────────────────
+function colorIdx(name) { let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))&0xffff; return h%8; }
+function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function getMondayOf(d=new Date()) {
+  const day = d.getDay(), diff = d.getDate() - day + (day===0?-6:1);
+  return new Date(d.setDate(diff)).toISOString().split('T')[0];
+}
+
+// ── GATE ─────────────────────────────────────────────────────────
+let gateStep = 'key';
+
+(function init() {
+  KEY  = new URLSearchParams(location.search).get('key') || '';
+  USER = new URLSearchParams(location.search).get('name') || localStorage.getItem('rosi_user_'+KEY) || '';
+  if (KEY && USER) { boot(); return; }
   document.getElementById('gate').style.display = 'flex';
-  if(KEY){
-    // Have key but no name — skip to name step
-    document.getElementById('gateKeySection').style.display = 'none';
-    showNameStep();
-  }
+  if (KEY) { document.getElementById('gateKeySection').style.display = 'none'; showNameStep(); }
 })();
 
-function showNameStep(){
+async function showNameStep() {
   gateStep = 'name';
   document.getElementById('gateNameSection').style.display = 'flex';
   document.getElementById('gateBtn').textContent = 'Open Rosi →';
   const chips = document.getElementById('memberChips');
   chips.innerHTML = '';
-  getMembers().forEach(name=>{
-    const cl = memberClass(name);
-    const div = document.createElement('div');
-    div.className = 'member-chip '+cl;
-    div.textContent = name;
-    div.onclick = () => { selectChip(name, div); };
-    chips.appendChild(div);
-  });
+  // Load members from Supabase if key is set
+  try {
+    const members = await sbGet('rosi_members', `household_key=eq.${KEY}&active=eq.true&select=name`);
+    members.forEach(m => {
+      const ci = colorIdx(m.name);
+      const div = document.createElement('div');
+      div.className = `mchip mc${ci}`;
+      div.textContent = m.name;
+      div.onclick = () => { document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('sel')); div.classList.add('sel'); document.getElementById('nameInput').value = m.name; };
+      chips.appendChild(div);
+    });
+  } catch(e) {
+    // fallback to localStorage
+    const stored = JSON.parse(localStorage.getItem('rosi_members_'+KEY)||'[]');
+    stored.forEach(name => {
+      const ci = colorIdx(name);
+      const div = document.createElement('div');
+      div.className = `mchip mc${ci}`;
+      div.textContent = name;
+      div.onclick = () => { document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('sel')); div.classList.add('sel'); document.getElementById('nameInput').value = name; };
+      chips.appendChild(div);
+    });
+  }
 }
 
-function selectChip(name, el){
-  document.querySelectorAll('.member-chip').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  document.getElementById('nameInput').value = name;
-}
-
-function gateNext(){
-  if(gateStep === 'key'){
+function gateNext() {
+  if (gateStep === 'key') {
     KEY = document.getElementById('keyInput').value.trim();
-    if(!KEY) return;
-    // Update URL with key
-    const u = new URL(location.href);
-    u.searchParams.set('key', KEY);
-    history.replaceState({}, '', u);
-    // Show name step
+    if (!KEY) return;
+    const u = new URL(location.href); u.searchParams.set('key', KEY); history.replaceState({}, '', u);
     document.getElementById('gateKeySection').style.display = 'none';
     showNameStep();
     return;
   }
-  // Name step
   USER = document.getElementById('nameInput').value.trim();
-  if(!USER){ document.getElementById('nameInput').focus(); return; }
-  addMember(USER);
+  if (!USER) { document.getElementById('nameInput').focus(); return; }
+  // Store in localStorage for next time
+  const stored = JSON.parse(localStorage.getItem('rosi_members_'+KEY)||'[]');
+  if (!stored.includes(USER)) { stored.push(USER); localStorage.setItem('rosi_members_'+KEY, JSON.stringify(stored)); }
   localStorage.setItem('rosi_user_'+KEY, USER);
-  const u = new URL(location.href);
-  u.searchParams.set('key', KEY);
-  u.searchParams.set('name', USER);
-  history.replaceState({}, '', u);
+  const u = new URL(location.href); u.searchParams.set('key', KEY); u.searchParams.set('name', USER); history.replaceState({}, '', u);
   document.getElementById('gate').style.display = 'none';
   boot();
 }
 
-function switchUser(){
-  // Clear user name, show gate name step
+function switchUser() {
   localStorage.removeItem('rosi_user_'+KEY);
-  const u = new URL(location.href);
-  u.searchParams.delete('name');
-  history.replaceState({}, '', u);
+  const u = new URL(location.href); u.searchParams.delete('name'); history.replaceState({}, '', u);
   location.reload();
 }
 
-function boot(){
+function boot() {
   USER_COLOR = colorIdx(USER);
-  document.getElementById('gate').style.display = 'none';
   const app = document.getElementById('app');
   app.style.cssText = 'display:flex;flex-direction:column;height:100dvh;overflow:hidden';
-
-  // Header avatar
-  const av = document.getElementById('hdAvatar');
-  av.textContent = initials(USER);
-  av.className = 'hd-avatar mc'+USER_COLOR;
-
-  // Who badge
+  const av = document.getElementById('hdAv');
+  av.textContent = initials(USER); av.className = `hd-av mc${USER_COLOR}`;
   const wb = document.getElementById('whoBadge');
-  wb.textContent = USER;
-  wb.className = 'who-badge mc'+USER_COLOR;
-
-  // Welcome
+  wb.textContent = USER; wb.className = `who-badge mc${USER_COLOR}`;
   document.getElementById('welcomeTitle').textContent = 'Hi, ' + USER.split(' ')[0] + '!';
-
-  // Sub
   const now = new Date();
   document.getElementById('hdSub').textContent =
     now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) +
     ' · ' + now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-
-  refreshPanels();
+  refreshAll();
   checkReminders();
-  setInterval(checkReminders, POLL);
+  setInterval(checkReminders, POLL_MS);
 }
 
-// ── API HELPER ─────────────────────────────────────────────────
-function buildSystem(){
-  return `You are Rosi, a warm household assistant for groceries, meal planning, and reminders.
-Current user: ${USER}
-Household key: ${KEY}
+function refreshAll() { loadGrocery(); loadMeals(); loadKnowledge(); }
 
-Always store who requested or added each item. Use the brain memory tools:
-- Grocery items: type Task, category Home, tag grocery. Include requester name in the thought content e.g. "milk [Dave]" or "gluten free bread from Costco [Emma]"
-- Meal plans: type Note, category Home, tag mealplan
-- Reminders: type Task, category Home, tag reminder, include due date and who set it e.g. "dentist appointment [Dave]"
-
-When listing grocery items, always show who requested each one.
-Be concise and warm. Use the requester's first name naturally.
-
-After changing grocery or meal data end your reply with:
-<panel_update>grocery</panel_update> or <panel_update>meals</panel_update> or <panel_update>both</panel_update>`;
-}
-
-const SYS_R = `You are a data helper. Search brain for tasks tagged "reminder" that are due now or overdue.
-Return ONLY JSON: [{"id":"...","text":"...","due":"YYYY-MM-DD HH:MM","by":"Name","overdue":true}]
-Parse "by" from bracket notation like "dentist [Dave]" → by:"Dave", text:"dentist".
-If none, return []. No markdown.`;
-
-const SYS_GROCERY = `You are a data helper. Search brain for tasks tagged "grocery" that are not archived.
-Return ONLY JSON: [{"item":"milk","category":"Dairy","by":"Dave","note":""},{"item":"gluten free bread","category":"Bakery","by":"Emma","note":"from Costco"}]
-Parse "by" from bracket notation in the thought text e.g. "gluten free bread from Costco [Emma]".
-Group by category. Return [] if none. No markdown.`;
-
-const SYS_MEALS = `You are a data helper. Search brain for the current meal plan tagged "mealplan".
-Return ONLY JSON object keyed Mon-Sun: {"Mon":"Chicken Tacos","Tue":"","Wed":"Pasta","Thu":"","Fri":"Pizza","Sat":"","Sun":""}
-Empty string for unplanned. No markdown.`;
-
-async function callAPI(msgs, sys){
-  const r = await fetch(API, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:msgs,
-      mcp_servers:[{type:'url',url:MCP,name:'brain',authorization_token:KEY}]})
-  });
-  return r.json();
-}
-function txt(d){ return (d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join(''); }
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function parseJ(raw){ try{ return JSON.parse(raw.replace(/```json|```/g,'').trim()); }catch(e){ return null; } }
-
-// ── REMINDERS ──────────────────────────────────────────────────
-async function checkReminders(){
+// ── KNOWLEDGE ────────────────────────────────────────────────────
+async function loadKnowledge() {
+  const body = document.getElementById('knowledgeBody');
+  body.innerHTML = '<div class="empty-state">Loading…</div>';
   try {
-    const now = new Date();
-    const nowStr = now.toISOString().slice(0,16).replace('T',' ');
-    const d = await callAPI([{role:'user',content:`Now: ${nowStr}. Find due/overdue reminders.`}], SYS_R);
-    const items = parseJ(txt(d));
-    if(!Array.isArray(items)||!items.length) return;
-    const wrap = document.getElementById('reminders');
-    const shown = new Set([...wrap.querySelectorAll('.r-card')].map(el=>el.dataset.id));
-    items.forEach(r=>{
-      if(shown.has(String(r.id))) return;
-      const due = r.due ? new Date(r.due) : null;
-      const overdue = due && due < now;
-      const when = due ? fmtDue(due, now) : '';
-      const byClass = r.by ? memberClass(r.by) : '';
-      const card = document.createElement('div');
-      card.className = 'r-card'+(overdue?' overdue':'');
-      card.dataset.id = r.id;
-      card.innerHTML = `
-        <span class="r-icon">${overdue?'🔴':'⏰'}</span>
-        <div class="r-body">
-          <div class="r-text">${esc(r.text)}</div>
-          <div class="r-meta">
-            ${r.by ? `<span class="r-by ${byClass}">${esc(r.by)}</span>` : ''}
-            ${when ? `<span class="r-when">${when}</span>` : ''}
-          </div>
-        </div>
-        <div class="r-actions">
-          <button class="rb rb-done" onclick="doneReminder('${r.id}',this)">✓ Done</button>
-          <button class="rb rb-snooze" onclick="snoozeReminder('${r.id}','${esc(r.text)}',this)">↺ 1h</button>
-        </div>`;
-      wrap.appendChild(card);
-    });
-  } catch(e){}
+    const items = await sbGet('rosi_knowledge',
+      `household_key=eq.${KEY}&select=id,category,title,sensitive&order=category.asc,title.asc`);
+    knowledgeCache = await sbGet('rosi_knowledge',
+      `household_key=eq.${KEY}&select=category,title,content,sensitive`);
+    document.getElementById('knowledgeCount').textContent = items.length || '—';
+    if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing stored yet —<br>ask Rosi to remember something!</div>'; return; }
+    const grouped = {};
+    items.forEach(i => { (grouped[i.category] = grouped[i.category]||[]).push(i); });
+    body.innerHTML = Object.entries(grouped).map(([cat, arr]) =>
+      `<div class="section-cap">${esc(cat)}</div>` + arr.map(i =>
+        `<div class="k-row">
+          <div class="k-title">${esc(i.title)}${i.sensitive?'<span class="k-sensitive">private</span>':''}</div>
+          <div class="k-cat">${esc(i.category)}</div>
+        </div>`
+      ).join('')
+    ).join('');
+  } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
 }
 
-function fmtDue(due,now){
-  const m=Math.round((due-now)/60000);
-  if(m<0) return `${Math.abs(m)}m overdue`;
-  if(m<60) return `in ${m}m`;
-  const h=Math.round(m/60);
-  if(h<24) return `in ${h}h`;
-  return due.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-}
-function dismiss(btn){ const c=btn.closest('.r-card'); c.classList.add('out'); setTimeout(()=>c.remove(),200); }
-async function doneReminder(id,btn){ dismiss(btn); try{ await callAPI([{role:'user',content:`Archive reminder id "${id}" — completed.`}],buildSystem()); }catch(e){} }
-async function snoozeReminder(id,text,btn){
-  dismiss(btn);
-  const t=new Date(Date.now()+3600000).toISOString().slice(0,16).replace('T',' ');
-  try{ await callAPI([{role:'user',content:`Snooze reminder "${text}" (id ${id}): archive it, create new one due ${t} same text.`}],buildSystem()); }catch(e){}
+function knowledgeSummary() {
+  if (!knowledgeCache.length) return 'No household knowledge stored yet.';
+  const grouped = {};
+  knowledgeCache.forEach(k => { (grouped[k.category] = grouped[k.category]||[]).push(k); });
+  return Object.entries(grouped).map(([cat, items]) =>
+    `### ${cat}\n` + items.map(i =>
+      `- **${i.title}**: ${i.sensitive ? '[stored securely — reveal if directly asked]' : i.content}`
+    ).join('\n')
+  ).join('\n\n');
 }
 
-// ── PANELS ─────────────────────────────────────────────────────
-function refreshPanels(){ loadGrocery(); loadMeals(); }
-
-async function loadGrocery(){
+// ── GROCERY ──────────────────────────────────────────────────────
+async function loadGrocery() {
   const body = document.getElementById('groceryBody');
   body.innerHTML = '<div class="empty-state">Loading…</div>';
   try {
-    const d = await callAPI([{role:'user',content:'Get all active grocery items.'}], SYS_GROCERY);
-    const items = parseJ(txt(d));
-    if(!Array.isArray(items)||!items.length){
-      document.getElementById('groceryCount').textContent = '—';
-      body.innerHTML='<div class="empty-state">Nothing on the list —<br>ask Rosi to add some!</div>';
-      return;
-    }
-    document.getElementById('groceryCount').textContent = items.length;
-    const g={};
-    items.forEach(i=>{ const c=i.category||'Other'; (g[c]=g[c]||[]).push(i); });
-    body.innerHTML = Object.entries(g).map(([cat,arr])=>
-      `<div class="section-cap">${cat}</div>`+arr.map(i=>{
-        const bc = i.by ? memberClass(i.by) : '';
-        return `<div class="list-row">
-          <div class="check-circle" onclick="this.classList.toggle('done');this.nextElementSibling.querySelector('.row-text').classList.toggle('done')"></div>
+    const items = await sbGet('rosi_grocery',
+      `household_key=eq.${KEY}&done=eq.false&select=id,item,category,note,store_preference,quantity,requested_by&order=created_at.asc`);
+    document.getElementById('groceryCount').textContent = items.length || '—';
+    if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing on the list —<br>ask Rosi to add some!</div>'; return; }
+    const g = {};
+    items.forEach(i => { const c=i.category||'Other'; (g[c]=g[c]||[]).push(i); });
+    body.innerHTML = Object.entries(g).map(([cat,arr]) =>
+      `<div class="section-cap">${esc(cat)}</div>` + arr.map(i => {
+        const bc = i.requested_by ? `mc${colorIdx(i.requested_by)}` : '';
+        const qty = i.quantity && i.quantity !== '1' ? ` (${esc(i.quantity)})` : '';
+        return `<div class="list-row" data-id="${i.id}">
+          <div class="check-circle" onclick="markGroceryDone('${i.id}',this)"></div>
           <div>
-            <div class="row-text">${esc(i.item||i)}</div>
+            <div class="row-text">${esc(i.item)}${qty}</div>
             ${i.note?`<div class="row-note">${esc(i.note)}</div>`:''}
-            ${i.by?`<div class="row-by"><span class="by-chip ${bc}">${esc(i.by)}</span></div>`:''}
+            ${i.store_preference?`<div class="row-store">📍 ${esc(i.store_preference)}</div>`:''}
+            ${i.requested_by?`<div class="row-by"><span class="by-chip ${bc}">${esc(i.requested_by)}</span></div>`:''}
           </div>
         </div>`;
       }).join('')
     ).join('');
-  } catch(e){ body.innerHTML='<div class="empty-state">Could not load</div>'; }
+  } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
 }
 
-async function loadMeals(){
+async function markGroceryDone(id, el) {
+  el.classList.add('done');
+  el.closest('.list-row').querySelector('.row-text').classList.add('done');
+  try { await sbPatch('rosi_grocery', id, { done: true, done_by: USER, done_at: new Date().toISOString() }); }
+  catch(e) { el.classList.remove('done'); }
+}
+
+// ── MEALS ────────────────────────────────────────────────────────
+async function loadMeals() {
   const grid = document.getElementById('mealGrid');
   const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const weekOf = getMondayOf();
   try {
-    const d = await callAPI([{role:'user',content:'Get this week\'s meal plan.'}], SYS_MEALS);
-    const plan = parseJ(txt(d)) || {};
-    grid.innerHTML = DAYS.map(day=>`<div class="meal-cell"><div class="meal-day">${day}</div><div class="meal-val${plan[day]?'':' empty'}">${plan[day]||'—'}</div></div>`).join('')+'<div></div>';
-  } catch(e){}
+    const meals = await sbGet('rosi_meal_plan',
+      `household_key=eq.${KEY}&week_of=eq.${weekOf}&select=day_of_week,meal`);
+    const plan = {};
+    meals.forEach(m => { plan[m.day_of_week] = m.meal; });
+    grid.innerHTML = DAYS.map(d =>
+      `<div class="meal-cell"><div class="meal-day">${d}</div><div class="meal-val${plan[d]?'':' empty'}">${plan[d]?esc(plan[d]):'—'}</div></div>`
+    ).join('') + '<div></div>';
+  } catch(e) {}
 }
 
-// ── CHAT ───────────────────────────────────────────────────────
-async function send(){
-  const el=document.getElementById('msgInput');
-  const text=el.value.trim();
-  if(!text||busy) return;
-  el.value=''; el.style.height='auto';
-  hideWelcome(); addMsg('user',text);
-  convo.push({role:'user',content:text});
-  const tid=showTyping();
-  busy=true; document.getElementById('sendBtn').disabled=true;
+// ── REMINDERS ────────────────────────────────────────────────────
+async function checkReminders() {
   try {
-    const d=await callAPI(convo,buildSystem());
-    const reply=txt(d)||'Sorry, something went wrong.';
-    const sig=reply.match(/<panel_update>(.*?)<\/panel_update>/);
-    if(sig){ const w=sig[1].trim(); if(w==='grocery'||w==='both')loadGrocery(); if(w==='meals'||w==='both')loadMeals(); }
-    const clean=reply.replace(/<panel_update>.*?<\/panel_update>/g,'').trim();
-    removeTyping(tid); addMsg('rosi',clean);
-    convo.push({role:'assistant',content:reply});
-    if(/remind/i.test(text)) setTimeout(checkReminders,3000);
-  } catch(e){ removeTyping(tid); addMsg('rosi','Something went wrong — please try again.'); }
-  busy=false; document.getElementById('sendBtn').disabled=false;
+    const now = new Date().toISOString();
+    const items = await sbGet('rosi_reminders',
+      `household_key=eq.${KEY}&done=eq.false&due_at=lte.${now}&select=id,text,due_at,set_by&order=due_at.asc`);
+    if (!items.length) return;
+    const wrap = document.getElementById('reminders');
+    const shown = new Set([...wrap.querySelectorAll('.r-card')].map(el=>el.dataset.id));
+    const nowD = new Date();
+    items.forEach(r => {
+      if (shown.has(r.id)) return;
+      const due = r.due_at ? new Date(r.due_at) : null;
+      const overdue = due && due < nowD && (nowD - due) > 5*60*1000;
+      const when = due ? fmtDue(due, nowD) : '';
+      const byClass = r.set_by ? `mc${colorIdx(r.set_by)}` : '';
+      const card = document.createElement('div');
+      card.className = 'r-card' + (overdue?' overdue':'');
+      card.dataset.id = r.id;
+      card.innerHTML = `
+        <span style="font-size:14px">${overdue?'🔴':'⏰'}</span>
+        <div class="r-body">
+          <div class="r-text">${esc(r.text)}</div>
+          <div class="r-meta">
+            ${r.set_by?`<span class="r-by ${byClass}">${esc(r.set_by)}</span>`:''}
+            ${when?`<span class="r-when">${when}</span>`:''}
+          </div>
+        </div>
+        <div class="r-actions">
+          <button class="rb rb-done" onclick="doneReminder('${r.id}',this)">✓ Done</button>
+          <button class="rb rb-snooze" onclick="snoozeReminder('${r.id}',this)">↺ 1h</button>
+        </div>`;
+      wrap.appendChild(card);
+    });
+  } catch(e) {}
 }
 
-function qs(t){ document.getElementById('msgInput').value=t; send(); }
+function fmtDue(due,now) {
+  const m = Math.round((due-now)/60000);
+  if (m<0) return `${Math.abs(m)}m overdue`;
+  if (m<60) return `in ${m}m`;
+  const h = Math.round(m/60);
+  if (h<24) return `in ${h}h`;
+  return due.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
 
-function addMsg(role,text){
-  const w=document.getElementById('messages');
-  const d=document.createElement('div'); d.className='msg '+role;
-  const av = role==='rosi' ? '🌻' : initials(USER);
-  const avClass = role==='rosi' ? 'msg-av' : `msg-av mc${USER_COLOR}`;
-  const bubbleStyle = role==='user' ? `background:var(--accent)` : '';
-  d.innerHTML=`<div class="${avClass}">${av}</div><div class="bubble" style="${bubbleStyle}">${text.replace(/\n/g,'<br>')}</div>`;
-  w.appendChild(d); w.scrollTop=w.scrollHeight;
+function dismissCard(btn) { const c=btn.closest('.r-card'); c.classList.add('out'); setTimeout(()=>c.remove(),200); }
+
+async function doneReminder(id, btn) {
+  dismissCard(btn);
+  try { await sbPatch('rosi_reminders', id, { done: true, done_by: USER, done_at: new Date().toISOString() }); }
+  catch(e) {}
 }
-function showTyping(){
-  const id='ty'+Date.now(), w=document.getElementById('messages');
-  const d=document.createElement('div'); d.className='msg rosi'; d.id=id;
-  d.innerHTML=`<div class="msg-av">🌻</div><div class="bubble"><div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>`;
-  w.appendChild(d); w.scrollTop=w.scrollHeight; return id;
+
+async function snoozeReminder(id, btn) {
+  dismissCard(btn);
+  const snoozed = new Date(Date.now() + 3600000).toISOString();
+  try { await sbPatch('rosi_reminders', id, { snoozed_until: snoozed, due_at: snoozed }); }
+  catch(e) {}
 }
-function removeTyping(id){ document.getElementById(id)?.remove(); }
-function hideWelcome(){ document.getElementById('welcomeState')?.remove(); }
+
+// ── ACTIONS PROCESSOR ────────────────────────────────────────────
+// Claude emits <rosi_action>{...}</rosi_action> tags — we parse and execute them
+async function processActions(text) {
+  const matches = [...text.matchAll(/<rosi_action>([\s\S]*?)<\/rosi_action>/g)];
+  const refreshPanels = new Set();
+
+  for (const m of matches) {
+    try {
+      const action = JSON.parse(m[1].trim());
+      switch (action.type) {
+
+        case 'save_knowledge':
+          await sbPost('rosi_knowledge', {
+            household_key: KEY,
+            category:  action.category || 'General',
+            title:     action.title,
+            content:   action.content,
+            sensitive: action.sensitive || false,
+            added_by:  USER,
+            tags:      action.tags || []
+          });
+          refreshPanels.add('knowledge');
+          break;
+
+        case 'add_grocery':
+          await sbPost('rosi_grocery', {
+            household_key:    KEY,
+            item:             action.item,
+            category:         action.category || null,
+            note:             action.note || null,
+            store_preference: action.store || null,
+            quantity:         action.quantity || '1',
+            requested_by:     USER
+          });
+          refreshPanels.add('grocery');
+          break;
+
+        case 'add_meal':
+          // Upsert meal plan entry
+          const existing = await sbGet('rosi_meal_plan',
+            `household_key=eq.${KEY}&week_of=eq.${action.week_of}&day_of_week=eq.${action.day}`);
+          if (existing.length) {
+            await sbPatch('rosi_meal_plan', existing[0].id, { meal: action.meal, planned_by: USER });
+          } else {
+            await sbPost('rosi_meal_plan', {
+              household_key: KEY, week_of: action.week_of,
+              day_of_week: action.day, meal: action.meal, planned_by: USER
+            });
+          }
+          refreshPanels.add('meals');
+          break;
+
+        case 'add_reminder':
+          await sbPost('rosi_reminders', {
+            household_key: KEY,
+            text:        action.text,
+            due_at:      action.due_at || null,
+            recurrence:  action.recurrence || null,
+            set_by:      USER,
+            for_member:  action.for_member || null
+          });
+          refreshPanels.add('reminders');
+          break;
+
+        case 'refresh':
+          (action.panels || []).forEach(p => refreshPanels.add(p));
+          break;
+      }
+    } catch(e) { console.warn('Action error:', e, m[1]); }
+  }
+
+  if (refreshPanels.has('grocery'))   loadGrocery();
+  if (refreshPanels.has('meals'))     loadMeals();
+  if (refreshPanels.has('knowledge')) loadKnowledge();
+  if (refreshPanels.has('reminders')) setTimeout(checkReminders, 1000);
+}
+
+// ── CHAT ─────────────────────────────────────────────────────────
+function buildSystem() {
+  const now = new Date();
+  const weekOf = getMondayOf();
+  return `You are Rosi, a warm and practical household assistant for the Prouhet family.
+Current user: ${USER}
+Today: ${now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
+Current week starts: ${weekOf}
+
+━━━ HOUSEHOLD KNOWLEDGE (always check this before searching the web) ━━━
+${knowledgeSummary()}
+
+━━━ HOW YOU WORK ━━━
+1. MEMORY FIRST: Before searching the web, check the household knowledge above. If you find the answer there, use it and say "I have that stored."
+2. SEARCH SECOND: If the knowledge doesn't have it or might be outdated, use web_search and web_fetch to find the answer.
+3. SAVE IT: After finding useful info via web search (plumber numbers, recipes, how-to guides, local business info, etc.), save it using <rosi_action> so you remember it next time.
+4. ACTIONS: Use <rosi_action> tags to save data to the household. Multiple actions are fine.
+
+━━━ AVAILABLE ACTIONS ━━━
+Emit these at the END of your reply. The app will execute them automatically.
+
+Save knowledge (anything useful to remember):
+<rosi_action>{"type":"save_knowledge","category":"Contacts","title":"Plumber","content":"Bay Plumbing (650) 555-0123, available 24/7","sensitive":false}</rosi_action>
+
+Add grocery item:
+<rosi_action>{"type":"add_grocery","item":"gluten free bread","category":"Bakery","note":"for Alexa","store":"Costco","quantity":"1"}</rosi_action>
+
+Plan a meal (use week_of = Monday's date in YYYY-MM-DD):
+<rosi_action>{"type":"add_meal","day":"Mon","week_of":"${weekOf}","meal":"Chicken Tacos"}</rosi_action>
+
+Set a reminder:
+<rosi_action>{"type":"add_reminder","text":"Take out trash","due_at":"${new Date(Date.now()+3600000).toISOString()}","recurrence":null,"for_member":null}</rosi_action>
+
+Refresh panels after changes:
+<rosi_action>{"type":"refresh","panels":["grocery","meals","knowledge","reminders"]}</rosi_action>
+
+━━━ STYLE ━━━
+Be warm, concise, and use the person's first name occasionally. For sensitive info (passwords, alarm codes), reveal if directly asked but don't volunteer. Emoji is fine but light-handed.`;
+}
+
+async function send() {
+  const el = document.getElementById('msgInput');
+  const text = el.value.trim();
+  if (!text || busy) return;
+  el.value = ''; el.style.height = 'auto';
+  hideWelcome(); addMsg('user', text);
+  convo.push({role:'user', content:text});
+  const tid = showTyping();
+  busy = true; document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const resp = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: buildSystem(),
+        messages: convo,
+        tools: [
+          { type: 'web_search_20250305', name: 'web_search' }
+        ]
+      })
+    });
+
+    const data = await resp.json();
+
+    // Extract text — may be across multiple content blocks if web search was used
+    let reply = '';
+    let didSearch = false;
+    if (data.content) {
+      for (const block of data.content) {
+        if (block.type === 'text') reply += block.text;
+        if (block.type === 'tool_use' && block.name === 'web_search') didSearch = true;
+      }
+    }
+    reply = reply || 'Sorry, something went wrong.';
+
+    removeTyping(tid);
+
+    // Process any actions Claude emitted
+    await processActions(reply);
+
+    // Clean action tags and show reply
+    const clean = reply.replace(/<rosi_action>[\s\S]*?<\/rosi_action>/g,'').trim();
+    const prefix = didSearch ? '<div class="search-tag">🔍 searched the web</div>' : '';
+    addMsg('rosi', prefix + clean.replace(/\n/g,'<br>'));
+    convo.push({role:'assistant', content: reply});
+
+    // Keep conversation history manageable
+    if (convo.length > 40) convo = convo.slice(-40);
+
+    if (/remind/i.test(text)) setTimeout(checkReminders, 2000);
+
+  } catch(e) {
+    removeTyping(tid);
+    addMsg('rosi', 'Something went wrong — please try again.');
+  }
+
+  busy = false; document.getElementById('sendBtn').disabled = false;
+}
+
+function qs(t) { document.getElementById('msgInput').value = t; send(); }
+
+function addMsg(role, html) {
+  const w = document.getElementById('messages');
+  const d = document.createElement('div'); d.className = 'msg ' + role;
+  const av = role === 'rosi' ? '🌻' : initials(USER);
+  const avCls = role === 'rosi' ? 'msg-av' : `msg-av mc${USER_COLOR}`;
+  const bStyle = role === 'user' ? `background:var(--accent)` : '';
+  d.innerHTML = `<div class="${avCls}">${av}</div><div class="bubble" style="${bStyle}">${html}</div>`;
+  w.appendChild(d); w.scrollTop = w.scrollHeight;
+}
+
+function showTyping() {
+  const id = 'ty'+Date.now(), w = document.getElementById('messages');
+  const d = document.createElement('div'); d.className = 'msg rosi'; d.id = id;
+  d.innerHTML = `<div class="msg-av">🌻</div><div class="bubble"><div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>`;
+  w.appendChild(d); w.scrollTop = w.scrollHeight; return id;
+}
+function removeTyping(id) { document.getElementById(id)?.remove(); }
+function hideWelcome() { document.getElementById('welcomeState')?.remove(); }
 </script>
 </body>
 </html>
