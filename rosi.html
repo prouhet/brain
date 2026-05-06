@@ -259,7 +259,7 @@ textarea::placeholder{color:var(--hint)}
 // ── CONFIG ──────────────────────────────────────────────────────
 const ROSI_API  = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/super-task';
 const SB_URL    = 'https://rzkrydqtgmuyeaipronh.supabase.co';
-const SB_KEY    = 'sb_publishable_8SmiK3mPZINqgT1uS4eODw_zvAlwpiS';
+const SB_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4';
 const POLL_MS   = 10 * 60 * 1000;
 
 let KEY = '', USER = '', USER_COLOR = 0, convo = [], busy = false;
@@ -543,11 +543,13 @@ async function snoozeReminder(id, btn) {
 // Claude emits <rosi_action>{...}</rosi_action> tags — we parse and execute them
 async function processActions(text) {
   const matches = [...text.matchAll(/<rosi_action>([\s\S]*?)<\/rosi_action>/g)];
+  console.log(`processActions: found ${matches.length} action(s)`);
   const refreshPanels = new Set();
 
   for (const m of matches) {
     try {
       const action = JSON.parse(m[1].trim());
+      console.log('Executing action:', action);
       switch (action.type) {
 
         case 'save_knowledge':
@@ -607,7 +609,7 @@ async function processActions(text) {
           (action.panels || []).forEach(p => refreshPanels.add(p));
           break;
       }
-    } catch(e) { console.warn('Action error:', e, m[1]); }
+    } catch(e) { console.error('Action error:', e, m[1]); }
   }
 
   if (refreshPanels.has('grocery'))   loadGrocery();
