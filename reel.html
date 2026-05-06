@@ -2441,8 +2441,7 @@ Answer questions accurately and specifically based on the content above.`,
         setPosting(true);
         try {
           const comment = { id: genId(), video_id: videoId, owner: currentOwner, content: text, created_at: new Date().toISOString() };
-          const { error: err } = await sbAuth.from("video_comments").insert(comment);
-          if (err) throw err;
+          await sbReq("video_comments", { method: "POST", headers: { "Prefer": "return=minimal" }, body: JSON.stringify(comment) });
           setComments((prev) => [...prev, comment]);
           setInput(""); setError(null);
         } catch (e) { setError("Failed to post — try again."); }
@@ -2450,7 +2449,7 @@ Answer questions accurately and specifically based on the content above.`,
       }
 
       async function deleteComment(id) {
-        await sbAuth.from("video_comments").delete().eq("id", id);
+        await sbReq(`video_comments?id=eq.${id}`, { method: "DELETE" });
         setComments((prev) => prev.filter((c) => c.id !== id));
       }
 
