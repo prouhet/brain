@@ -153,6 +153,12 @@
 
       if (!profile.active) return { ok: false, reason: "inactive" };
 
+      // Redirect to guide if first time user
+      if (profile.needs_onboarding) {
+        window.location.href = "/guide.html?new=1";
+        return { ok: false, reason: "onboarding" };
+      }
+
       AUTH_USER = session.user;
       OWNER = profile.owner;
       BRAIN_MCP = null;
