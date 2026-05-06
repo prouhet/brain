@@ -3006,13 +3006,16 @@ Answer questions accurately and specifically based on the content above.`,
                 {OWNER}
               </div>
               {!MEMBERSHIP?.isPrivileged && (
-                <button
-                  onClick={async () => { await sbAuth.auth.signOut(); window.location.href = "/signup.html"; }}
-                  style={{ fontSize: 11, color: "var(--t3)", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontFamily: "Figtree,system-ui", fontWeight: 500 }}
-                  title="Sign out"
-                >
-                  Sign out
-                </button>
+                <>
+                  <a href="/settings.html" title="Settings" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 6, background: "var(--s2)", border: "1px solid var(--b)", color: "var(--t3)", textDecoration: "none", fontSize: 14 }}>⚙</a>
+                  <button
+                    onClick={async () => { await sbAuth.auth.signOut(); window.location.href = "/signup.html"; }}
+                    style={{ fontSize: 11, color: "var(--t3)", background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontFamily: "Figtree,system-ui", fontWeight: 500 }}
+                    title="Sign out"
+                  >
+                    Sign out
+                  </button>
+                </>
               )}
             </div>
           </div>
