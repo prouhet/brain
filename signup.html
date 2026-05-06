@@ -82,8 +82,13 @@
     <div id="form-signup">
       <label>Email</label>
       <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email">
+      <label>Username</label>
+      <input type="text" id="su-username" placeholder="e.g. johndoe (letters, numbers, _)" autocomplete="off" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
       <label>Password</label>
-      <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password">
+      <div style="position:relative">
+        <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password" style="width:100%;padding-right:44px;box-sizing:border-box">
+        <button type="button" onclick="togglePw('su-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t2);font-size:16px;padding:4px">👁</button>
+      </div>
       <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 100 Videos Free</button>
       <div id="msg-signup"></div>
     </div>
@@ -92,7 +97,10 @@
       <label>Email</label>
       <input type="email" id="li-email" placeholder="you@example.com" autocomplete="email">
       <label>Password</label>
-      <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password">
+      <div style="position:relative">
+        <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password" style="width:100%;padding-right:44px;box-sizing:border-box">
+        <button type="button" onclick="togglePw('li-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t2);font-size:16px;padding:4px">👁</button>
+      </div>
       <button class="forgot" onclick="doForgot()" title="Enter your email above first">Forgot password?</button>
       <button class="btn" id="btn-login" onclick="doLogin()">Sign In</button>
       <div id="msg-login"></div>
@@ -126,6 +134,12 @@
       }
     });
 
+    function togglePw(id, btn) {
+      const inp = document.getElementById(id);
+      if (inp.type === "password") { inp.type = "text"; btn.textContent = "🙈"; }
+      else { inp.type = "password"; btn.textContent = "👁"; }
+    }
+
     function showTab(t) {
       document.getElementById("form-signup").style.display = t === "signup" ? "" : "none";
       document.getElementById("form-login").style.display = t === "login" ? "" : "none";
@@ -152,17 +166,25 @@
     async function doSignup() {
       const email = document.getElementById("su-email").value.trim();
       const pass = document.getElementById("su-pass").value;
+      const usernameInput = document.getElementById("su-username").value.trim();
+
       if (!email || !pass) { setMsg("msg-signup", "Please fill in all fields.", "err"); return; }
+      if (!usernameInput || usernameInput.length < 3) { setMsg("msg-signup", "Please choose a username — at least 3 characters.", "err"); return; }
+      if (usernameInput.length > 20) { setMsg("msg-signup", "Username must be 20 characters or less.", "err"); return; }
+
       setBtnLoading("btn-signup", true);
       try {
+        // Check username is available
+        const { data: existing } = await sb.from("reel_users").select("id").eq("owner", usernameInput).maybeSingle();
+        if (existing) { setMsg("msg-signup", "That username is already taken — try another.", "err"); setBtnLoading("btn-signup", false); return; }
+
         const { data, error } = await sb.auth.signUp({ email, password: pass });
         if (error) throw error;
-        const owner = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + Math.random().toString(36).slice(2, 6);
+        const owner = usernameInput;
         const qaExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
-        // Check for referral from share link (stored in sessionStorage by shared video page)
         const referredBy = sessionStorage.getItem("reelcall_referred_by") || null;
         const referredVideo = sessionStorage.getItem("reelcall_referred_video") || null;
-        await sb.from("reel_users").insert({ id: data.user.id, email, owner, trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt, active: true, videos_capacity: 10, referred_by: referredBy });
+        await sb.from("reel_users").insert({ id: data.user.id, email, owner, trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt, active: true, videos_capacity: 100, referred_by: referredBy });
         // Credit referrer if exists
         if (referredBy) {
           try {
