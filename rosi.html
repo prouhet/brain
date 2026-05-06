@@ -160,12 +160,9 @@ textarea::placeholder{color:var(--hint)}
   <div class="gate-icon">🏠</div>
   <div class="gate-title">Rosi</div>
   <div class="gate-sub">Your household assistant for groceries, meals, reminders, and anything the house needs to know.</div>
-  <div id="gateKeySection" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
-    <div class="gate-label">Household Key</div>
-    <input type="text" id="keyInput" placeholder="Paste your household key…" autocomplete="off" spellcheck="false" style="max-width:340px;width:100%">
-    <div class="gate-label">Anthropic API Key</div>
-    <input type="password" id="akeyInput" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" style="max-width:340px;width:100%">
-    <div class="gate-hint">Stored locally on this device only. Never sent anywhere except Anthropic.</div>
+  <div id="gateKeySection" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:340px">
+    <label style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);align-self:flex-start">Household Key</label>
+    <input type="text" id="keyInput" placeholder="Paste your household key…" autocomplete="off" spellcheck="false" style="width:100%">
   </div>
   <div id="gateNameSection" style="display:none;flex-direction:column;align-items:center;gap:10px;width:100%">
     <div class="gate-label">Who are you?</div>
@@ -260,14 +257,13 @@ textarea::placeholder{color:var(--hint)}
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
-const SB_URL        = 'https://rzkrydqtgmuyeaipronh.supabase.co';
-const SB_KEY        = 'sb_publishable_8SmiK3mPZINqgT1uS4eODw_zvAlwpiS';
-const POLL_MS       = 10 * 60 * 1000; // reminder poll every 10 min
+const ROSI_API  = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/rosi-chat';
+const SB_URL    = 'https://rzkrydqtgmuyeaipronh.supabase.co';
+const SB_KEY    = 'sb_publishable_8SmiK3mPZINqgT1uS4eODw_zvAlwpiS';
+const POLL_MS   = 10 * 60 * 1000;
 
 let KEY = '', USER = '', USER_COLOR = 0, convo = [], busy = false;
-let AKEY = ''; // Anthropic API key — stored in localStorage
-let knowledgeCache = []; // in-memory cache of knowledge for system prompt
+let knowledgeCache = [];
 
 // ── SUPABASE REST HELPERS ────────────────────────────────────────
 const sbHeaders = {
@@ -313,11 +309,9 @@ let gateStep = 'key';
 (function init() {
   KEY  = new URLSearchParams(location.search).get('key') || '';
   USER = new URLSearchParams(location.search).get('name') || localStorage.getItem('rosi_user_'+KEY) || '';
-  AKEY = localStorage.getItem('rosi_akey') || '';
-  if (KEY && USER && AKEY) { boot(); return; }
+  if (KEY && USER) { boot(); return; }
   document.getElementById('gate').style.display = 'flex';
-  if (KEY && AKEY) { document.getElementById('gateKeySection').style.display = 'none'; showNameStep(); }
-  else if (AKEY) { document.getElementById('akeyInput').value = AKEY; }
+  if (KEY) { document.getElementById('gateKeySection').style.display = 'none'; showNameStep(); }
 })();
 
 async function showNameStep() {
@@ -354,10 +348,7 @@ async function showNameStep() {
 function gateNext() {
   if (gateStep === 'key') {
     KEY = document.getElementById('keyInput').value.trim();
-    AKEY = document.getElementById('akeyInput').value.trim();
     if (!KEY) { document.getElementById('keyInput').focus(); return; }
-    if (!AKEY) { document.getElementById('akeyInput').focus(); return; }
-    localStorage.setItem('rosi_akey', AKEY);
     const u = new URL(location.href); u.searchParams.set('key', KEY); history.replaceState({}, '', u);
     document.getElementById('gateKeySection').style.display = 'none';
     showNameStep();
@@ -676,17 +667,14 @@ async function send() {
   busy = true; document.getElementById('sendBtn').disabled = true;
 
   try {
-    const resp = await fetch(ANTHROPIC_API, {
+    const resp = await fetch(ROSI_API, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'anthropic-dangerous-direct-browser-access':'true', 'x-api-key': AKEY },
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
+        household_key: KEY,
         system: buildSystem(),
         messages: convo,
-        tools: [
-          { type: 'web_search_20250305', name: 'web_search' }
-        ]
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
       })
     });
 
