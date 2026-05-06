@@ -669,7 +669,11 @@ async function send() {
   try {
     const resp = await fetch(ROSI_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+      headers: { 
+        'Content-Type': 'application/json',
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY
+      },
       body: JSON.stringify({
         household_key: KEY,
         system: buildSystem(),
