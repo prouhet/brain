@@ -1911,25 +1911,38 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         onUpdate({ ...video, shared: newShared, shareCount: newShareCount });
         await sbPatch(video.id, { shared: newShared, share_count: newShareCount });
         if (newShared) {
-          navigator.clipboard.writeText(shareUrl).catch(() => {});
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2500);
           grantReward(`share_${video.id}`, 2, 7);
           sbReq("reel_share_views", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ video_id: video.id, owner: OWNER }) }).catch(() => {});
           sbCacheBust();
+          // Trigger share immediately after enabling
+          setTimeout(() => shareLink(), 100);
         }
       }
 
-      function copyLink() {
-        navigator.clipboard.writeText(shareUrl);
+      async function shareLink() {
+        // Use native share sheet on mobile (iOS/Android) — opens Messages, WhatsApp, etc directly
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: video.title,
+              text: `Check out this video summary on ReelCall`,
+              url: shareUrl,
+            });
+            return;
+          } catch (e) {
+            if (e.name === "AbortError") return; // User cancelled — don't fall through
+          }
+        }
+        // Desktop fallback — copy to clipboard
+        navigator.clipboard.writeText(shareUrl).catch(() => {});
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
       }
 
       if (st === "shared") return (
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={copyLink} className="rbtn-ok" style={{ fontSize: 13, padding: "7px 14px", fontWeight: 600, transition: "all .2s" }}>
-            {copied ? "✓ Link Copied!" : "🔗 Copy Link"}
+          <button onClick={shareLink} className="rbtn-ok" style={{ fontSize: 13, padding: "7px 14px", fontWeight: 600, transition: "all .2s" }}>
+            {copied ? "✓ Copied!" : navigator.share ? "📤 Share" : "🔗 Copy Link"}
           </button>
           <button onClick={toggleShare} className="rbtn-g" style={{ fontSize: 13, padding: "7px 10px" }} title="Stop sharing">✕</button>
         </div>
@@ -1939,7 +1952,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Tip text="Share this video with anyone — they get a read-only page with the summary, key points, and Q&A. You earn +2 videos and +7 days membership." right={true} />
           <button onClick={toggleShare} className="rbtn-ok" style={{ fontSize: 13, fontWeight: 600 }}>
-            {copied ? "✓ Link Copied!" : "Share"}
+            {navigator.share ? "📤 Share" : "Share"}
           </button>
         </div>
       );
