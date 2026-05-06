@@ -160,9 +160,12 @@ textarea::placeholder{color:var(--hint)}
   <div class="gate-icon">🏠</div>
   <div class="gate-title">Rosi</div>
   <div class="gate-sub">Your household assistant for groceries, meals, reminders, and anything the house needs to know.</div>
-  <div id="gateKeySection">
+  <div id="gateKeySection" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
     <div class="gate-label">Household Key</div>
-    <input type="text" id="keyInput" placeholder="Paste your household key…" autocomplete="off" spellcheck="false">
+    <input type="text" id="keyInput" placeholder="Paste your household key…" autocomplete="off" spellcheck="false" style="max-width:340px;width:100%">
+    <div class="gate-label">Anthropic API Key</div>
+    <input type="password" id="akeyInput" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" style="max-width:340px;width:100%">
+    <div class="gate-hint">Stored locally on this device only. Never sent anywhere except Anthropic.</div>
   </div>
   <div id="gateNameSection" style="display:none;flex-direction:column;align-items:center;gap:10px;width:100%">
     <div class="gate-label">Who are you?</div>
@@ -263,6 +266,7 @@ const SB_KEY        = 'sb_publishable_8SmiK3mPZINqgT1uS4eODw_zvAlwpiS';
 const POLL_MS       = 10 * 60 * 1000; // reminder poll every 10 min
 
 let KEY = '', USER = '', USER_COLOR = 0, convo = [], busy = false;
+let AKEY = ''; // Anthropic API key — stored in localStorage
 let knowledgeCache = []; // in-memory cache of knowledge for system prompt
 
 // ── SUPABASE REST HELPERS ────────────────────────────────────────
@@ -309,9 +313,11 @@ let gateStep = 'key';
 (function init() {
   KEY  = new URLSearchParams(location.search).get('key') || '';
   USER = new URLSearchParams(location.search).get('name') || localStorage.getItem('rosi_user_'+KEY) || '';
-  if (KEY && USER) { boot(); return; }
+  AKEY = localStorage.getItem('rosi_akey') || '';
+  if (KEY && USER && AKEY) { boot(); return; }
   document.getElementById('gate').style.display = 'flex';
-  if (KEY) { document.getElementById('gateKeySection').style.display = 'none'; showNameStep(); }
+  if (KEY && AKEY) { document.getElementById('gateKeySection').style.display = 'none'; showNameStep(); }
+  else if (AKEY) { document.getElementById('akeyInput').value = AKEY; }
 })();
 
 async function showNameStep() {
@@ -348,7 +354,10 @@ async function showNameStep() {
 function gateNext() {
   if (gateStep === 'key') {
     KEY = document.getElementById('keyInput').value.trim();
-    if (!KEY) return;
+    AKEY = document.getElementById('akeyInput').value.trim();
+    if (!KEY) { document.getElementById('keyInput').focus(); return; }
+    if (!AKEY) { document.getElementById('akeyInput').focus(); return; }
+    localStorage.setItem('rosi_akey', AKEY);
     const u = new URL(location.href); u.searchParams.set('key', KEY); history.replaceState({}, '', u);
     document.getElementById('gateKeySection').style.display = 'none';
     showNameStep();
@@ -669,7 +678,7 @@ async function send() {
   try {
     const resp = await fetch(ANTHROPIC_API, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' },
+      headers: { 'Content-Type':'application/json', 'anthropic-dangerous-direct-browser-access':'true', 'x-api-key': AKEY },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
