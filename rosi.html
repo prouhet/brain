@@ -21,6 +21,8 @@
   --ro-bg:#fef2f2;--ro-border:#fca5a5;--ro-text:#991b1b;
   --pg:#fef9c3;--pg-t:#92400e;--pm:#fce7f3;--pm-t:#9d174d;
   --pk:#e0f2fe;--pk-t:#0369a1;
+  --ph:#fff7ed;--ph-t:#9a3412;   /* housekeeping */
+  --pp:#ede9fe;--pp-t:#5b21b6;   /* project */
 }
 .mc0{background:#dbeafe;color:#1e40af}
 .mc1{background:#dcfce7;color:#166534}
@@ -94,6 +96,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .p-g{background:var(--pg);color:var(--pg-t)}
 .p-m{background:var(--pm);color:var(--pm-t)}
 .p-k{background:var(--pk);color:var(--pk-t)}
+.p-h{background:var(--ph);color:var(--ph-t)}
+.p-p{background:var(--pp);color:var(--pp-t)}
+.pr-high{background:#fef2f2;color:#991b1b}
+.pr-med{background:#fff7ed;color:#9a3412}
+.pr-low{background:#f0fdf4;color:#166534}
 .list-row{display:flex;align-items:flex-start;gap:9px;padding:7px 13px;border-bottom:1px solid var(--border-light);transition:background .1s}
 .list-row:last-child{border-bottom:none}
 .list-row:hover{background:#fafaf8}
@@ -222,7 +229,21 @@ textarea::placeholder{color:var(--hint)}
       </div>
       <div class="panel">
         <div class="panel-hd">
-          <span class="panel-label">🧠 Household Knowledge</span>
+          <span class="panel-label">🧹 Housekeeping</span>
+          <span class="pill p-h" id="hkCount">—</span>
+        </div>
+        <div id="hkBody"><div class="empty-state">Loading…</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-label">🔨 Projects</span>
+          <span class="pill p-p" id="projCount">—</span>
+        </div>
+        <div id="projBody"><div class="empty-state">Loading…</div></div>
+      </div>
+
+      <div class="panel">
           <span class="pill p-k" id="knowledgeCount">—</span>
         </div>
         <div id="knowledgeBody"><div class="empty-state">Loading…</div></div>
@@ -242,7 +263,8 @@ textarea::placeholder{color:var(--hint)}
         <button class="qp" onclick="qs('What\'s the meal plan this week?')">🍽️ Meal plan</button>
         <button class="qp" onclick="qs('Plan dinners for this week')">📅 Plan week</button>
         <button class="qp" onclick="qs('What should I make for dinner tonight?')">💡 Dinner idea</button>
-        <button class="qp" onclick="qs('What do we have stored in household knowledge?')">🧠 Knowledge</button>
+        <button class="qp" onclick="qs('What housekeeping needs to be done?')">🧹 Housekeeping</button>
+        <button class="qp" onclick="qs('What projects are on the list?')">🔨 Projects</button>
       </div>
       <div class="input-bar">
         <textarea id="msgInput" placeholder="Ask Rosi…" rows="1"
@@ -269,6 +291,7 @@ let KEY = '', USER = '', USER_COLOR = 0, convo = [], busy = false;
 let knowledgeCache = [];
 let groceryCache = [];
 let mealCache = {};
+let tasksCache = { housekeeping: [], project: [] };
 
 // ── SUPABASE REST HELPERS ────────────────────────────────────────
 const sbHeaders = {
@@ -394,7 +417,7 @@ function boot() {
   setInterval(checkReminders, POLL_MS);
 }
 
-function refreshAll() { loadGrocery(); loadMeals(); loadKnowledge(); }
+function refreshAll() { loadGrocery(); loadMeals(); loadKnowledge(); loadTasks(); }
 
 // ── KNOWLEDGE ────────────────────────────────────────────────────
 async function loadKnowledge() {
@@ -444,6 +467,88 @@ async function deleteKnowledge(id, btn) {
   } catch(e) { btn.textContent = '×'; }
 }
 
+// ── TASKS ────────────────────────────────────────────────────────
+async function loadTasks() {
+  try {
+    const items = await sbGet('rosi_tasks',
+      `household_key=eq.${KEY}&done=eq.false&select=id,title,description,task_type,priority,assigned_to,due_date,recurrence&order=priority.asc,created_at.asc`);
+    tasksCache = { housekeeping: items.filter(t=>t.task_type==='housekeeping'), project: items.filter(t=>t.task_type==='project') };
+    renderTaskPanel('hkBody','hkCount', tasksCache.housekeeping);
+    renderTaskPanel('projBody','projCount', tasksCache.project);
+  } catch(e) {}
+}
+
+function renderTaskPanel(bodyId, countId, items) {
+  const body = document.getElementById(bodyId);
+  const count = document.getElementById(countId);
+  count.textContent = items.length || '—';
+  if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing here yet —<br>ask Rosi to add one!</div>'; return; }
+  body.innerHTML = items.map(t => {
+    const prClass = t.priority==='high'?'pr-high':t.priority==='low'?'pr-low':'pr-med';
+    const rec = t.recurrence ? `<span style="font-size:10px;color:var(--hint)">↺ ${t.recurrence}</span>` : '';
+    const who = t.assigned_to ? `<span class="by-chip mc${colorIdx(t.assigned_to)}">${esc(t.assigned_to)}</span>` : '';
+    const dueD = t.due_date ? new Date(t.due_date+'T00:00:00') : null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const overdue = dueD && dueD < today;
+    const due = dueD ? `<span style="font-size:10px;color:${overdue?'#991b1b':'var(--muted)'}">${overdue?'⚠ overdue: ':''}${dueD.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>` : '';
+    return `<div class="list-row" style="justify-content:space-between">
+      <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
+        <div class="check-circle" title="Mark done" onclick="doneTask('${t.id}',this)"></div>
+        <div style="flex:1;min-width:0">
+          <div class="row-text">${esc(t.title)}</div>
+          ${t.description?`<div class="row-note">${esc(t.description)}</div>`:''}
+          <div class="row-by" style="gap:4px;flex-wrap:wrap">
+            <span class="pill ${prClass}" style="font-size:9px;padding:1px 5px">${t.priority}</span>
+            ${rec}${who}${due}
+          </div>
+        </div>
+      </div>
+      <button onclick="deleteTask('${t.id}',this)" title="Remove" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function doneTask(id, el) {
+  el.classList.add('done');
+  el.closest('.list-row').querySelector('.row-text').classList.add('done');
+  try {
+    // Find the task to check if it's recurring
+    const task = [...tasksCache.housekeeping, ...tasksCache.project].find(t => t.id === id);
+    if (task?.recurrence) {
+      // Calculate next due date based on recurrence
+      const nextDue = new Date();
+      if (task.recurrence === 'daily')   nextDue.setDate(nextDue.getDate() + 1);
+      if (task.recurrence === 'weekly')  nextDue.setDate(nextDue.getDate() + 7);
+      if (task.recurrence === 'monthly') nextDue.setMonth(nextDue.getMonth() + 1);
+      // Mark done then create a fresh copy due next cycle
+      await sbPatch('rosi_tasks', id, { done: true, done_by: USER, done_at: new Date().toISOString() });
+      await sbPost('rosi_tasks', {
+        household_key: KEY,
+        title:       task.title,
+        description: task.description,
+        task_type:   task.task_type,
+        priority:    task.priority,
+        assigned_to: task.assigned_to,
+        due_date:    nextDue.toISOString().split('T')[0],
+        recurrence:  task.recurrence,
+        created_by:  task.created_by || USER
+      });
+    } else {
+      await sbPatch('rosi_tasks', id, { done: true, done_by: USER, done_at: new Date().toISOString() });
+    }
+    setTimeout(loadTasks, 600);
+  } catch(e) { el.classList.remove('done'); }
+}
+
+async function deleteTask(id, btn) {
+  btn.textContent = '…';
+  try {
+    await fetch(`${SB_URL}/rest/v1/rosi_tasks?id=eq.${id}`, {
+      method: 'DELETE', headers: { ...sbHeaders, 'Prefer': 'return=minimal' }
+    });
+    loadTasks();
+  } catch(e) { btn.textContent = '×'; }
+}
 
 async function loadGrocery() {
   const body = document.getElementById('groceryBody');
@@ -460,22 +565,39 @@ async function loadGrocery() {
       `<div class="section-cap">${esc(cat)}</div>` + arr.map(i => {
         const bc = i.requested_by ? `mc${colorIdx(i.requested_by)}` : '';
         const qty = i.quantity && i.quantity !== '1' ? ` (${esc(i.quantity)})` : '';
-        return `<div class="list-row" data-id="${i.id}">
-          <div class="check-circle" onclick="markGroceryDone('${i.id}',this)"></div>
-          <div>
-            <div class="row-text">${esc(i.item)}${qty}</div>
-            ${i.note?`<div class="row-note">${esc(i.note)}</div>`:''}
-            ${i.store_preference?`<div class="row-store">📍 ${esc(i.store_preference)}</div>`:''}
-            ${i.requested_by?`<div class="row-by"><span class="by-chip ${bc}">${esc(i.requested_by)}</span></div>`:''}
+        return `<div class="list-row" data-id="${i.id}" style="justify-content:space-between">
+          <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
+            <div class="check-circle" title="Mark as bought" onclick="markGroceryDone('${i.id}',this)"></div>
+            <div style="flex:1;min-width:0">
+              <div class="row-text">${esc(i.item)}${qty}</div>
+              ${i.note?`<div class="row-note">${esc(i.note)}</div>`:''}
+              ${i.store_preference?`<div class="row-store">📍 ${esc(i.store_preference)}</div>`:''}
+              ${i.requested_by?`<div class="row-by"><span class="by-chip ${bc}">${esc(i.requested_by)}</span></div>`:''}
+            </div>
           </div>
+          <button onclick="deleteGrocery('${i.id}',this)" title="Remove" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px;transition:color .15s;margin-top:1px">×</button>
         </div>`;
       }).join('')
     ).join('');
   } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
 }
 
+async function deleteGrocery(id, btn) {
+  btn.textContent = '…';
+  try {
+    await fetch(`${SB_URL}/rest/v1/rosi_grocery?id=eq.${id}`, {
+      method: 'DELETE', headers: { ...sbHeaders, 'Prefer': 'return=minimal' }
+    });
+    btn.closest('.list-row').remove();
+    const count = document.getElementById('groceryCount');
+    const n = parseInt(count.textContent) - 1;
+    count.textContent = n || '—';
+    groceryCache = groceryCache.filter(g => g.id !== id);
+  } catch(e) { btn.textContent = '×'; }
+}
+
+
 async function markGroceryDone(id, el) {
-  el.classList.add('done');
   el.closest('.list-row').querySelector('.row-text').classList.add('done');
   try { await sbPatch('rosi_grocery', id, { done: true, done_by: USER, done_at: new Date().toISOString() }); }
   catch(e) { el.classList.remove('done'); }
@@ -653,6 +775,21 @@ async function processActions(text) {
           }
           refreshPanels.add('grocery');
           break;
+
+        case 'add_task':
+          await sbPost('rosi_tasks', {
+            household_key: KEY,
+            title:       action.title,
+            description: action.description || null,
+            task_type:   action.task_type || 'housekeeping',
+            priority:    action.priority || 'medium',
+            assigned_to: action.assigned_to || null,
+            due_date:    action.due_date || null,
+            recurrence:  action.recurrence || null,
+            created_by:  USER
+          });
+          refreshPanels.add('tasks');
+          break;
       }
     } catch(e) { console.error('Action error:', e, m[1]); }
   }
@@ -660,21 +797,36 @@ async function processActions(text) {
   if (refreshPanels.has('grocery'))   loadGrocery();
   if (refreshPanels.has('meals'))     loadMeals();
   if (refreshPanels.has('knowledge')) loadKnowledge();
+  if (refreshPanels.has('tasks'))     loadTasks();
   if (refreshPanels.has('reminders')) setTimeout(checkReminders, 1000);
 }
 
 // ── CHAT ─────────────────────────────────────────────────────────
-function buildSystem() {
+function nextMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 1 ? 7 : (8 - day) % 7;
+  d.setDate(d.getDate() + diff);
+  d.setHours(9, 0, 0, 0);
+  return d.toISOString();
+}
+
+async function buildSystem() {
   const now = new Date();
   const weekOf = getMondayOf();
   const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-  // Current grocery list
+  const recentlyBought = await sbGet('rosi_grocery',
+    `household_key=eq.${KEY}&done=eq.true&select=item,done_at,done_by&order=done_at.desc&limit=50`).catch(()=>[]);
+
   const groceryStr = groceryCache.length
     ? groceryCache.map(i => `- ${i.item}${i.quantity&&i.quantity!=='1'?' ('+i.quantity+')':''}${i.note?' — '+i.note:''}${i.store_preference?' ['+i.store_preference+']':''}${i.requested_by?' ('+i.requested_by+')':''}`).join('\n')
     : 'Empty — nothing on the list yet.';
 
-  // Current meal plan
+  const historyStr = recentlyBought.length
+    ? recentlyBought.slice(0,20).map(i => `- ${i.item} — bought ${new Date(i.done_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}${i.done_by?' by '+i.done_by:''}`).join('\n')
+    : 'No purchase history yet.';
+
   const mealStr = DAYS.map(d => `${d}: ${mealCache[d] || '—'}`).join('  |  ');
 
   return `You are Rosi, a warm and practical household assistant for the Prouhet family.
@@ -682,8 +834,15 @@ Current user: ${USER}
 Today: ${now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
 Current week starts: ${weekOf}
 
+━━━ TASKS ━━━
+Housekeeping: ${tasksCache.housekeeping.map(t=>`${t.title}${t.assigned_to?' ('+t.assigned_to+')':''}`).join(', ') || 'none'}
+Projects: ${tasksCache.project.map(t=>`${t.title}${t.priority==='high'?' ⚡':''}`).join(', ') || 'none'}
+
 ━━━ CURRENT GROCERY LIST ━━━
 ${groceryStr}
+
+━━━ RECENT PURCHASE HISTORY (use to answer "when did we last buy X") ━━━
+${historyStr}
 
 ━━━ CURRENT MEAL PLAN ━━━
 ${mealStr}
@@ -693,10 +852,22 @@ ${knowledgeSummary()}
 
 ━━━ CRITICAL: HOW TO TAKE ACTION ━━━
 You MUST use <rosi_action> JSON tags to make any changes. Without these tags nothing is saved.
-These tags MUST appear at the very end of your reply, after your conversational response.
+Place tags at the END of your reply after your conversational response.
 
-ADD A GROCERY ITEM — use this exact format:
-<rosi_action>{"type":"add_grocery","item":"milk","category":"Dairy","note":"whole milk","store":null,"quantity":"1"}</rosi_action>
+ADD A GROCERY ITEM:
+<rosi_action>{"type":"add_grocery","item":"milk","category":"Dairy","note":null,"store":null,"quantity":"1"}</rosi_action>
+
+ADD A HOUSEKEEPING TASK:
+<rosi_action>{"type":"add_task","title":"Clean bathrooms","task_type":"housekeeping","priority":"high","assigned_to":null,"recurrence":"weekly","due_date":null}</rosi_action>
+
+ADD A PROJECT:
+<rosi_action>{"type":"add_task","title":"Paint back bedroom","task_type":"project","priority":"medium","description":"Need to pick a color first","assigned_to":"Dave","due_date":null}</rosi_action>
+
+ADD A RECURRING WEEKLY GROCERY (sets a weekly reminder to re-add it):
+<rosi_action>{"type":"add_reminder","text":"Add coffee to grocery list","due_at":"${nextMonday()}","recurrence":"weekly","for_member":null}</rosi_action>
+
+REMOVE A GROCERY ITEM by name:
+<rosi_action>{"type":"clear_grocery","item":"milk"}</rosi_action>
 
 PLAN A MEAL:
 <rosi_action>{"type":"add_meal","day":"Mon","week_of":"${weekOf}","meal":"Chicken Tacos"}</rosi_action>
@@ -704,20 +875,18 @@ PLAN A MEAL:
 SET A REMINDER:
 <rosi_action>{"type":"add_reminder","text":"Take out trash","due_at":"2026-05-07T18:00:00Z","recurrence":null,"for_member":null}</rosi_action>
 
-SAVE KNOWLEDGE (wifi, contacts, passwords, tips, etc.):
+SAVE KNOWLEDGE:
 <rosi_action>{"type":"save_knowledge","category":"Contacts","title":"Plumber","content":"ABC Plumbing 618-555-0123","sensitive":false}</rosi_action>
-
-REMOVE A GROCERY ITEM (use item name, not id):
-<rosi_action>{"type":"clear_grocery","item":"milk"}</rosi_action>
 
 UPDATE KNOWLEDGE (match by exact title):
 <rosi_action>{"type":"update_knowledge","title":"Plumber","category":"Contacts","content":"John Smith 618-555-0123","sensitive":false}</rosi_action>
 
-
-- ALWAYS emit a <rosi_action> tag when the user asks you to add, save, or remember something
+RULES:
+- ALWAYS emit a <rosi_action> tag when asked to add, save, remember, or remove something
 - You can emit multiple action tags in one reply
-- Use memory first — check household knowledge before searching the web
-- After web searches, save useful findings with save_knowledge
+- Use PURCHASE HISTORY to answer "when did we last buy X"
+- Check household knowledge before searching the web
+- Save useful web findings with save_knowledge
 - Be warm and concise. Use ${USER.split(' ')[0]}'s name occasionally.`;
 }
 
@@ -741,7 +910,7 @@ async function send() {
       },
       body: JSON.stringify({
         household_key: KEY,
-        system: buildSystem(),
+        system: await buildSystem(),
         messages: convo,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }]
       })
