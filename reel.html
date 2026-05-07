@@ -153,10 +153,10 @@
 
       if (!profile.active) return { ok: false, reason: "inactive" };
 
-      // Redirect to guide if first time user
+      // Show in-app guide on first load — no redirect
       if (profile.needs_onboarding) {
-        window.location.href = "/guide.html?new=1";
-        return { ok: false, reason: "onboarding" };
+        await sbAuth.from("reel_users").update({ needs_onboarding: false }).eq("id", session.user.id);
+        window.__showOnboarding = true;
       }
 
       AUTH_USER = session.user;
@@ -3044,6 +3044,86 @@ Answer questions accurately and specifically based on the content above.`,
       );
     }
 
+    // ─── Onboarding Modal ─────────────────────────────────────────────────────
+    function OnboardingModal({ onClose }) {
+      const [step, setStep] = useState(0);
+      const steps = [
+        {
+          icon: "▶",
+          title: "Add any YouTube video",
+          body: "Tap the blue Paste & Analyze button — it reads your clipboard and starts immediately. Or type any YouTube URL and hit Enter. Analysis takes 20–60 seconds.",
+          tip: "💡 From YouTube: tap Share → Copy Link → come back here → Paste & Analyze"
+        },
+        {
+          icon: "🔍",
+          title: "Find videos fast",
+          body: "Use the Who: box to find videos by person (Gromen, Ferriss) and the Topic/About: box to search by subject. Both search across titles, summaries, and key points.",
+          tip: "💡 Sort by [Recently Opened] to jump back to videos you use most"
+        },
+        {
+          icon: "→",
+          title: "Go deeper on any key point",
+          body: "Every key point has an Ask → button. Tap it and the Q&A box pre-fills with that point — ask follow-up questions powered by the full video transcript.",
+          tip: "💡 Use ☆ Recall to star insights worth remembering"
+        },
+        {
+          icon: "📤",
+          title: "Share & earn rewards",
+          body: "Tap Share on any video — your phone's share sheet opens. Send via iMessage, WhatsApp, anywhere. Every share earns you +2 videos and +7 days membership.",
+          tip: "💡 Recipients can read and ask questions without an account"
+        },
+        {
+          icon: "🔬",
+          title: "Research Mode",
+          body: "When you have 2+ videos, tap Research Mode in the top right. Select multiple videos and ask one question across all of them simultaneously — like having a research assistant.",
+          tip: "💡 Full guide at reelcall.app/guide.html"
+        },
+      ];
+      const s = steps[step];
+      const isLast = step === steps.length - 1;
+
+      return (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "var(--s1)", border: "1px solid var(--b)", borderRadius: 20, padding: 32, maxWidth: 440, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,.25)" }}>
+            {/* Progress dots */}
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 }}>
+              {steps.map((_, i) => (
+                <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? "var(--acc)" : "var(--s3)", transition: "all .3s" }} />
+              ))}
+            </div>
+            {/* Icon */}
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 20px" }}>
+              {s.icon}
+            </div>
+            {/* Content */}
+            <h2 style={{ fontFamily: "Syne,sans-serif", fontSize: 20, fontWeight: 800, textAlign: "center", marginBottom: 12, color: "var(--text)" }}>{s.title}</h2>
+            <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7, textAlign: "center", marginBottom: 16 }}>{s.body}</p>
+            {/* Tip */}
+            <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 10, padding: "10px 14px", marginBottom: 24 }}>
+              <p style={{ fontSize: 12, color: "var(--acc)", lineHeight: 1.6 }}>{s.tip}</p>
+            </div>
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: 10 }}>
+              {step > 0 && (
+                <button onClick={() => setStep(step - 1)} className="rbtn-g" style={{ flex: 1, padding: 12 }}>← Back</button>
+              )}
+              {isLast ? (
+                <button onClick={onClose} className="rbtn-p" style={{ flex: 1, padding: 12, fontWeight: 700 }}>Start My Library →</button>
+              ) : (
+                <button onClick={() => setStep(step + 1)} className="rbtn-p" style={{ flex: 1, padding: 12, fontWeight: 700 }}>Next →</button>
+              )}
+            </div>
+            {/* Skip */}
+            {!isLast && (
+              <button onClick={onClose} style={{ width: "100%", marginTop: 12, background: "none", border: "none", color: "var(--t3)", cursor: "pointer", fontSize: 12, fontFamily: "Figtree,system-ui", padding: 4 }}>
+                Skip guide
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // ─── App ──────────────────────────────────────────────────────────────────
     function App() {
       const [view, setView] = useState("library");
@@ -3053,6 +3133,7 @@ Answer questions accurately and specifically based on the content above.`,
       const [loadErr, setLoadErr] = useState("");
       const [authState, setAuthState] = useState("checking");
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
+      const [showOnboarding, setShowOnboarding] = useState(false);
 
       // Navigate with history so browser back button works within the app
       function navigate(newView) {
@@ -3087,11 +3168,14 @@ Answer questions accurately and specifically based on the content above.`,
           sbLoad()
             .then((rows) => {
               setVideos((rows || []).map(fromDb));
-              // Check if user just logged in from a shared video — auto-redirect back
               const returnTo = sessionStorage.getItem("reelcall_return_to");
               if (returnTo && returnTo.includes("?share=")) {
                 sessionStorage.removeItem("reelcall_return_to");
                 window.location.href = returnTo;
+              }
+              if (window.__showOnboarding) {
+                window.__showOnboarding = false;
+                setTimeout(() => setShowOnboarding(true), 500);
               }
             })
             .catch((e) => setLoadErr(e.message))
@@ -3159,6 +3243,7 @@ Answer questions accurately and specifically based on the content above.`,
 
       return (
         <div className={`reel${dark ? " dark" : ""}`}>
+          {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
           <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 998, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
