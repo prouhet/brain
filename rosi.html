@@ -893,44 +893,21 @@ ${mealStr}
 ━━━ HOUSEHOLD KNOWLEDGE ━━━
 ${knowledgeSummary()}
 
-━━━ CRITICAL: HOW TO TAKE ACTION ━━━
-You MUST use <rosi_action> JSON tags to make any changes. Without these tags nothing is saved.
-Place tags at the END of your reply after your conversational response.
-
-ADD A GROCERY ITEM:
-<rosi_action>{"type":"add_grocery","item":"milk","category":"Dairy","note":null,"store":null,"quantity":"1"}</rosi_action>
-
-ADD A HOUSEKEEPING TASK:
-<rosi_action>{"type":"add_task","title":"Clean bathrooms","task_type":"housekeeping","priority":"high","assigned_to":null,"recurrence":"weekly","due_date":null}</rosi_action>
-
-ADD A PROJECT:
-<rosi_action>{"type":"add_task","title":"Paint back bedroom","task_type":"project","priority":"medium","description":"Need to pick a color first","assigned_to":"Dave","due_date":null}</rosi_action>
-
-ADD A RECURRING WEEKLY GROCERY (sets a weekly reminder to re-add it):
-<rosi_action>{"type":"add_reminder","text":"Add coffee to grocery list","due_at":"${nextMonday()}","recurrence":"weekly","for_member":null}</rosi_action>
-
-REMOVE A GROCERY ITEM by name:
-<rosi_action>{"type":"clear_grocery","item":"milk"}</rosi_action>
-
-PLAN A MEAL:
-<rosi_action>{"type":"add_meal","day":"Mon","week_of":"${weekOf}","meal":"Chicken Tacos"}</rosi_action>
-
-SET A REMINDER:
-<rosi_action>{"type":"add_reminder","text":"Take out trash","due_at":"2026-05-07T18:00:00Z","recurrence":null,"for_member":null}</rosi_action>
-
-SAVE KNOWLEDGE:
-<rosi_action>{"type":"save_knowledge","category":"Contacts","title":"Plumber","content":"ABC Plumbing 618-555-0123","sensitive":false}</rosi_action>
-
-UPDATE KNOWLEDGE (match by exact title):
-<rosi_action>{"type":"update_knowledge","title":"Plumber","category":"Contacts","content":"John Smith 618-555-0123","sensitive":false}</rosi_action>
+━━━ YOUR TOOLS ━━━
+Use your tools freely — they write directly to the household database:
+- add_grocery / remove_grocery — manage the shopping list
+- add_meal — plan dinners for the week
+- add_task — housekeeping chores or home projects
+- add_reminder — time-based reminders
+- save_knowledge / update_knowledge — remember anything useful
+- web_search — search the web when you don't have the answer
 
 RULES:
-- ALWAYS emit a <rosi_action> tag when asked to add, save, remember, or remove something
-- You can emit multiple action tags in one reply
-- Use PURCHASE HISTORY to answer "when did we last buy X"
+- Always use a tool when the user asks you to add, save, remove, or remember something
 - Check household knowledge before searching the web
-- Save useful web findings with save_knowledge
-- Be warm and concise. Use ${USER.split(' ')[0]}'s name occasionally.`;
+- After a web search finds something useful, save it with save_knowledge
+- Be warm and concise. Use ${USER.split(' ')[0]}'s name occasionally.
+- For sensitive info (passwords, alarm codes), share if directly asked but don't volunteer.`;
 }
 
 async function send() {
@@ -946,53 +923,42 @@ async function send() {
   try {
     const resp = await fetch(ROSI_API, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'apikey': SB_KEY,
         'Authorization': 'Bearer ' + SB_KEY
       },
       body: JSON.stringify({
         household_key: KEY,
-        system: await buildSystem(),
-        messages: convo,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+        current_user:  USER,
+        system:        await buildSystem(),
+        messages:      convo
       })
     });
 
     const data = await resp.json();
+    removeTyping(tid);
+
     if (!resp.ok) {
-      removeTyping(tid);
       addMsg('rosi', `Error ${resp.status}: ${data.error || JSON.stringify(data)}`);
       busy = false; document.getElementById('sendBtn').disabled = false;
       return;
     }
 
-    // Extract text — may be across multiple content blocks if web search was used
-    let reply = '';
-    let didSearch = false;
-    if (data.content) {
-      for (const block of data.content) {
-        if (block.type === 'text') reply += block.text;
-        if (block.type === 'tool_use' && block.name === 'web_search') didSearch = true;
-      }
-    }
-    reply = reply || 'Sorry, something went wrong.';
+    // Edge function returns { text, actions[] }
+    const reply = data.text || 'Sorry, something went wrong.';
+    const actions = data.actions || [];
 
-    removeTyping(tid);
-
-    // Process any actions Claude emitted
-    await processActions(reply);
-
-    // Clean action tags and show reply
-    const clean = reply.replace(/<rosi_action>[\s\S]*?<\/rosi_action>/g,'').trim();
-    const prefix = didSearch ? '<div class="search-tag">🔍 searched the web</div>' : '';
-    addMsg('rosi', prefix + clean.replace(/\n/g,'<br>'));
+    addMsg('rosi', reply.replace(/\n/g,'<br>'));
     convo.push({role:'assistant', content: reply});
-
-    // Keep conversation history manageable
     if (convo.length > 40) convo = convo.slice(-40);
 
-    if (/remind/i.test(text)) setTimeout(checkReminders, 2000);
+    // Refresh any panels that changed
+    if (actions.some(a => a.startsWith('add_grocery') || a.startsWith('remove_grocery'))) loadGrocery();
+    if (actions.some(a => a.startsWith('add_meal')))     loadMeals();
+    if (actions.some(a => a.startsWith('add_task')))     loadTasks();
+    if (actions.some(a => a.startsWith('save_knowledge') || a.startsWith('update_knowledge'))) loadKnowledge();
+    if (actions.some(a => a.startsWith('add_reminder'))) setTimeout(checkReminders, 1500);
 
   } catch(e) {
     removeTyping(tid);
