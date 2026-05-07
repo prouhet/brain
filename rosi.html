@@ -90,6 +90,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* PANELS */
 .panels{width:320px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.55);backdrop-filter:blur(6px)}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.panel-body{max-height:200px;overflow-y:auto}
+.panel-body.meal{max-height:none;overflow:visible}
 .panel-hd{padding:9px 13px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
 .panel-label{font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .pill{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;line-height:1.5}
@@ -209,14 +211,14 @@ textarea::placeholder{color:var(--hint)}
           <span class="panel-label">🛒 Grocery List</span>
           <span class="pill p-g" id="groceryCount">—</span>
         </div>
-        <div id="groceryBody"><div class="empty-state">Loading…</div></div>
+        <div id="groceryBody" class="panel-body"><div class="empty-state">Loading…</div></div>
       </div>
       <div class="panel">
         <div class="panel-hd">
           <span class="panel-label">🍽️ Meal Plan</span>
           <span class="pill p-m">this week</span>
         </div>
-        <div class="meal-grid" id="mealGrid">
+        <div class="meal-grid panel-body meal" id="mealGrid">
           <div class="meal-cell"><div class="meal-day">Mon</div><div class="meal-val empty">—</div></div>
           <div class="meal-cell"><div class="meal-day">Tue</div><div class="meal-val empty">—</div></div>
           <div class="meal-cell"><div class="meal-day">Wed</div><div class="meal-val empty">—</div></div>
@@ -232,7 +234,7 @@ textarea::placeholder{color:var(--hint)}
           <span class="panel-label">🧹 Housekeeping</span>
           <span class="pill p-h" id="hkCount">—</span>
         </div>
-        <div id="hkBody"><div class="empty-state">Loading…</div></div>
+        <div id="hkBody" class="panel-body"><div class="empty-state">Loading…</div></div>
       </div>
 
       <div class="panel">
@@ -240,13 +242,13 @@ textarea::placeholder{color:var(--hint)}
           <span class="panel-label">🔨 Projects</span>
           <span class="pill p-p" id="projCount">—</span>
         </div>
-        <div id="projBody"><div class="empty-state">Loading…</div></div>
+        <div id="projBody" class="panel-body"><div class="empty-state">Loading…</div></div>
       </div>
 
       <div class="panel">
           <span class="pill p-k" id="knowledgeCount">—</span>
         </div>
-        <div id="knowledgeBody"><div class="empty-state">Loading…</div></div>
+        <div id="knowledgeBody" class="panel-body"><div class="empty-state">Loading…</div></div>
       </div>
     </div>
 
