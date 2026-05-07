@@ -26,6 +26,7 @@
     tr:last-child td{border-bottom:none}
     tr:hover td{background:rgba(255,255,255,.02)}
     .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+    .badge-ok{background:rgba(34,201,138,.12);color:#22C98A;border:1px solid rgba(34,201,138,.25)}
     .badge-ok{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}
     .badge-warn{background:var(--warn-lo);color:var(--warn);border:1px solid var(--warn-mid)}
     .badge-red{background:var(--red-lo);color:var(--red);border:1px solid var(--red-mid)}
@@ -62,64 +63,109 @@
         <a href="/reel.html" style="color:var(--t2);font-size:13px;text-decoration:none">← Back to app</a>
       </div>
       <div class="sub" id="admin-user"></div>
-
       <div class="stats" id="stats"></div>
 
-      <div class="card">
-        <div class="card-head">
-          <h2>Users</h2>
-          <input class="search" id="search" placeholder="Search email or owner..." oninput="renderTable()">
-        </div>
-        <div style="overflow-x:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Owner ID</th>
-                <th>Status</th>
-                <th>Membership</th>
-                <th>Tier</th>
-                <th>Videos</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
-      <div class="card" style="margin-top:20px">
-        <div class="card-head">
-          <h2>🔍 Bulk Re-analyze Videos</h2>
-        </div>
-        <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-          <p style="color:var(--t2);font-size:13px;line-height:1.6">Re-runs full AI analysis on stored transcripts. Updates summary, key points, quotes, and <strong style="color:#fff">adds credibility scoring</strong> to all matching videos. Leave the tab open — processes ~1 video/second.</p>
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;background:var(--s2);border-radius:10px;padding:4px;border:1px solid var(--b)">
+        <button onclick="showTab('users')" id="tab-users" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;background:var(--acc);color:#fff">Users</button>
+        <button onclick="showTab('shares')" id="tab-shares" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Share Activity</button>
+        <button onclick="showTab('bulk')" id="tab-bulk" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Bulk Re-analyze</button>
+      </div>
 
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <div>
-              <label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Owner (blank = all)</label>
-              <input id="bulk-owner" placeholder="e.g. dave" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;outline:none;width:160px">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:18px">
-              <input type="checkbox" id="bulk-missing" checked style="width:14px;height:14px;cursor:pointer">
-              <label for="bulk-missing" style="font-size:13px;color:var(--t2);cursor:pointer">Only videos missing credibility score</label>
-            </div>
+      <!-- USERS TAB -->
+      <div id="pane-users">
+        <div class="card">
+          <div class="card-head">
+            <h2>Users</h2>
+            <input class="search" id="search" placeholder="Search email or owner..." oninput="renderTable()">
           </div>
-
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn-acc" onclick="startBulkReanalyze()" style="padding:8px 18px;font-size:13px;font-weight:600">▶ Start Bulk Re-analyze</button>
-            <button class="btn-red" onclick="stopBulk()" style="padding:8px 14px;font-size:13px">■ Stop</button>
-            <span id="bulk-pct" style="font-size:12px;color:var(--t3)">0/0 (0%)</span>
-          </div>
-
-          <div>
-            <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:8px">
-              <div id="bulk-bar-fill" style="height:100%;background:var(--acc);border-radius:3px;width:0%;transition:width .3s"></div>
-            </div>
-            <p id="bulk-status" style="font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace">Ready</p>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th><th>Owner ID</th><th>Status</th><th>Membership</th><th>Tier</th><th>Videos</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+
+      <!-- SHARE ACTIVITY TAB -->
+      <div id="pane-shares" style="display:none">
+        <div class="card">
+          <div class="card-head">
+            <h2>📤 Share Activity</h2>
+            <button onclick="loadShares()" class="btn-acc" style="padding:6px 14px;font-size:12px">Refresh</button>
+          </div>
+          <div style="padding:16px">
+            <div id="shares-loading" style="color:var(--t2);font-size:13px">Loading share data...</div>
+            <div id="shares-content" style="display:none">
+              <div style="overflow-x:auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Video</th><th>Shared By</th><th>Views</th><th>Signups</th><th>Last Viewed</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shares-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-head"><h2>Recent Share Views</h2></div>
+          <div style="padding:16px">
+            <div id="views-content" style="display:none">
+              <div style="overflow-x:auto">
+                <table>
+                  <thead>
+                    <tr><th>Time</th><th>Video</th><th>Shared By</th><th>Signed Up As</th></tr>
+                  </thead>
+                  <tbody id="views-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BULK RE-ANALYZE TAB -->
+      <div id="pane-bulk" style="display:none">
+        <div class="card">
+          <div class="card-head"><h2>🔍 Bulk Re-analyze Videos</h2></div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <p style="color:var(--t2);font-size:13px;line-height:1.6">Re-runs full AI analysis on stored transcripts. Updates summary, key points, quotes, and <strong style="color:#fff">adds credibility scoring</strong> to all matching videos. Leave the tab open — processes ~1 video/second.</p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <div>
+                <label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Owner (blank = all)</label>
+                <input id="bulk-owner" placeholder="e.g. dave" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;outline:none;width:160px">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:18px">
+                <input type="checkbox" id="bulk-missing" checked style="width:14px;height:14px;cursor:pointer">
+                <label for="bulk-missing" style="font-size:13px;color:var(--t2);cursor:pointer">Only videos missing credibility score</label>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn-acc" onclick="startBulkReanalyze()" style="padding:8px 18px;font-size:13px;font-weight:600">▶ Start Bulk Re-analyze</button>
+              <button class="btn-red" onclick="stopBulk()" style="padding:8px 14px;font-size:13px">■ Stop</button>
+              <span id="bulk-pct" style="font-size:12px;color:var(--t3)">0/0 (0%)</span>
+            </div>
+            <div>
+              <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:8px">
+                <div id="bulk-bar-fill" style="height:100%;background:var(--acc);border-radius:3px;width:0%;transition:width .3s"></div>
+              </div>
+              <p id="bulk-status" style="font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace">Ready</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div> <!-- /wrap -->
+  </div> <!-- /app -->
 
   <!-- Edit User Modal -->
   <div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:20px">
@@ -411,6 +457,74 @@ Return ONLY valid JSON:
       bulkRunning = false;
       setStatus(`✓ Done — ${done} updated, ${errors} errors`);
       setProgress(total, total);
+    }
+
+    function showTab(name) {
+      ["users","shares","bulk"].forEach(t => {
+        document.getElementById(`pane-${t}`).style.display = t === name ? "" : "none";
+        const btn = document.getElementById(`tab-${t}`);
+        btn.style.background = t === name ? "var(--acc)" : "transparent";
+        btn.style.color = t === name ? "#fff" : "var(--t2)";
+        btn.style.fontWeight = t === name ? "600" : "500";
+      });
+      if (name === "shares") loadShares();
+    }
+
+    async function loadShares() {
+      document.getElementById("shares-loading").style.display = "block";
+      document.getElementById("shares-content").style.display = "none";
+      document.getElementById("views-content").style.display = "none";
+
+      try {
+        // Get all share views joined with video titles
+        const views = await sb.from("reel_share_views").select("*").order("viewed_at", { ascending: false }).limit(200);
+        const shareData = views.data || [];
+
+        // Get unique video IDs to fetch titles
+        const videoIds = [...new Set(shareData.map(v => v.video_id))];
+        const videos = videoIds.length ? (await sb.from("youtube_videos").select("id,title,owner").in("id", videoIds)).data || [] : [];
+        const videoMap = Object.fromEntries(videos.map(v => [v.id, v]));
+
+        // Group by video_id for summary
+        const byVideo = {};
+        shareData.forEach(v => {
+          if (!byVideo[v.video_id]) byVideo[v.video_id] = { owner: v.owner, views: 0, signups: [], lastViewed: null };
+          byVideo[v.video_id].views++;
+          if (v.signed_up_as) byVideo[v.video_id].signups.push(v.signed_up_as);
+          if (!byVideo[v.video_id].lastViewed || v.viewed_at > byVideo[v.video_id].lastViewed) byVideo[v.video_id].lastViewed = v.viewed_at;
+        });
+
+        // Render summary table
+        const tbody = document.getElementById("shares-tbody");
+        tbody.innerHTML = Object.entries(byVideo).sort((a,b) => b[1].views - a[1].views).map(([vid, d]) => {
+          const vInfo = videoMap[vid];
+          return `<tr>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${vInfo?.title || vid}</td>
+            <td><span class="badge">${d.owner}</span></td>
+            <td>${d.views}</td>
+            <td>${d.signups.length > 0 ? d.signups.map(s => `<span class="badge badge-ok">${s}</span>`).join(" ") : "<span style='color:var(--t3)'>0</span>"}</td>
+            <td style="font-size:11px;color:var(--t3)">${d.lastViewed ? new Date(d.lastViewed).toLocaleDateString() : ""}</td>
+          </tr>`;
+        }).join("") || "<tr><td colspan='5' style='color:var(--t3);text-align:center;padding:20px'>No shares yet</td></tr>";
+
+        // Render recent views
+        const viewsTbody = document.getElementById("views-tbody");
+        viewsTbody.innerHTML = shareData.slice(0, 50).map(v => {
+          const vInfo = videoMap[v.video_id];
+          return `<tr>
+            <td style="font-size:11px;color:var(--t3)">${new Date(v.viewed_at).toLocaleString()}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${vInfo?.title || v.video_id}</td>
+            <td><span class="badge">${v.owner}</span></td>
+            <td>${v.signed_up_as ? `<span class="badge badge-ok">${v.signed_up_as}</span>` : "<span style='color:var(--t3)'>—</span>"}</td>
+          </tr>`;
+        }).join("") || "<tr><td colspan='4' style='color:var(--t3);text-align:center;padding:20px'>No views yet</td></tr>";
+
+        document.getElementById("shares-loading").style.display = "none";
+        document.getElementById("shares-content").style.display = "block";
+        document.getElementById("views-content").style.display = "block";
+      } catch(e) {
+        document.getElementById("shares-loading").textContent = "Error loading: " + e.message;
+      }
     }
 
     function stopBulk() { bulkRunning = false; setStatus("Stopped."); }
