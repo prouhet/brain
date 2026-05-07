@@ -64,6 +64,31 @@
   </div>
 
   <div class="logo">Reel<span>Call</span></div>
+  <div class="card" id="card-homescreen" style="display:none">
+    <p class="card-title">📱 Add ReelCall to Your Home Screen</p>
+    <p class="card-sub">ReelCall works like a native app — add it to your home screen for one-tap access.</p>
+
+    <div style="background:var(--s2);border-radius:10px;padding:16px;margin-bottom:12px">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🍎 iPhone (Safari)</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Safari</li>
+        <li style="font-size:13px;color:var(--t2)">Tap the <strong>Share icon</strong> (square with up arrow) at the bottom</li>
+        <li style="font-size:13px;color:var(--t2)">Scroll down and tap <strong>Add to Home Screen</strong></li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add</strong></li>
+      </ol>
+    </div>
+
+    <div style="background:var(--s2);border-radius:10px;padding:16px">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🌍 Android (Chrome)</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Chrome</li>
+        <li style="font-size:13px;color:var(--t2)">Tap the <strong>3-dot menu</strong> (top right)</li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add / Install</strong></li>
+      </ol>
+    </div>
+  </div>
+
 
   <!-- Username Card -->
   <div class="card" id="card-username" style="display:none">
@@ -114,30 +139,6 @@
   </div>
 
   <!-- Home Screen Install Card -->
-  <div class="card" id="card-homescreen" style="display:none">
-    <p class="card-title">📱 Add ReelCall to Your Home Screen</p>
-    <p class="card-sub">ReelCall works like a native app — add it to your home screen for one-tap access.</p>
-
-    <div style="background:var(--s2);border-radius:10px;padding:16px;margin-bottom:12px">
-      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🍎 iPhone (Safari)</p>
-      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
-        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Safari</li>
-        <li style="font-size:13px;color:var(--t2)">Tap the <strong>Share icon</strong> (square with up arrow) at the bottom</li>
-        <li style="font-size:13px;color:var(--t2)">Scroll down and tap <strong>Add to Home Screen</strong></li>
-        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add</strong></li>
-      </ol>
-    </div>
-
-    <div style="background:var(--s2);border-radius:10px;padding:16px">
-      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🌍 Android (Chrome)</p>
-      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
-        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Chrome</li>
-        <li style="font-size:13px;color:var(--t2)">Tap the <strong>3-dot menu</strong> (top right)</li>
-        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
-        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add / Install</strong></li>
-      </ol>
-    </div>
-  </div>
 
   <div id="msg-loading" class="user-badge">Loading your settings...</div>
 
@@ -161,10 +162,10 @@
       document.getElementById("msg-loading").style.display = "none";
       document.getElementById("disp-email").value = user.email || "";
       document.getElementById("new-username").value = profile?.owner || "";
+      document.getElementById("card-homescreen").style.display = "block";
       document.getElementById("card-username").style.display = "block";
       document.getElementById("card-password").style.display = "block";
       document.getElementById("card-signout").style.display = "block";
-      document.getElementById("card-homescreen").style.display = "block";
     }
 
     function togglePw(id, btn) {
