@@ -166,6 +166,7 @@
       const isPaid = !!profile.stripe_subscription_id;
       const videosCapacity = profile.videos_capacity || 10;
       const videosUsed = profile.videos_added || 0;
+      // Note: MEMBERSHIP.videosUsed gets updated to actual library count after videos load
       const qaExpiresAt = profile.qa_expires_at ? new Date(profile.qa_expires_at) : new Date(Date.now() + 60 * 86400000);
       const daysLeft = Math.ceil((qaExpiresAt - Date.now()) / 86400000);
 
@@ -3167,7 +3168,12 @@ Answer questions accurately and specifically based on the content above.`,
           setAuthState("ok");
           sbLoad()
             .then((rows) => {
-              setVideos((rows || []).map(fromDb));
+              const mapped = (rows || []).map(fromDb);
+              setVideos(mapped);
+              // Sync videosUsed to actual count to prevent drift
+              if (MEMBERSHIP && !MEMBERSHIP.isPrivileged) {
+                MEMBERSHIP.videosUsed = mapped.length;
+              }
               const returnTo = sessionStorage.getItem("reelcall_return_to");
               if (returnTo && returnTo.includes("?share=")) {
                 sessionStorage.removeItem("reelcall_return_to");
@@ -3250,8 +3256,8 @@ Answer questions accurately and specifically based on the content above.`,
                 <div style={{ fontSize: 11, color: MEMBERSHIP.daysLeft <= 7 ? "var(--warn)" : "var(--t2)", fontWeight: 600 }}>
                   ⏱ {MEMBERSHIP.daysLeft}d membership left
                 </div>
-                <div style={{ fontSize: 11, color: MEMBERSHIP.videosUsed >= MEMBERSHIP.videosCapacity - 2 ? "var(--warn)" : "var(--t2)", fontWeight: 600 }}>
-                  📹 {MEMBERSHIP.videosUsed}/{MEMBERSHIP.videosCapacity} videos
+                <div style={{ fontSize: 11, color: videos.length >= MEMBERSHIP.videosCapacity - 10 ? "var(--warn)" : "var(--t2)", fontWeight: 600 }}>
+                  📹 {videos.length}/{MEMBERSHIP.videosCapacity} videos
                 </div>
               </div>
             )}
