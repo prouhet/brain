@@ -90,8 +90,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* PANELS */
 .panels{width:320px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.55);backdrop-filter:blur(6px)}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.panel-body{max-height:200px;overflow-y:auto}
-.panel-body.meal{max-height:none;overflow:visible}
+.panel-body{overflow:hidden}
+.panel-body.collapsed{max-height:168px}
+.panel-body.expanded{max-height:none}
+.expand-btn{
+  width:100%;padding:5px;border:none;background:var(--border-light);
+  font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);
+  cursor:pointer;transition:background .15s;text-align:center;
+  border-top:1px solid var(--border-light);
+}
+.expand-btn:hover{background:var(--border);color:var(--text)}
 .panel-hd{padding:9px 13px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
 .panel-label{font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .pill{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;line-height:1.5}
@@ -218,7 +226,7 @@ textarea::placeholder{color:var(--hint)}
           <span class="panel-label">🍽️ Meal Plan</span>
           <span class="pill p-m">this week</span>
         </div>
-        <div class="meal-grid panel-body meal" id="mealGrid">
+        <div class="meal-grid" id="mealGrid">
           <div class="meal-cell"><div class="meal-day">Mon</div><div class="meal-val empty">—</div></div>
           <div class="meal-cell"><div class="meal-day">Tue</div><div class="meal-val empty">—</div></div>
           <div class="meal-cell"><div class="meal-day">Wed</div><div class="meal-val empty">—</div></div>
@@ -445,6 +453,7 @@ async function loadKnowledge() {
         </div>`
       ).join('')
     ).join('');
+    maybeAddExpandBtn('knowledgeBody', items.length);
   } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
 }
 
@@ -467,6 +476,34 @@ async function deleteKnowledge(id, btn) {
     });
     loadKnowledge();
   } catch(e) { btn.textContent = '×'; }
+}
+
+function togglePanel(bodyId, btn) {
+  const body = document.getElementById(bodyId);
+  const expanded = body.classList.contains('expanded');
+  body.classList.toggle('collapsed', expanded);
+  body.classList.toggle('expanded', !expanded);
+  btn.textContent = expanded ? `Show all` : 'Show less';
+}
+
+function maybeAddExpandBtn(bodyId, itemCount) {
+  // Only add expand button if content overflows ~4 items (168px)
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  // Remove existing expand btn if any
+  const existing = body.parentElement.querySelector('.expand-btn');
+  if (existing) existing.remove();
+  if (itemCount > 3) {
+    body.classList.add('collapsed');
+    const btn = document.createElement('button');
+    btn.className = 'expand-btn';
+    btn.textContent = `Show all ${itemCount}`;
+    btn.onclick = () => togglePanel(bodyId, btn);
+    body.parentElement.appendChild(btn);
+  } else {
+    body.classList.remove('collapsed');
+    body.classList.add('expanded');
+  }
 }
 
 // ── TASKS ────────────────────────────────────────────────────────
@@ -508,6 +545,7 @@ function renderTaskPanel(bodyId, countId, items) {
       <button onclick="deleteTask('${t.id}',this)" title="Remove" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px">×</button>
     </div>`;
   }).join('');
+  maybeAddExpandBtn(bodyId, items.length);
 }
 
 async function doneTask(id, el) {
@@ -581,6 +619,7 @@ async function loadGrocery() {
         </div>`;
       }).join('')
     ).join('');
+    maybeAddExpandBtn('groceryBody', items.length);
   } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
 }
 
