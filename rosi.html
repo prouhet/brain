@@ -174,6 +174,10 @@ textarea::placeholder{color:var(--hint)}
 .btn-send{width:36px;height:36px;border-radius:50%;background:var(--text);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .btn-send:hover{opacity:.8;transform:scale(1.05)}
 .btn-send:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-mic{width:36px;height:36px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:16px}
+.btn-mic:hover{border-color:var(--accent)}
+.btn-mic.recording{background:#fef2f2;border-color:#fca5a5;animation:pulse-mic 1s infinite}
+@keyframes pulse-mic{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 @media(max-width:660px){.panels{display:none}.messages{padding:12px 14px}}
 </style>
@@ -282,6 +286,7 @@ textarea::placeholder{color:var(--hint)}
         <button class="qp" onclick="qs('What projects are on the list?')">🔨 Projects</button>
       </div>
       <div class="input-bar">
+        <button class="btn-mic" id="micBtn" onclick="toggleRecording()" title="Voice input">🎤</button>
         <textarea id="msgInput" placeholder="Ask Rosi…" rows="1"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
           oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
@@ -955,6 +960,93 @@ async function send() {
 }
 
 function qs(t) { document.getElementById('msgInput').value = t; send(); }
+
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function getDGKey() {} // no longer needed - key is in Supabase secrets
+
+async function toggleRecording() {
+  if (isRecording) stopRecording();
+  else await startRecording();
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : 'audio/ogg';
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      await transcribeAudio(mimeType);
+    };
+    mediaRecorder.start(100);
+    isRecording = true;
+    const btn = document.getElementById('micBtn');
+    btn.textContent = '⏹';
+    btn.classList.add('recording');
+    btn.title = 'Tap to stop';
+  } catch(e) {
+    alert('Microphone access denied — please allow mic access and try again.');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  isRecording = false;
+  const btn = document.getElementById('micBtn');
+  btn.textContent = '⏳';
+  btn.classList.remove('recording');
+}
+
+async function transcribeAudio(mimeType) {
+  const btn = document.getElementById('micBtn');
+  try {
+    const audioBlob = new Blob(audioChunks, { type: mimeType });
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording');
+
+    const resp = await fetch(
+      'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/transcribe',
+      {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+        body: formData
+      }
+    );
+    const data = await resp.json();
+    const transcript = data?.transcript
+      || data?.results?.channels?.[0]?.alternatives?.[0]?.transcript
+      || '';
+
+    if (transcript.trim()) {
+      const input = document.getElementById('msgInput');
+      input.value = input.value ? input.value + ' ' + transcript : transcript;
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+      input.focus();
+      setTimeout(send, 300);
+    } else {
+      addMsg('rosi', 'I didn\'t catch that — try again?');
+    }
+  } catch(e) {
+    addMsg('rosi', 'Voice transcription failed — please try again.');
+  } finally {
+    btn.textContent = '🎤';
+    btn.title = 'Voice input';
+  }
+}
+
 
 function addMsg(role, html) {
   const w = document.getElementById('messages');
