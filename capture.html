@@ -82,11 +82,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .recur-btn{font-size:12px;padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap}
 .recur-btn:hover{border-color:var(--border2);color:var(--text)}
 .recur-btn.active{border-color:rgba(37,99,196,0.6);background:var(--blue-dim);color:#7aaaf0;box-shadow:0 0 0 1px rgba(37,99,196,0.2)}
-/* When row — tighter chips to fit all 7 days on one line */
 .when-btns{gap:4px}
 .when-btns .recur-btn{font-size:11px;padding:4px 7px}
 .when-btns .recur-btn.today-chip{border-color:rgba(255,255,255,0.2);color:var(--text)}
-/* Custom recur/when inputs */
 .custom-recur{display:none;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
 .custom-recur.show{display:flex}
 .custom-recur input[type="number"]{width:56px;padding:5px 8px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;text-align:center}
@@ -185,9 +183,7 @@ textarea::placeholder{color:var(--text-faint)}
   <!-- When row (only shows when Task selected) -->
   <div class="recurring-row hidden" id="when-row">
     <div class="row-label">When?</div>
-    <div class="recur-btns when-btns" id="when-btns">
-      <!-- populated dynamically based on current day of week -->
-    </div>
+    <div class="recur-btns when-btns" id="when-btns"></div>
     <div class="custom-recur" id="custom-when">
       <input type="date" id="custom-when-date" onchange="onCustomWhenChange(this)">
     </div>
@@ -278,6 +274,7 @@ textarea::placeholder{color:var(--text-faint)}
 </div>
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
+const DEEPGRAM_KEY = 'PASTE_YOUR_NEW_DEEPGRAM_KEY_HERE';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -325,7 +322,6 @@ function setType(type, btn) {
 
 // ── Tier override ─────────────────────────────────────────────
 function setTier(tier, btn) {
-  // Toggle off if already selected
   if (currentTier === tier) {
     currentTier = 0;
     document.querySelectorAll('#priority-row .recur-btn').forEach(b => b.classList.remove('active'));
@@ -347,26 +343,16 @@ function setScope(scope, btn) {
 let whenChipsData = [];
 
 function buildWhenChips() {
-  const now = new Date();
-  now.setHours(12, 0, 0, 0);
+  const now = new Date(); now.setHours(12, 0, 0, 0);
   const DAY = ['Su','M','Tu','W','Th','F','Sa'];
-
   const chips = [{ label:'None', val:'none', isToday:false }];
-
-  // Today + next 6 days = 7 day chips
   for (let offset = 0; offset <= 6; offset++) {
-    const d = new Date(now);
-    d.setDate(now.getDate() + offset);
-    chips.push({
-      label: DAY[d.getDay()],
-      val: offset === 0 ? 'today' : `+${offset}d`,
-      isToday: offset === 0,
-    });
+    const d = new Date(now); d.setDate(now.getDate() + offset);
+    chips.push({ label: DAY[d.getDay()], val: offset === 0 ? 'today' : `+${offset}d`, isToday: offset === 0 });
   }
-
   chips.push(
-    { label:'2wk', val:'2w',    isToday:false },
-    { label:'1mo', val:'1m',    isToday:false },
+    { label:'2wk', val:'2w', isToday:false },
+    { label:'1mo', val:'1m', isToday:false },
     { label:'Custom…', val:'custom', isToday:false },
   );
   return chips;
@@ -516,9 +502,8 @@ function stripKeywordPrefix(text) {
   return t.trim();
 }
 
-// ── Voice (Deepgram Nova-2) ───────────────────────────────────
+// ── Voice (Deepgram Nova-2 — direct REST) ─────────────────────
 function getBestMimeType() {
-  // Try types in order — Android needs ogg or plain webm, iOS needs mp4
   const types = [
     'audio/webm;codecs=opus',
     'audio/ogg;codecs=opus',
@@ -529,25 +514,22 @@ function getBestMimeType() {
   for (const t of types) {
     try { if (MediaRecorder.isTypeSupported(t)) return t; } catch {}
   }
-  return ''; // let browser choose
+  return '';
 }
 
 async function toggleMic() {
   const micBtn = document.getElementById('mic-btn');
 
-  // Stop recording if active
   if (isRecording) {
     mediaRecorder?.stop();
     return;
   }
 
-  if (!KEY) { showToast('No key in URL','error'); return; }
-
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch {
-    showToast('Microphone access denied','error');
+    showToast('Microphone access denied', 'error');
     return;
   }
 
@@ -557,11 +539,10 @@ async function toggleMic() {
   try {
     mediaRecorder = mimeType
       ? new MediaRecorder(stream, { mimeType })
-      : new MediaRecorder(stream); // let browser pick
+      : new MediaRecorder(stream);
   } catch {
-    // Construction failed — fall back to no options
     try { mediaRecorder = new MediaRecorder(stream); }
-    catch { showToast('Recording not supported on this device','error'); stream.getTracks().forEach(t => t.stop()); return; }
+    catch { showToast('Recording not supported on this device', 'error'); stream.getTracks().forEach(t => t.stop()); return; }
   }
 
   const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
@@ -573,35 +554,55 @@ async function toggleMic() {
   mediaRecorder.onstop = async () => {
     isRecording = false;
     micBtn.classList.remove('recording');
-    micBtn.classList.add('processing');
     stream.getTracks().forEach(t => t.stop());
 
+    const blob = new Blob(audioChunks, { type: actualMime });
+    if (blob.size < 1000) {
+      showToast('No audio captured — try holding longer', 'error');
+      return;
+    }
+
+    micBtn.classList.add('processing');
+    micBtn.title = 'Transcribing…';
+
     try {
-      const blob = new Blob(audioChunks, { type: actualMime });
-      const res  = await fetch(`${API_BASE}/transcribe?key=${encodeURIComponent(KEY)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': actualMime },
-        body: blob,
-      });
+      const res = await fetch(
+        'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en-US',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Token ' + DEEPGRAM_KEY,
+            'Content-Type': actualMime,
+          },
+          body: blob,
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.err_msg || `Deepgram ${res.status}`);
+      }
       const data = await res.json();
-      if (data.transcript) {
+      const transcript = data?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() || '';
+      if (transcript) {
         const ta = document.getElementById('content');
         const existing = ta.value.trim();
-        ta.value = existing ? existing + ' ' + data.transcript : data.transcript;
+        ta.value = existing ? existing + ' ' + transcript : transcript;
         applyKeywordOverrides(ta.value);
       } else {
-        showToast('No speech detected — try again','error');
+        showToast('No speech detected — try again', 'error');
       }
-    } catch {
-      showToast('Transcription failed — try again','error');
+    } catch (err) {
+      showToast('Transcription error: ' + err.message, 'error');
     } finally {
       micBtn.classList.remove('processing');
+      micBtn.title = 'Voice input';
     }
   };
 
-  mediaRecorder.start(250); // 250ms timeslice — ensures Android collects audio throughout, not just on stop
+  mediaRecorder.start(250);
   isRecording = true;
   micBtn.classList.add('recording');
+  micBtn.title = 'Tap to stop';
 }
 
 // ── Capture ───────────────────────────────────────────────────
@@ -648,7 +649,6 @@ async function capture() {
     showToast(msg+taskHtml,'success');
     loadRecent();
 
-    // Reset after capture
     setRecur('none', document.querySelector('.recur-btn[data-recur="none"]'));
     setWhen('none', document.querySelector('.when-btns .recur-btn[data-when="none"]'));
     document.getElementById('custom-when-date').value = '';
@@ -689,11 +689,11 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   updatePlaceholder();
-  renderWhenChips(); // build day chips based on today
+  renderWhenChips();
   loadRecent();
   const ta=document.getElementById('content');
   ta.addEventListener('input',()=>applyKeywordOverrides(ta.value));
-  ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();capture();} });
+  ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlCmd)){e.preventDefault();capture();} });
 });
 </script>
 </body>
