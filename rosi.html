@@ -990,7 +990,7 @@ async function startRecording() {
       stream.getTracks().forEach(t => t.stop());
       await transcribeAudio(mimeType);
     };
-    mediaRecorder.start(100);
+    mediaRecorder.start(250); // collect chunks every 250ms so onstop has data
     isRecording = true;
     const btn = document.getElementById('micBtn');
     btn.textContent = '⏹';
@@ -1013,6 +1013,13 @@ async function transcribeAudio(mimeType) {
   const btn = document.getElementById('micBtn');
   try {
     const audioBlob = new Blob(audioChunks, { type: mimeType });
+
+    if (audioBlob.size < 1000) {
+      addMsg('rosi', 'No audio captured — tap 🎤 and try speaking again.');
+      btn.textContent = '🎤'; btn.title = 'Voice input';
+      return;
+    }
+
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording');
 
