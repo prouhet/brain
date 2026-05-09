@@ -179,7 +179,18 @@ textarea::placeholder{color:var(--hint)}
 .btn-mic.recording{background:#fef2f2;border-color:#fca5a5;animation:pulse-mic 1s infinite}
 @keyframes pulse-mic{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-@media(max-width:660px){.panels{display:none}.messages{padding:12px 14px}}
+@media(max-width:660px){
+  .panels{display:none}
+  .messages{padding:12px 14px}
+}
+
+/* Mobile drawer */
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;backdrop-filter:blur(2px)}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-radius:20px 20px 0 0;z-index:51;max-height:85dvh;overflow-y:auto;padding:0 12px 32px;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.drawer.open{transform:translateY(0)}
+.drawer-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 14px;cursor:pointer}
+@media(min-width:661px){.drawer-overlay,.drawer,.btn-panels{display:none!important}}
 </style>
 </head>
 <body>
@@ -215,11 +226,19 @@ textarea::placeholder{color:var(--hint)}
     </div>
     <div class="hd-r">
       <div class="who-badge" id="whoBadge" onclick="switchUser()"></div>
+      <button class="btn-sm btn-panels" onclick="openDrawer()">☰ Panels</button>
       <button class="btn-sm" onclick="refreshAll()">↻ Refresh</button>
     </div>
   </header>
 
   <div id="reminders"></div>
+
+  <!-- Mobile drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-handle" onclick="closeDrawer()"></div>
+    <div id="drawerPanels"></div>
+  </div>
 
   <div class="main">
     <div class="panels">
@@ -960,6 +979,31 @@ async function send() {
 }
 
 function qs(t) { document.getElementById('msgInput').value = t; send(); }
+
+function openDrawer() {
+  // Clone sidebar panels into drawer
+  const src = document.querySelector('.panels');
+  const dest = document.getElementById('drawerPanels');
+  dest.innerHTML = src.innerHTML;
+  // Wire up onclick handlers lost in clone
+  dest.querySelectorAll('[onclick]').forEach(el => {
+    const fn = el.getAttribute('onclick');
+    el.onclick = () => eval(fn); // eslint-disable-line no-eval
+  });
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+  document.body.style.overflow = '';
+  // Refresh real panels after drawer interactions
+  refreshAll();
+}
+
+
 
 let mediaRecorder = null;
 let audioChunks = [];
