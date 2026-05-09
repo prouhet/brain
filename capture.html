@@ -274,7 +274,6 @@ textarea::placeholder{color:var(--text-faint)}
 </div>
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
-const DEEPGRAM_KEY = 'PASTE_YOUR_NEW_DEEPGRAM_KEY_HERE';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -567,22 +566,19 @@ async function toggleMic() {
 
     try {
       const res = await fetch(
-        'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en-US',
+        `${API_BASE}/transcribe?key=${encodeURIComponent(KEY)}`,
         {
           method: 'POST',
-          headers: {
-            'Authorization': 'Token ' + DEEPGRAM_KEY,
-            'Content-Type': actualMime,
-          },
+          headers: { 'Content-Type': actualMime },
           body: blob,
         }
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.err_msg || `Deepgram ${res.status}`);
+        throw new Error(err.error || `Transcribe ${res.status}`);
       }
       const data = await res.json();
-      const transcript = data?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() || '';
+      const transcript = (data.transcript || '').trim();
       if (transcript) {
         const ta = document.getElementById('content');
         const existing = ta.value.trim();
