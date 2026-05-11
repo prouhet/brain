@@ -221,6 +221,23 @@ textarea::placeholder{color:var(--hint)}
 .completed-meta{font-size:10px;color:var(--hint);white-space:nowrap}
 .undo-btn{padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-family:'DM Sans',sans-serif;font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
 .undo-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Edit task modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;backdrop-filter:blur(2px);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:320px;max-width:90vw;display:flex;flex-direction:column;gap:12px}
+.modal-title{font-size:14px;font-weight:600}
+.modal-field{display:flex;flex-direction:column;gap:4px}
+.modal-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.modal select,.modal input[type=date],.modal input[type=number]{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--surface);outline:none;width:100%}
+.modal select:focus,.modal input:focus{border-color:var(--accent)}
+.modal-row{display:flex;gap:8px}
+.modal-row .modal-field{flex:1}
+.modal-btns{display:flex;gap:8px;margin-top:4px}
+.modal-btn{flex:1;padding:9px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);transition:all .15s}
+.modal-btn.primary{background:var(--text);color:#fff;border-color:var(--text)}
+.modal-btn.primary:hover{opacity:.85}
+.modal-btn:not(.primary):hover{border-color:var(--accent);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -262,6 +279,46 @@ textarea::placeholder{color:var(--hint)}
   </header>
 
   <div id="reminders"></div>
+
+  <!-- Edit task modal -->
+  <div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeEditModal()">
+    <div class="modal">
+      <div class="modal-title" id="editModalTitle">Edit Task</div>
+      <div class="modal-field">
+        <div class="modal-label">Due Date</div>
+        <input type="date" id="editDueDate">
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <div class="modal-label">Recurrence</div>
+          <select id="editRecurrence">
+            <option value="">None</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Biweekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">Every N</div>
+          <input type="number" id="editInterval" min="1" max="52" value="1" placeholder="1">
+        </div>
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">Assigned To</div>
+        <select id="editAssignedTo">
+          <option value="">Anyone</option>
+          <option value="Dave">Dave</option>
+          <option value="Rosi">Rosi</option>
+          <option value="Alexa">Alexa</option>
+        </select>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn" onclick="closeEditModal()">Cancel</button>
+        <button class="modal-btn primary" onclick="saveEditTask()">Save</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Mobile drawer -->
   <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
@@ -604,7 +661,9 @@ function renderTaskPanel(bodyId, countId, items) {
     const overdue = dueD && dueD < today;
     const dueStr = dueD ? dueD.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
     const due = dueD ? `<span style="font-size:10px;color:${overdue?'#991b1b':'var(--muted)'}">${overdue?'⚠ ':''} ${dueStr}</span>` : '';
-    const skipBtn = t.recurrence ? `<button onclick="skipTask('${t.id}')" title="Skip this cycle" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:11px;padding:0 4px;border-radius:4px;white-space:nowrap;transition:color .15s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--hint)'">skip</button>` : '';
+    const skipBtn = t.recurrence
+      ? `<button onclick="skipTask('${t.id}')" title="Skip this cycle" style="flex-shrink:0;border:none;background:var(--border-light);cursor:pointer;color:var(--muted);font-size:10px;padding:2px 7px;border-radius:6px;white-space:nowrap;transition:all .15s;font-family:'DM Sans',sans-serif" onmouseover="this.style.background='var(--accent-bg)';this.style.color='var(--accent)'" onmouseout="this.style.background='var(--border-light)';this.style.color='var(--muted)'">skip</button>`
+      : '';
     const subtaskToggle = t.task_type === 'project'
       ? `<button class="subtask-toggle" onclick="toggleSubtasks('${t.id}',this)">▸ steps</button>`
       : '';
@@ -612,7 +671,7 @@ function renderTaskPanel(bodyId, countId, items) {
       <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
         <div class="check-circle" title="Mark done"></div>
         <div style="flex:1;min-width:0">
-          <div class="row-text">${esc(t.title)}</div>
+          <div class="row-text" style="cursor:pointer" onclick="openEditTask('${t.id}')" title="Edit task">${esc(t.title)}</div>
           ${t.description?`<div class="row-note">${esc(t.description)}</div>`:''}
           <div class="row-by" style="gap:4px;flex-wrap:wrap">
             <span class="pill ${prClass}" style="font-size:9px;padding:1px 5px">${t.priority}</span>
@@ -620,7 +679,7 @@ function renderTaskPanel(bodyId, countId, items) {
           </div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         ${skipBtn}
         <button onclick="deleteTask('${t.id}',this)" title="Remove" style="border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px">×</button>
       </div>
@@ -689,6 +748,46 @@ async function undoTask(id, taskType, btn) {
     loadTasks();
   } catch(e) { btn.textContent = '↩ Undo'; }
 }
+
+// ── EDIT TASK MODAL ───────────────────────────────────────────
+let editingTaskId = null;
+
+function openEditTask(id) {
+  const task = [...tasksCache.housekeeping, ...tasksCache.project].find(t => t.id === id);
+  if (!task) return;
+  editingTaskId = id;
+  document.getElementById('editModalTitle').textContent = task.title;
+  document.getElementById('editDueDate').value = task.due_date || '';
+  document.getElementById('editRecurrence').value = task.recurrence || '';
+  document.getElementById('editInterval').value = task.recurrence_interval || 1;
+  document.getElementById('editAssignedTo').value = task.assigned_to || '';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  editingTaskId = null;
+}
+
+async function saveEditTask() {
+  if (!editingTaskId) return;
+  const btn = document.querySelector('#editModal .modal-btn.primary');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    await sbPatch('rosi_tasks', editingTaskId, {
+      due_date:            document.getElementById('editDueDate').value || null,
+      recurrence:          document.getElementById('editRecurrence').value || null,
+      recurrence_interval: parseInt(document.getElementById('editInterval').value) || 1,
+      assigned_to:         document.getElementById('editAssignedTo').value || null,
+    });
+    closeEditModal();
+    loadTasks();
+  } catch(e) {
+    btn.textContent = 'Save'; btn.disabled = false;
+  }
+}
+
+async function skipTask(id) {
   const task = [...tasksCache.housekeeping, ...tasksCache.project].find(t => t.id === id);
   if (!task) return;
   const nextDue = calcNextDue(task);
@@ -1008,8 +1107,7 @@ async function processActions(text) {
           refreshPanels.add('grocery');
           break;
 
-        case 'add_meal':
-          // Upsert meal plan entry
+        case 'add_meal': {
           const existing = await sbGet('rosi_meal_plan',
             `household_key=eq.${KEY}&week_of=eq.${action.week_of}&day_of_week=eq.${action.day}`);
           if (existing.length) {
@@ -1022,6 +1120,7 @@ async function processActions(text) {
           }
           refreshPanels.add('meals');
           break;
+        }
 
         case 'add_reminder':
           await sbPost('rosi_reminders', {
@@ -1055,14 +1154,14 @@ async function processActions(text) {
           refreshPanels.add('knowledge');
           break;
 
-        case 'clear_grocery':
-          // Mark all done items or a specific item by name
+        case 'clear_grocery': {
           if (action.item) {
-            const matches = groceryCache.filter(g => g.item.toLowerCase().includes(action.item.toLowerCase()));
-            for (const g of matches) await sbPatch('rosi_grocery', g.id, { done: true, done_by: USER, done_at: new Date().toISOString() });
+            const gMatches = groceryCache.filter(g => g.item.toLowerCase().includes(action.item.toLowerCase()));
+            for (const g of gMatches) await sbPatch('rosi_grocery', g.id, { done: true, done_by: USER, done_at: new Date().toISOString() });
           }
           refreshPanels.add('grocery');
           break;
+        }
 
         case 'add_task':
           await sbPost('rosi_tasks', {
