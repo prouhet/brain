@@ -936,37 +936,109 @@ async function loadGrocery() {
       `household_key=eq.${KEY}&done=eq.false&select=id,item,category,note,store_preference,quantity,requested_by&order=created_at.asc`);
     groceryCache = items;
     document.getElementById('groceryCount').textContent = items.length || '—';
-    if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing on the list —<br>ask Rosi to add some!</div>'; return; }
-    const g = {};
-    items.forEach(i => { const c=i.category||'Other'; (g[c]=g[c]||[]).push(i); });
-    body.innerHTML = Object.entries(g).map(([cat,arr]) =>
-      `<div class="section-cap">${esc(cat)}</div>` + arr.map(i => {
-        const bc = i.requested_by ? `mc${colorIdx(i.requested_by)}` : '';
-        const qty = i.quantity && i.quantity !== '1' ? ` (${esc(i.quantity)})` : '';
-        return `<div class="list-row" data-grocery-id="${i.id}" style="justify-content:space-between">
-          <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
-            <div class="check-circle" title="Mark as bought"></div>
-            <div style="flex:1;min-width:0">
-              <div class="row-text">${esc(i.item)}${qty}</div>
-              ${i.note?`<div class="row-note">${esc(i.note)}</div>`:''}
-              ${i.store_preference?`<div class="row-store">📍 ${esc(i.store_preference)}</div>`:''}
-              ${i.requested_by?`<div class="row-by"><span class="by-chip ${bc}">${esc(i.requested_by)}</span></div>`:''}
+    if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing on the list —<br>ask Rosi to add some!</div>'; }
+    else {
+      const g = {};
+      items.forEach(i => { const c=i.category||'Other'; (g[c]=g[c]||[]).push(i); });
+      body.innerHTML = Object.entries(g).map(([cat,arr]) =>
+        `<div class="section-cap">${esc(cat)}</div>` + arr.map(i => {
+          const bc = i.requested_by ? `mc${colorIdx(i.requested_by)}` : '';
+          const qty = i.quantity && i.quantity !== '1' ? ` (${esc(i.quantity)})` : '';
+          return `<div class="list-row" data-grocery-id="${i.id}" style="justify-content:space-between">
+            <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
+              <div class="check-circle" title="Mark as bought"></div>
+              <div style="flex:1;min-width:0">
+                <div class="row-text">${esc(i.item)}${qty}</div>
+                ${i.note?`<div class="row-note">${esc(i.note)}</div>`:''}
+                ${i.store_preference?`<div class="row-store">📍 ${esc(i.store_preference)}</div>`:''}
+                ${i.requested_by?`<div class="row-by"><span class="by-chip ${bc}">${esc(i.requested_by)}</span></div>`:''}
+              </div>
             </div>
-          </div>
-          <button onclick="deleteGrocery('${i.id}',this)" title="Remove" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px;transition:color .15s;margin-top:1px">×</button>
-        </div>`;
-      }).join('')
-    ).join('');
-    maybeAddExpandBtn('groceryBody', items.length);
-
-    // Wire circles via event delegation
-    body.querySelectorAll('.check-circle').forEach(circle => {
-      circle.addEventListener('click', function() {
-        const row = this.closest('[data-grocery-id]');
-        if (row) markGroceryDone(row.dataset.groceryId, this);
+            <button onclick="deleteGrocery('${i.id}',this)" title="Remove" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px;transition:color .15s;margin-top:1px">×</button>
+          </div>`;
+        }).join('')
+      ).join('');
+      maybeAddExpandBtn('groceryBody', items.length);
+      // Wire circles via event delegation
+      body.querySelectorAll('.check-circle').forEach(circle => {
+        circle.addEventListener('click', function() {
+          const row = this.closest('[data-grocery-id]');
+          if (row) markGroceryDone(row.dataset.groceryId, this);
+        });
       });
-    });
+    }
+
+    // Append purchased history (last 2 weeks)
+    await loadGroceryHistory();
+
   } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
+}
+
+async function loadGroceryHistory() {
+  const panel = document.getElementById('groceryBody').parentElement;
+  panel.querySelector('.completed-section')?.remove();
+
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+  try {
+    const items = await sbGet('rosi_grocery',
+      `household_key=eq.${KEY}&done=eq.true&done_at=gte.${twoWeeksAgo.toISOString()}&select=id,item,category,requested_by,done_by,done_at,created_at&order=done_at.desc&limit=40`);
+    if (!items.length) return;
+
+    // Group by purchase date
+    const byDate = {};
+    items.forEach(i => {
+      const d = new Date(i.done_at).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      (byDate[d] = byDate[d]||[]).push(i);
+    });
+
+    const section = document.createElement('div');
+    section.className = 'completed-section';
+    section.innerHTML = `
+      <div class="completed-hd" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.completed-hd-toggle').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">
+        <span class="completed-hd-label">🧾 Purchased last 2 weeks (${items.length})</span>
+        <span class="completed-hd-toggle">▼</span>
+      </div>
+      <div class="completed-body">
+        ${Object.entries(byDate).map(([date, dayItems]) => `
+          <div class="section-cap" style="padding:6px 13px 2px">${date}</div>
+          ${dayItems.map(i => {
+            const reqBy = i.requested_by ? `<span class="by-chip mc${colorIdx(i.requested_by)}" style="font-size:9px;padding:1px 5px">${esc(i.requested_by)}</span>` : '';
+            const boughtBy = i.done_by && i.done_by !== i.requested_by ? `<span style="font-size:10px;color:var(--hint)">bought by ${esc(i.done_by)}</span>` : '';
+            return `<div class="completed-row" data-grocery-id="${i.id}">
+              <div style="flex:1;min-width:0">
+                <span class="completed-text" style="text-decoration:none;color:var(--muted);font-size:12px">${esc(i.item)}</span>
+                <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">${reqBy}${boughtBy}</div>
+              </div>
+              <button class="undo-btn" onclick="undoGrocery('${i.id}',this)">↩ Re-add</button>
+            </div>`;
+          }).join('')}
+        `).join('')}
+      </div>`;
+    panel.appendChild(section);
+  } catch(e) {}
+}
+
+async function undoGrocery(id, btn) {
+  btn.textContent = '…';
+  try {
+    // Fetch original item details
+    const items = await sbGet('rosi_grocery', `id=eq.${id}&select=item,category,note,store_preference,quantity,requested_by`);
+    if (!items.length) { btn.textContent = '↩ Re-add'; return; }
+    const orig = items[0];
+    // Create a fresh entry
+    await sbPost('rosi_grocery', {
+      household_key:    KEY,
+      item:             orig.item,
+      category:         orig.category,
+      note:             orig.note,
+      store_preference: orig.store_preference,
+      quantity:         orig.quantity,
+      requested_by:     orig.requested_by
+    });
+    loadGrocery();
+  } catch(e) { btn.textContent = '↩ Re-add'; }
 }
 
 async function deleteGrocery(id, btn) {
