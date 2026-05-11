@@ -191,6 +191,23 @@ textarea::placeholder{color:var(--hint)}
 .drawer.open{transform:translateY(0)}
 .drawer-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 14px;cursor:pointer}
 @media(min-width:661px){.drawer-overlay,.drawer,.btn-panels{display:none!important}}
+.subtask-list{padding:0 13px 4px;border-top:1px solid var(--border-light);background:#fafaf8}
+.subtask-row{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border-light)}
+.subtask-row:last-child{border-bottom:none}
+.subtask-check{width:13px;height:13px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.subtask-check:hover{border-color:var(--accent)}
+.subtask-check.done{background:var(--accent);border-color:var(--accent)}
+.subtask-check.done::after{content:'';display:block;width:3px;height:6px;border:1.5px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px)}
+.subtask-text{font-size:12px;color:var(--text);flex:1;line-height:1.3}
+.subtask-text.done{text-decoration:line-through;color:var(--hint)}
+.subtask-add{display:flex;gap:6px;padding:5px 13px;border-top:1px solid var(--border-light);background:#fafaf8}
+.subtask-input{flex:1;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--surface);outline:none}
+.subtask-input:focus{border-color:var(--accent)}
+.subtask-input::placeholder{color:var(--hint)}
+.subtask-add-btn{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s}
+.subtask-add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.subtask-toggle{font-size:10px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:2px 0}
+.subtask-toggle:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -522,11 +539,42 @@ function maybeAddExpandBtn() {} // panels collapse via header click now
 async function loadTasks() {
   try {
     const items = await sbGet('rosi_tasks',
-      `household_key=eq.${KEY}&done=eq.false&select=id,title,description,task_type,priority,assigned_to,due_date,recurrence&order=priority.asc,created_at.asc`);
+      `household_key=eq.${KEY}&done=eq.false&select=id,title,description,task_type,priority,assigned_to,due_date,recurrence,recurrence_interval,created_by&order=due_date.asc.nullslast,priority.asc,created_at.asc`);
     tasksCache = { housekeeping: items.filter(t=>t.task_type==='housekeeping'), project: items.filter(t=>t.task_type==='project') };
     renderTaskPanel('hkBody','hkCount', tasksCache.housekeeping);
     renderTaskPanel('projBody','projCount', tasksCache.project);
   } catch(e) {}
+}
+
+function calcNextDue(task) {
+  // Start from existing due_date if set, otherwise today
+  const base = task.due_date ? new Date(task.due_date + 'T00:00:00') : new Date();
+  const interval = task.recurrence_interval || 1;
+  const next = new Date(base);
+  if (task.recurrence === 'daily')         next.setDate(next.getDate() + interval);
+  else if (task.recurrence === 'weekly' || task.recurrence === 'biweekly')
+                                           next.setDate(next.getDate() + (interval * 7));
+  else if (task.recurrence === 'monthly')  next.setMonth(next.getMonth() + interval);
+  // If calculated next is in the past (skipped cycles), advance until it's future
+  const today = new Date(); today.setHours(0,0,0,0);
+  while (next < today) {
+    if (task.recurrence === 'daily')       next.setDate(next.getDate() + interval);
+    else if (task.recurrence === 'weekly' || task.recurrence === 'biweekly')
+                                           next.setDate(next.getDate() + (interval * 7));
+    else if (task.recurrence === 'monthly') next.setMonth(next.getMonth() + interval);
+    else break;
+  }
+  return next.toISOString().split('T')[0];
+}
+
+function recLabel(task) {
+  if (!task.recurrence) return '';
+  const interval = task.recurrence_interval || 1;
+  if (task.recurrence === 'daily')    return interval === 1 ? 'daily' : `every ${interval} days`;
+  if (task.recurrence === 'weekly')   return interval === 1 ? 'weekly' : `every ${interval} weeks`;
+  if (task.recurrence === 'biweekly') return 'biweekly';
+  if (task.recurrence === 'monthly')  return interval === 1 ? 'monthly' : `every ${interval} months`;
+  return task.recurrence;
 }
 
 function renderTaskPanel(bodyId, countId, items) {
@@ -536,57 +584,174 @@ function renderTaskPanel(bodyId, countId, items) {
   if (!items.length) { body.innerHTML = '<div class="empty-state">Nothing here yet —<br>ask Rosi to add one!</div>'; return; }
   body.innerHTML = items.map(t => {
     const prClass = t.priority==='high'?'pr-high':t.priority==='low'?'pr-low':'pr-med';
-    const rec = t.recurrence ? `<span style="font-size:10px;color:var(--hint)">↺ ${t.recurrence}</span>` : '';
+    const rec = t.recurrence ? `<span style="font-size:10px;color:var(--hint)">↺ ${recLabel(t)}</span>` : '';
     const who = t.assigned_to ? `<span class="by-chip mc${colorIdx(t.assigned_to)}">${esc(t.assigned_to)}</span>` : '';
     const dueD = t.due_date ? new Date(t.due_date+'T00:00:00') : null;
     const today = new Date(); today.setHours(0,0,0,0);
     const overdue = dueD && dueD < today;
-    const due = dueD ? `<span style="font-size:10px;color:${overdue?'#991b1b':'var(--muted)'}">${overdue?'⚠ overdue: ':''}${dueD.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>` : '';
-    return `<div class="list-row" style="justify-content:space-between">
+    const dueStr = dueD ? dueD.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+    const due = dueD ? `<span style="font-size:10px;color:${overdue?'#991b1b':'var(--muted)'}">${overdue?'⚠ ':''} ${dueStr}</span>` : '';
+    const skipBtn = t.recurrence ? `<button onclick="skipTask('${t.id}')" title="Skip this cycle" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:11px;padding:0 4px;border-radius:4px;white-space:nowrap;transition:color .15s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--hint)'">skip</button>` : '';
+    const subtaskToggle = t.task_type === 'project'
+      ? `<button class="subtask-toggle" onclick="toggleSubtasks('${t.id}',this)">▸ steps</button>`
+      : '';
+    return `<div class="list-row" data-task-id="${t.id}" style="justify-content:space-between;flex-wrap:wrap">
       <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
-        <div class="check-circle" title="Mark done" onclick="doneTask('${t.id}',this)"></div>
+        <div class="check-circle" title="Mark done"></div>
         <div style="flex:1;min-width:0">
           <div class="row-text">${esc(t.title)}</div>
           ${t.description?`<div class="row-note">${esc(t.description)}</div>`:''}
           <div class="row-by" style="gap:4px;flex-wrap:wrap">
             <span class="pill ${prClass}" style="font-size:9px;padding:1px 5px">${t.priority}</span>
-            ${rec}${who}${due}
+            ${rec}${who}${due}${subtaskToggle}
           </div>
         </div>
       </div>
-      <button onclick="deleteTask('${t.id}',this)" title="Remove" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px">×</button>
+      <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
+        ${skipBtn}
+        <button onclick="deleteTask('${t.id}',this)" title="Remove" style="border:none;background:none;cursor:pointer;color:var(--hint);font-size:16px;padding:0 4px;line-height:1;border-radius:4px">×</button>
+      </div>
+      <div id="subtasks-${t.id}" style="display:none;width:100%;margin-top:4px"></div>
     </div>`;
   }).join('');
+
+  // Wire up circles via event delegation (avoids onclick attribute issues)
+  body.querySelectorAll('.check-circle').forEach(circle => {
+    circle.addEventListener('click', function() {
+      const row = this.closest('[data-task-id]');
+      if (row) doneTask(row.dataset.taskId, this);
+    });
+  });
+
   maybeAddExpandBtn(bodyId, items.length);
+}
+
+async function skipTask(id) {
+  const task = [...tasksCache.housekeeping, ...tasksCache.project].find(t => t.id === id);
+  if (!task) return;
+  const nextDue = calcNextDue(task);
+  try {
+    await sbPatch('rosi_tasks', id, { due_date: nextDue });
+    loadTasks();
+  } catch(e) {}
+}
+
+// ── SUBTASKS ──────────────────────────────────────────────────
+async function toggleSubtasks(taskId, btn) {
+  const container = document.getElementById(`subtasks-${taskId}`);
+  if (container.style.display !== 'none') {
+    container.style.display = 'none';
+    btn.textContent = '▸ steps';
+    return;
+  }
+  btn.textContent = '▾ steps';
+  container.style.display = 'block';
+  container.innerHTML = '<div style="font-size:11px;color:var(--hint);padding:6px 13px">Loading…</div>';
+  await renderSubtasks(taskId, container);
+}
+
+async function renderSubtasks(taskId, container) {
+  try {
+    const items = await sbGet('rosi_subtasks',
+      `task_id=eq.${taskId}&select=id,title,assigned_to,done,done_by&order=sort_order.asc,created_at.asc`);
+    const doneCount = items.filter(s=>s.done).length;
+    const total = items.length;
+    const progress = total ? `<div style="font-size:10px;color:var(--muted);padding:4px 13px 2px">${doneCount}/${total} done</div>` : '';
+    const rows = items.map(s => {
+      const who = s.assigned_to ? `<span class="subtask-who mc${colorIdx(s.assigned_to)}">${esc(s.assigned_to)}</span>` : '';
+      return `<div class="subtask-row" data-subtask-id="${s.id}">
+        <div class="subtask-check${s.done?' done':''}" title="${s.done?'Undo':'Mark done'}"></div>
+        <span class="subtask-text${s.done?' done':''}">${esc(s.title)}</span>
+        ${who}
+        <button onclick="deleteSubtask('${s.id}','${taskId}',this)" style="border:none;background:none;cursor:pointer;color:var(--hint);font-size:13px;padding:0 2px;line-height:1">×</button>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = `
+      ${progress}
+      <div class="subtask-list">${rows || '<div style="font-size:11px;color:var(--hint);padding:4px 0">No steps yet</div>'}</div>
+      <div class="subtask-add">
+        <input class="subtask-input" id="st-input-${taskId}" placeholder="Add a step…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addSubtask('${taskId}')}">
+        <button class="subtask-add-btn" onclick="addSubtask('${taskId}')">+ Add</button>
+      </div>`;
+
+    // Wire subtask checkboxes
+    container.querySelectorAll('.subtask-check').forEach(check => {
+      check.addEventListener('click', function() {
+        const row = this.closest('[data-subtask-id]');
+        if (row) toggleSubtaskDone(row.dataset.subtaskId, this, taskId);
+      });
+    });
+  } catch(e) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--hint);padding:6px 13px">Could not load steps</div>';
+  }
+}
+
+async function addSubtask(taskId) {
+  const input = document.getElementById(`st-input-${taskId}`);
+  const title = input?.value.trim();
+  if (!title) return;
+  input.value = '';
+  try {
+    await sbPost('rosi_subtasks', {
+      household_key: KEY,
+      task_id:       taskId,
+      title,
+      created_by:    USER
+    });
+    const container = document.getElementById(`subtasks-${taskId}`);
+    await renderSubtasks(taskId, container);
+  } catch(e) {}
+}
+
+async function toggleSubtaskDone(id, el, taskId) {
+  const isDone = el.classList.contains('done');
+  el.classList.toggle('done', !isDone);
+  const text = el.nextElementSibling;
+  if (text) text.classList.toggle('done', !isDone);
+  try {
+    await sbPatch('rosi_subtasks', id, isDone
+      ? { done: false, done_by: null, done_at: null }
+      : { done: true, done_by: USER, done_at: new Date().toISOString() }
+    );
+    // Refresh progress count
+    const container = document.getElementById(`subtasks-${taskId}`);
+    if (container) await renderSubtasks(taskId, container);
+  } catch(e) { el.classList.toggle('done', isDone); }
+}
+
+async function deleteSubtask(id, taskId, btn) {
+  btn.textContent = '…';
+  try {
+    await fetch(`${SB_URL}/rest/v1/rosi_subtasks?id=eq.${id}`, {
+      method: 'DELETE', headers: { ...sbHeaders, 'Prefer': 'return=minimal' }
+    });
+    const container = document.getElementById(`subtasks-${taskId}`);
+    if (container) await renderSubtasks(taskId, container);
+  } catch(e) { btn.textContent = '×'; }
 }
 
 async function doneTask(id, el) {
   el.classList.add('done');
   el.closest('.list-row').querySelector('.row-text').classList.add('done');
   try {
-    // Find the task to check if it's recurring
     const task = [...tasksCache.housekeeping, ...tasksCache.project].find(t => t.id === id);
+    await sbPatch('rosi_tasks', id, { done: true, done_by: USER, done_at: new Date().toISOString() });
     if (task?.recurrence) {
-      // Calculate next due date based on recurrence
-      const nextDue = new Date();
-      if (task.recurrence === 'daily')   nextDue.setDate(nextDue.getDate() + 1);
-      if (task.recurrence === 'weekly')  nextDue.setDate(nextDue.getDate() + 7);
-      if (task.recurrence === 'monthly') nextDue.setMonth(nextDue.getMonth() + 1);
-      // Mark done then create a fresh copy due next cycle
-      await sbPatch('rosi_tasks', id, { done: true, done_by: USER, done_at: new Date().toISOString() });
+      const nextDue = calcNextDue(task);
       await sbPost('rosi_tasks', {
-        household_key: KEY,
-        title:       task.title,
-        description: task.description,
-        task_type:   task.task_type,
-        priority:    task.priority,
-        assigned_to: task.assigned_to,
-        due_date:    nextDue.toISOString().split('T')[0],
-        recurrence:  task.recurrence,
-        created_by:  task.created_by || USER
+        household_key:        KEY,
+        title:                task.title,
+        description:          task.description,
+        task_type:            task.task_type,
+        priority:             task.priority,
+        assigned_to:          task.assigned_to,
+        due_date:             nextDue,
+        recurrence:           task.recurrence,
+        recurrence_interval:  task.recurrence_interval || 1,
+        created_by:           task.created_by || USER
       });
-    } else {
-      await sbPatch('rosi_tasks', id, { done: true, done_by: USER, done_at: new Date().toISOString() });
     }
     setTimeout(loadTasks, 600);
   } catch(e) { el.classList.remove('done'); }
@@ -617,9 +782,9 @@ async function loadGrocery() {
       `<div class="section-cap">${esc(cat)}</div>` + arr.map(i => {
         const bc = i.requested_by ? `mc${colorIdx(i.requested_by)}` : '';
         const qty = i.quantity && i.quantity !== '1' ? ` (${esc(i.quantity)})` : '';
-        return `<div class="list-row" data-id="${i.id}" style="justify-content:space-between">
+        return `<div class="list-row" data-grocery-id="${i.id}" style="justify-content:space-between">
           <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
-            <div class="check-circle" title="Mark as bought" onclick="markGroceryDone('${i.id}',this)"></div>
+            <div class="check-circle" title="Mark as bought"></div>
             <div style="flex:1;min-width:0">
               <div class="row-text">${esc(i.item)}${qty}</div>
               ${i.note?`<div class="row-note">${esc(i.note)}</div>`:''}
@@ -632,6 +797,14 @@ async function loadGrocery() {
       }).join('')
     ).join('');
     maybeAddExpandBtn('groceryBody', items.length);
+
+    // Wire circles via event delegation
+    body.querySelectorAll('.check-circle').forEach(circle => {
+      circle.addEventListener('click', function() {
+        const row = this.closest('[data-grocery-id]');
+        if (row) markGroceryDone(row.dataset.groceryId, this);
+      });
+    });
   } catch(e) { body.innerHTML = '<div class="empty-state">Could not load</div>'; }
 }
 
@@ -907,10 +1080,13 @@ ${knowledgeSummary()}
 Use your tools freely — they write directly to the household database:
 - add_grocery / remove_grocery — manage the shopping list
 - add_meal — plan dinners for the week
-- add_task — housekeeping chores or home projects
+- add_task — housekeeping chores or home projects (projects can have subtasks/steps)
 - add_reminder — time-based reminders
 - save_knowledge / update_knowledge — remember anything useful
 - web_search — search the web when you don't have the answer
+
+For projects, users can add steps/subtasks by tapping "▸ steps" in the panel.
+When someone asks to add steps to a project, tell them to tap "▸ steps" next to the project name and use the "+ Add" button, or they can tell you the steps and you can note them in the project description.
 
 RULES:
 - Always use a tool when the user asks you to add, save, remove, or remember something
@@ -1009,91 +1185,92 @@ let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 
-async function getDGKey() {} // no longer needed - key is in Supabase secrets
+async function getDGKey() {} // unused - key handled server-side
+
+function getBestMimeType() {
+  const types = ['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/webm','audio/ogg','audio/mp4'];
+  for (const t of types) {
+    try { if (MediaRecorder.isTypeSupported(t)) return t; } catch {}
+  }
+  return '';
+}
 
 async function toggleRecording() {
-  if (isRecording) stopRecording();
-  else await startRecording();
-}
+  const btn = document.getElementById('micBtn');
+  if (isRecording) { mediaRecorder?.stop(); return; }
 
-async function startRecording() {
+  let stream;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-          ? 'audio/mp4'
-          : 'audio/ogg';
-
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      await transcribeAudio(mimeType);
-    };
-    mediaRecorder.start(250); // collect chunks every 250ms so onstop has data
-    isRecording = true;
-    const btn = document.getElementById('micBtn');
-    btn.textContent = '⏹';
-    btn.classList.add('recording');
-    btn.title = 'Tap to stop';
-  } catch(e) {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
     alert('Microphone access denied — please allow mic access and try again.');
+    return;
   }
-}
 
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  isRecording = false;
-  const btn = document.getElementById('micBtn');
-  btn.textContent = '⏳';
-  btn.classList.remove('recording');
-}
+  audioChunks = [];
+  const mimeType = getBestMimeType();
 
-async function transcribeAudio(mimeType) {
-  const btn = document.getElementById('micBtn');
   try {
-    const audioBlob = new Blob(audioChunks, { type: mimeType });
+    mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  } catch {
+    try { mediaRecorder = new MediaRecorder(stream); }
+    catch { alert('Recording not supported on this device.'); stream.getTracks().forEach(t => t.stop()); return; }
+  }
 
-    if (audioBlob.size < 1000) {
-      addMsg('rosi', 'No audio captured — tap 🎤 and try speaking again.');
+  const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+
+  mediaRecorder.onstop = async () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.textContent = '⏳';
+    stream.getTracks().forEach(t => t.stop());
+
+    const blob = new Blob(audioChunks, { type: actualMime });
+    if (blob.size < 1000) {
+      addMsg('rosi', 'No audio captured — try holding longer before stopping.');
       btn.textContent = '🎤'; btn.title = 'Voice input';
       return;
     }
 
-    const resp = await fetch(
-      `https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/transcribe?key=${KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': mimeType },
-        body: audioBlob
+    try {
+      const res = await fetch(
+        `${SB_URL}/functions/v1/transcribe?key=${encodeURIComponent(KEY)}`,
+        { method: 'POST', headers: { 'Content-Type': actualMime }, body: blob }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Transcribe error ${res.status}`);
       }
-    );
-    const data = await resp.json();
-    const transcript = data?.transcript
-      || data?.results?.channels?.[0]?.alternatives?.[0]?.transcript
-      || '';
-
-    if (transcript.trim()) {
-      const input = document.getElementById('msgInput');
-      input.value = input.value ? input.value + ' ' + transcript : transcript;
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
-      input.focus();
-      setTimeout(send, 300);
-    } else {
-      addMsg('rosi', 'I didn\'t catch that — try again?');
+      const data = await res.json();
+      const transcript = (data.transcript || '').trim();
+      if (transcript) {
+        const input = document.getElementById('msgInput');
+        input.value = input.value ? input.value + ' ' + transcript : transcript;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+        input.focus();
+        setTimeout(send, 300);
+      } else {
+        addMsg('rosi', 'No speech detected — try again?');
+      }
+    } catch(e) {
+      addMsg('rosi', 'Voice transcription failed: ' + e.message);
+    } finally {
+      btn.textContent = '🎤'; btn.title = 'Voice input';
     }
-  } catch(e) {
-    addMsg('rosi', 'Voice transcription failed — please try again.');
-  } finally {
-    btn.textContent = '🎤';
-    btn.title = 'Voice input';
-  }
+  };
+
+  mediaRecorder.start(250);
+  isRecording = true;
+  btn.textContent = '⏹';
+  btn.classList.add('recording');
+  btn.title = 'Tap to stop';
 }
+
+async function startRecording() {} // unused - handled by toggleRecording
+function stopRecording() {} // unused - handled by toggleRecording
 
 
 function addMsg(role, html) {
