@@ -208,6 +208,19 @@ textarea::placeholder{color:var(--hint)}
 .subtask-add-btn:hover{border-color:var(--accent);color:var(--accent)}
 .subtask-toggle{font-size:10px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:2px 0}
 .subtask-toggle:hover{text-decoration:underline}
+.completed-section{border-top:1px solid var(--border-light)}
+.completed-hd{display:flex;align-items:center;justify-content:space-between;padding:6px 13px;cursor:pointer;user-select:none}
+.completed-hd-label{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hint)}
+.completed-hd-toggle{font-size:9px;color:var(--hint)}
+.completed-body{overflow:hidden;max-height:0;transition:max-height .25s ease}
+.completed-body.open{max-height:600px}
+.completed-row{display:flex;align-items:center;gap:8px;padding:6px 13px;border-bottom:1px solid var(--border-light);opacity:.65}
+.completed-row:last-child{border-bottom:none}
+.completed-row:hover{opacity:1;background:#fafaf8}
+.completed-text{flex:1;font-size:12px;color:var(--text);text-decoration:line-through;color:var(--muted)}
+.completed-meta{font-size:10px;color:var(--hint);white-space:nowrap}
+.undo-btn{padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-family:'DM Sans',sans-serif;font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.undo-btn:hover{border-color:var(--accent);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -624,9 +637,58 @@ function renderTaskPanel(bodyId, countId, items) {
   });
 
   maybeAddExpandBtn(bodyId, items.length);
+
+  // Append completed section
+  loadCompletedTasks(bodyId, items[0]?.task_type || (bodyId === 'hkBody' ? 'housekeeping' : 'project'));
 }
 
-async function skipTask(id) {
+async function loadCompletedTasks(bodyId, taskType) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+
+  // Remove existing completed section if any
+  body.parentElement.querySelector('.completed-section')?.remove();
+
+  // For housekeeping: last 2 weeks. For projects: all completed.
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  const cutoff = taskType === 'housekeeping' ? `&done_at=gte.${twoWeeksAgo.toISOString()}` : '';
+
+  try {
+    const items = await sbGet('rosi_tasks',
+      `household_key=eq.${KEY}&done=eq.true&task_type=eq.${taskType}${cutoff}&select=id,title,done_at,done_by,recurrence&order=done_at.desc&limit=20`);
+    if (!items.length) return;
+
+    const label = taskType === 'housekeeping' ? 'Done last 2 weeks' : 'Completed projects';
+    const section = document.createElement('div');
+    section.className = 'completed-section';
+    section.innerHTML = `
+      <div class="completed-hd" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.completed-hd-toggle').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">
+        <span class="completed-hd-label">✓ ${label} (${items.length})</span>
+        <span class="completed-hd-toggle">▼</span>
+      </div>
+      <div class="completed-body">
+        ${items.map(t => {
+          const when = t.done_at ? new Date(t.done_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+          const by = t.done_by ? ` by ${t.done_by}` : '';
+          return `<div class="completed-row" data-task-id="${t.id}">
+            <div class="completed-text">${esc(t.title)}</div>
+            <span class="completed-meta">${when}${by}</span>
+            <button class="undo-btn" onclick="undoTask('${t.id}','${taskType}',this)">↩ Undo</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    body.parentElement.appendChild(section);
+  } catch(e) {}
+}
+
+async function undoTask(id, taskType, btn) {
+  btn.textContent = '…';
+  try {
+    await sbPatch('rosi_tasks', id, { done: false, done_by: null, done_at: null });
+    loadTasks();
+  } catch(e) { btn.textContent = '↩ Undo'; }
+}
   const task = [...tasksCache.housekeeping, ...tasksCache.project].find(t => t.id === id);
   if (!task) return;
   const nextDue = calcNextDue(task);
