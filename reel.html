@@ -1459,17 +1459,17 @@ Return ONLY valid JSON (no markdown fences):
               const raw = txData.error || "";
               let msg = `Transcript error: ${raw}`;
               if (raw.includes("429") || raw.includes("Too Many Requests")) {
-                msg = "YouTube is temporarily rate limiting. Please wait a few minutes and try again.";
-              } else if (raw.includes("payment") || raw.includes("rental") || raw.includes("purchase") || raw.includes("rent") || raw.includes("buy")) {
-                msg = "This is a paid/rental YouTube Movie — captions are behind the paywall. Open the video on YouTube, click ··· → Open transcript, copy all, then use 📋 Paste Transcript.";
-              } else if (raw.includes("Requested format is not available") || raw.includes("list-formats")) {
-                msg = "This video has no accessible captions. If you can see a transcript on YouTube, copy it and use 📋 Paste Transcript instead.";
+                msg = "Servers are busy — please wait a minute and tap Retry.";
+              } else if (raw.includes("This video requires payment") || raw.includes("rental") || raw.includes("requires a purchase") || (raw.includes("payment") && raw.includes("required"))) {
+                msg = "This video requires a rental or purchase — captions can't be fetched automatically. Open on the platform, copy the transcript, then use 📋 Paste Transcript.";
+              } else if (raw.includes("Requested format is not available") || raw.includes("list-formats") || raw.includes("no subtitles") || raw.includes("No captions")) {
+                msg = "This video has no accessible captions. If you can see a transcript, copy it and use 📋 Paste Transcript instead.";
               } else if (raw.includes("private") || raw.includes("Private")) {
                 msg = "This video is private and can't be accessed.";
-              } else if (raw.includes("unavailable") || raw.includes("not available")) {
+              } else if (raw.includes("unavailable") || raw.includes("not available") || raw.includes("removed")) {
                 msg = "This video is unavailable or has been removed.";
               } else if (channelResolved?.toLowerCase() === "youtube movies") {
-                msg = "YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy, then use 📋 Paste Transcript.";
+                msg = "YouTube Movies content requires a rental or purchase — captions can't be fetched automatically.";
               }
               setErrMsg(msg);
               setStep("error"); return;
