@@ -505,7 +505,7 @@
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
               <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)" }}>ReelCall.app</h1>
-              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · personal knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
+              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · your video knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
               {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
                 const pct = Math.min(100, Math.round((MEMBERSHIP.videosUsed / MEMBERSHIP.videosCapacity) * 100));
                 const daysPct = Math.min(100, Math.round(((MEMBERSHIP.daysLeft < 0 ? 0 : MEMBERSHIP.daysLeft) / 60) * 100)); // starts full at 60 days, drains to 0
@@ -607,7 +607,7 @@
                     // AI fuzzy search
                     const videoList = videos.map((v, i) => `${i+1}. "${v.title}" — ${v.channel} — ${(v.summary||"").slice(0,100)}`).join("\n");
                     const data = await callClaude({
-                      system: "You are helping find YouTube videos in a personal knowledge base. Given a search query and a list of videos, return ONLY a JSON array of the top 5 most relevant video numbers like: [3, 7, 12, 1, 5]. No other text.",
+                      system: "You are helping find YouTube videos in a your video knowledge base. Given a search query and a list of videos, return ONLY a JSON array of the top 5 most relevant video numbers like: [3, 7, 12, 1, 5]. No other text.",
                       messages: [{ role: "user", content: `Search query: "${q}"\n\nVideos:\n${videoList}` }],
                       maxTokens: 100,
                     });
@@ -905,7 +905,7 @@
         const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
         try {
           const data = await callClaude({
-            system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.
+            system: `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.
 
 Return ONLY valid JSON (no markdown fences):
 {
@@ -1166,7 +1166,7 @@ Return ONLY valid JSON (no markdown fences):
                 body: JSON.stringify({
                   model: "claude-sonnet-4-20250514",
                   max_tokens: 2000,
-                  system: `Analyze this YouTube video transcript for a personal knowledge base. Return ONLY valid JSON:
+                  system: `Analyze this YouTube video transcript for a your video knowledge base. Return ONLY valid JSON:
 {
   "summary": "2-3 paragraph narrative arc",
   "keyPoints": ["specific fact with data/numbers", "...up to ${kpCount}"],
@@ -1382,7 +1382,7 @@ Return ONLY valid JSON (no markdown fences):
         fetchOEmbed(url).then((d) => {
           const ch = d?.author_name || "";
           setMeta({ title: d?.title || "", channel: ch, videoId });
-          if (ch.toLowerCase().includes("youtube movies")) {
+          if (ch.toLowerCase() === "youtube movies") {
             setErrMsg("YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy all, then use 📋 Paste Transcript.");
             setStep("error");
           } else if (prefillUrl) setTimeout(() => analyze(), 300);
@@ -1468,7 +1468,7 @@ Return ONLY valid JSON (no markdown fences):
                 msg = "This video is private and can't be accessed.";
               } else if (raw.includes("unavailable") || raw.includes("not available")) {
                 msg = "This video is unavailable or has been removed.";
-              } else if (channelResolved?.toLowerCase().includes("youtube movies") || raw.includes("movie")) {
+              } else if (channelResolved?.toLowerCase() === "youtube movies") {
                 msg = "YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy, then use 📋 Paste Transcript.";
               }
               setErrMsg(msg);
@@ -1529,7 +1529,7 @@ Return ONLY valid JSON (no markdown fences):
           let data;
           try {
             data = await callClaude({
-              system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.${channelNote}
+              system: `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.${channelNote}
 
 IMPORTANT DISTINCTIONS:
 - summary: The NARRATIVE ARC — what is this video about, what argument does it make, what journey does it take the viewer on. Write as flowing prose that tells the STORY of the video. Do NOT list facts here.
