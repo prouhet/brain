@@ -412,7 +412,115 @@
       transition: background 0.15s, transform 0.1s;
     }
     .btn-large:hover { background: #b03d22; transform: translateY(-1px); }
-    .free-note { line-height: 1.6;
+    .hero-gap {
+      margin-top: 28px;
+      padding: 14px 20px;
+      background: rgba(201,75,42,0.07);
+      border: 1px solid rgba(201,75,42,0.18);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--ink-mid);
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+    .hero-gap strong { color: var(--accent); font-weight: 600; }
+    .crossquery-block {
+      background: var(--ink);
+      border-radius: 10px;
+      padding: 32px;
+      margin-bottom: 40px;
+      color: #fff;
+    }
+    .crossquery-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #6a8fa8;
+      margin-bottom: 20px;
+    }
+    .crossquery-q {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 20px;
+      line-height: 1.4;
+      font-style: italic;
+    }
+    .crossquery-sources {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .crossquery-source {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: #4B8BF5;
+      background: rgba(75,139,245,0.12);
+      border: 1px solid rgba(75,139,245,0.25);
+      border-radius: 4px;
+      padding: 3px 10px;
+    }
+    .crossquery-answer {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #a8b8cc;
+      border-left: 2px solid #4B8BF5;
+      padding-left: 16px;
+      margin-bottom: 20px;
+    }
+    .crossquery-answer strong { color: #fff; font-weight: 600; }
+    .crossquery-cta {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: #4B8BF5;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .crossquery-cta:hover { color: #93c5fd; }
+    .forget-banner {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 24px;
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .forget-text {
+      flex: 1;
+      min-width: 200px;
+      font-size: 14px;
+      color: var(--ink-mid);
+      line-height: 1.6;
+    }
+    .forget-text strong { color: var(--ink); }
+    .forget-cta {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .forget-cta:hover { background: #b03d22; }
+
+        .free-note { line-height: 1.6;
       margin-top: 14px;
       font-family: 'DM Mono', monospace;
       font-size: 11px;
@@ -451,6 +559,7 @@
   <div class="hero-kicker">ReelCall · Huberman Lab</div>
   <h1>Stop Rewatching.<br><em>Start Knowing.</em></h1>
   <p class="hero-sub">The top Huberman Lab episodes — distilled to key takeaways. No filler. No timestamps. Just the science, ready to apply.</p>
+  <p class="hero-gap">This is <strong>one episode.</strong> Huberman has 200+. ReelCall lets you ask one question across all of them at once — and saves every answer.</p>
   <div class="hero-meta">
     <div class="hero-stat"><strong>10</strong> episodes</div>
     <div class="divider-dot">·</div>
@@ -815,10 +924,37 @@
 
 </section>
 
+
+<section class="episodes-section" style="padding-top:0">
+  <div class="crossquery-block">
+    <div class="crossquery-label">ReelCall · Cross-Query Demo</div>
+    <div class="crossquery-q">"What does Huberman say about combining cold exposure and exercise — and how does this affect dopamine and sleep?"</div>
+    <div class="crossquery-sources">
+      <span class="crossquery-source">Ep 01 · Sleep</span>
+      <span class="crossquery-source">Ep 02 · Dopamine</span>
+      <span class="crossquery-source">Ep 03 · Cold Exposure</span>
+      <span class="crossquery-source">Ep 07 · Muscle Growth</span>
+      <span class="crossquery-source">Ep 10 · Fitness Protocol</span>
+    </div>
+    <div class="crossquery-answer">
+      <strong>Never cold immediately after strength training.</strong> Cold within 4 hours of a hypertrophy session blocks the inflammatory response your muscles need to grow — do it before training or skip it that day.<br><br>
+      <strong>Cold between sets is a different story.</strong> Palmer cooling between exercise sets increased pull-up volume by 144% over 6 weeks. Muscle contraction enzymes only work in a narrow temperature range — strategic cooling during cardio prevents overheating without killing adaptation signals.<br><br>
+      <strong>The dopamine effect is outsized.</strong> Cold exposure raises dopamine 250% above baseline and holds it there for up to 3 hours — Huberman compares it to cocaine in magnitude, without the crash. Combined with exercise (which also releases dopamine), the neurochemical state is powerful. Adding 300mg caffeine 60–120 minutes beforehand increases dopamine receptor density in the striatum, amplifying it further.<br><br>
+      <strong>Timing protects your sleep.</strong> Cold late in the day raises core temperature when it needs to drop 1–3°F to initiate sleep. Keep cold exposure to the morning or early afternoon. The 11-minute weekly minimum still applies — spread across 2–4 sessions.
+    </div>
+    <a href="https://reelcall.app/signup.html" class="crossquery-cta">Ask your own question across all 10 episodes → Free for 60 days</a>
+  </div>
+
+  <div class="forget-banner">
+    <div class="forget-text"><strong>You read this in 5 minutes.</strong> You'll forget 80% by tomorrow. ReelCall lets you save up to 20 videos and ask one question across all of them at once — permanently queryable, any time.</div>
+    <a href="https://reelcall.app/signup.html" class="forget-cta">Make it permanent →</a>
+  </div>
+</section>
+
 <section class="bottom-section">
   <h2>Turn any video into<br>your <em>personal knowledge base.</em></h2>
   <p>Ask questions. Star key points. Cross-query across every video you've saved. Free for 60 days — no credit card.</p>
-  <a href="https://reelcall.app/signup.html" class="btn-large">Claim Your Founding Spot — Free</a>
+  <a href="https://reelcall.app/signup.html" class="btn-large">Start Free — Lock In $1/mo Forever</a>
   <p class="free-note">Free 60 days · 30 videos · then $1/mo locked forever · first 50 founding members only<br>After 50 spots the price goes to $2/mo — never offered again at $1</p>
 </section>
 
