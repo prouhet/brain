@@ -1436,7 +1436,7 @@ Return ONLY valid JSON (no markdown fences):
           let cachedAnalysis = null;
 
           try {
-            const cached = await sbReq(`youtube_videos?select=transcript,title,channel,summary,key_points,quotes,whats_new,action_suggestions,tags,duration&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
+            const cached = await sbReq(`youtube_videos?select=transcript,title,channel,summary,key_points,quotes,whats_new,action_suggestions,tags,duration,credibility&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
             if (cached?.length && cached[0].transcript) {
               transcript = cached[0].transcript;
               titleResolved = cached[0].title || titleResolved;
@@ -1452,6 +1452,7 @@ Return ONLY valid JSON (no markdown fences):
                   whatsNew: cached[0].whats_new || "",
                   actionSuggestions: cached[0].action_suggestions || [],
                   tags: cached[0].tags || [],
+                  credibility: cached[0].credibility || null,
                   duration: cached[0].duration,
                 };
               }
@@ -1560,7 +1561,8 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "quotes": ["short direct quote under 20 words", "another memorable quote", "optional third"],
   "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
   "whatsNew": "One contrarian or surprising claim from this video",
-  "actionSuggestions": ["Specific actionable step from transcript", "...up to 3"]
+  "actionSuggestions": ["Specific actionable step from transcript", "...up to 3"],
+  "credibility": { "score": "high|medium|low", "flags": ["list specific concerns if any"], "note": "one sentence — empty string if no concerns" }
 }`,
               messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}\n\nFULL TRANSCRIPT:\n${transcriptTruncated}` }],
               maxTokens: 2500,
@@ -1608,7 +1610,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       async function save() {
         if (!result || !videoId) return;
-        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], transcript: result._transcript || null, dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: result._transcript || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
