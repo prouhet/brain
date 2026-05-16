@@ -1,172 +1,129 @@
 #!/usr/bin/env python3
 """
 scripts/send_reminders.py
-
 Runs hourly via GitHub Actions.
-Asks Claude (with brain MCP) for due reminders, emails them, marks them fired.
-
-No database needed — everything lives in the brain MCP.
+Queries rosi_reminders directly from Supabase — no Claude/MCP needed.
+Emails due reminders via Postmark, marks them emailed.
 """
 
 import json
 import os
-import smtplib
-from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import urllib.request
+from datetime import datetime, timezone
 
-import anthropic
-
-BRAIN_MCP_URL = "https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/open-brain-mcp"
+SB_URL  = "https://rzkrydqtgmuyeaipronh.supabase.co"
 
 
-def get_due_reminders(client: anthropic.Anthropic, brain_key: str) -> list[dict]:
-    """Ask Claude to find due/overdue reminders in the brain."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+def get_headers(sb_key):
+    return {
+        "apikey":        sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Content-Type":  "application/json",
+    }
 
-    response = client.beta.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=500,
-        system=(
-            "You are a data helper. Search the brain for tasks tagged 'reminder' "
-            "that are due now or overdue (due time <= current time). "
-            "Return ONLY a JSON array: "
-            '[{"id":"...","text":"...","due":"YYYY-MM-DD HH:MM"}] '
-            "If none are due, return []. No markdown, no preamble."
-        ),
-        messages=[{
-            "role": "user",
-            "content": f"Current time: {now_str}. Find all due or overdue reminders."
-        }],
-        mcp_servers=[{
-            "type": "url",
-            "url": BRAIN_MCP_URL,
-            "name": "brain",
-            "authorization_token": brain_key,
-        }],
-        betas=["mcp-client-2025-04-04"],
+
+def get_due_reminders(sb_key):
+    now = datetime.now(timezone.utc).isoformat()
+    params = (
+        f"household_key=eq.drjampro"
+        f"&done=eq.false"
+        f"&due_at=lte.{now}"
+        f"&select=id,text,due_at,set_by,for_member"
+        f"&order=due_at.asc"
     )
-
-    raw = "".join(
-        block.text for block in response.content
-        if hasattr(block, "text")
-    ).replace("```json", "").replace("```", "").strip()
-
-    try:
-        items = json.loads(raw)
-        return items if isinstance(items, list) else []
-    except json.JSONDecodeError:
-        print(f"Could not parse reminder response: {raw[:200]}")
-        return []
+    url = f"{SB_URL}/rest/v1/rosi_reminders?{params}"
+    req = urllib.request.Request(url, headers=get_headers(sb_key))
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
 
 
-def mark_fired(client: anthropic.Anthropic, brain_key: str, reminder: dict) -> None:
-    """Archive the reminder so it doesn't fire again next hour."""
-    try:
-        client.beta.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=200,
-            system="You are a data helper. Archive the specified reminder in the brain.",
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"Archive/complete the reminder with id \"{reminder['id']}\" "
-                    f"(text: \"{reminder['text']}\"). It has been sent via email."
-                )
-            }],
-            mcp_servers=[{
-                "type": "url",
-                "url": BRAIN_MCP_URL,
-                "name": "brain",
-                "authorization_token": brain_key,
-            }],
-            betas=["mcp-client-2025-04-04"],
-        )
-    except Exception as e:
-        print(f"Warning: could not archive reminder {reminder['id']}: {e}")
+def mark_emailed(sb_key, reminder_id):
+    url = f"{SB_URL}/rest/v1/rosi_reminders?id=eq.{reminder_id}"
+    data = json.dumps({"emailed_at": datetime.now(timezone.utc).isoformat()}).encode()
+    headers = {**get_headers(sb_key), "Prefer": "return=minimal"}
+    req = urllib.request.Request(url, data=data, headers=headers, method="PATCH")
+    with urllib.request.urlopen(req):
+        pass
 
 
-def send_email(reminders: list[dict]) -> None:
-    """Send reminder email via Gmail SMTP."""
-    smtp_user = os.environ["SMTP_USER"]
-    smtp_pass = os.environ["SMTP_PASS"]
-    to_addrs  = [a.strip() for a in os.environ["EMAIL_TO"].split(",")]
-    from_addr = smtp_user
-
+def send_postmark(reminders, postmark_token, from_addr, to_addrs):
     count = len(reminders)
-    subject = f"⏰ Rosey: {count} reminder{'s' if count > 1 else ''} due"
+    subject = f"⏰ Rosi: {count} reminder{'s' if count > 1 else ''} due"
 
-    # Plain text body
-    lines = [f"You have {count} reminder{'s' if count > 1 else ''} due:\n"]
-    for r in reminders:
-        due_str = f"  (was due {r['due']})" if r.get("due") else ""
-        lines.append(f"  • {r['text']}{due_str}")
-    lines += ["", "Open Rosey to snooze or mark complete.", "", "— Rosey 🌻"]
-    text_body = "\n".join(lines)
-
-    # HTML body
     items_html = "".join(
-        f'<li style="margin:6px 0;">{r["text"]}'
-        + (f' <span style="color:#9a9a94;font-size:12px;">due {r["due"]}</span>' if r.get("due") else "")
+        f'<li style="margin:8px 0;font-size:14px;">'
+        f'<strong>{r["text"]}</strong>'
+        + (f' <span style="color:#9a9a94;font-size:12px;">— set by {r["set_by"]}</span>' if r.get("set_by") else "")
+        + (f'<br><span style="color:#c4c4bc;font-size:11px;">was due {r["due_at"][:16].replace("T"," ")} UTC</span>' if r.get("due_at") else "")
         + "</li>"
         for r in reminders
     )
+
     html_body = f"""
-<div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:24px">
-  <div style="font-size:22px;margin-bottom:4px">🌻 Rosey</div>
-  <div style="color:#9a9a94;font-size:13px;margin-bottom:20px">
-    {datetime.now().strftime("%A, %B %-d")}
-  </div>
+<div style="font-family:'DM Sans',Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1a1a18">
+  <div style="font-size:24px;margin-bottom:2px">🌻 Rosi</div>
+  <div style="color:#9a9a94;font-size:13px;margin-bottom:20px">{datetime.now().strftime("%A, %B %-d")}</div>
   <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 20px">
-    <div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:10px">
+    <div style="font-size:12px;font-weight:600;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
       ⏰ {count} reminder{'s' if count > 1 else ''} due
     </div>
-    <ul style="margin:0;padding-left:18px;font-size:14px;color:#1a1a18;line-height:1.6">
-      {items_html}
-    </ul>
+    <ul style="margin:0;padding-left:18px;line-height:1.6">{items_html}</ul>
   </div>
-  <div style="margin-top:16px;font-size:12px;color:#c4c4bc">
-    Open Rosey to snooze or mark complete.
+  <div style="margin-top:16px;font-size:11px;color:#c4c4bc">
+    Open Rosi to snooze or mark complete.
   </div>
-</div>
-"""
+</div>"""
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"]    = f"Rosey 🌻 <{from_addr}>"
-    msg["To"]      = ", ".join(to_addrs)
-    msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
+    text_body = (
+        f"Rosi — {count} reminder(s) due:\n\n"
+        + "\n".join(f"• {r['text']}" + (f" [{r['set_by']}]" if r.get("set_by") else "") for r in reminders)
+        + "\n\nOpen Rosi to snooze or mark complete."
+    )
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as s:
-        s.ehlo()
-        s.starttls()
-        s.login(smtp_user, smtp_pass)
-        s.sendmail(from_addr, to_addrs, msg.as_string())
+    payload = json.dumps({
+        "From":          f"Rosi 🌻 <{from_addr}>",
+        "To":            ", ".join(to_addrs),
+        "Subject":       subject,
+        "TextBody":      text_body,
+        "HtmlBody":      html_body,
+        "MessageStream": "outbound",
+    }).encode()
 
-    print(f"Email sent to {', '.join(to_addrs)}")
+    req = urllib.request.Request(
+        "https://api.postmarkapp.com/email",
+        data=payload,
+        headers={
+            "Accept":                  "application/json",
+            "Content-Type":            "application/json",
+            "X-Postmark-Server-Token": postmark_token,
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req) as resp:
+        result = json.loads(resp.read())
+        print(f"Email sent to {', '.join(to_addrs)} — MessageID: {result.get('MessageID','?')}")
 
 
 def main():
-    api_key   = os.environ["ANTHROPIC_API_KEY"]
-    brain_key = os.environ["BRAIN_KEY"]
+    sb_key         = os.environ["SUPABASE_ANON_KEY"]
+    postmark_token = os.environ["POSTMARK_TOKEN"]
+    from_addr      = os.environ.get("POSTMARK_FROM", "connect@reformed.fit")
+    to_addrs       = [a.strip() for a in os.environ["EMAIL_TO"].split(",")]
 
-    client = anthropic.Anthropic(api_key=api_key)
+    print(f"Checking reminders at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC…")
 
-    print(f"Checking reminders at {datetime.now().strftime('%Y-%m-%d %H:%M')} UTC…")
-    reminders = get_due_reminders(client, brain_key)
+    reminders = get_due_reminders(sb_key)
 
     if not reminders:
         print("No due reminders. Done.")
         return
 
-    print(f"Found {len(reminders)} due reminder(s): {[r['text'] for r in reminders]}")
-
-    send_email(reminders)
+    print(f"Found {len(reminders)}: {[r['text'] for r in reminders]}")
+    send_postmark(reminders, postmark_token, from_addr, to_addrs)
 
     for r in reminders:
-        mark_fired(client, brain_key, r)
-        print(f"Archived: {r['text']}")
+        mark_emailed(sb_key, r["id"])
+        print(f"Marked emailed: {r['text']}")
 
     print("Done.")
 
