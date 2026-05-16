@@ -518,7 +518,7 @@
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
-              <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--text)" }}>ReelCall.app</h1>
+              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 52, width: "auto", maxWidth: 180, display: "block" }} />
               <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · your video knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
               {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
                 const pct = Math.min(100, Math.round((MEMBERSHIP.videosUsed / MEMBERSHIP.videosCapacity) * 100));
@@ -3197,7 +3197,7 @@ Answer questions accurately and specifically based on the content above.`,
           <div className="preview-bar">
             {collection
               ? <a href={collectionUrl} className="back-link">← {collectionLabel}</a>
-              : <span style={{ fontSize:13, fontWeight:700, color:"#fff", letterSpacing:".04em" }}>ReelCall</span>
+              : <img src="/reelcall-logo.png" alt="ReelCall" style={{ height:32, width:"auto", filter:"brightness(0) invert(1)", opacity:0.9 }} />
             }
             <span className="preview-offer-text">
               Free {freeDays} days · {freeVideos} videos
@@ -3396,7 +3396,7 @@ Answer questions accurately and specifically based on the content above.`,
 
       if (authState === "noauth" || authState === "noprofile") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
-          <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
+          <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 56, width: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
           <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 340, lineHeight: 1.6 }}>Sign in to access your YouTube knowledge base.</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
             <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Sign In / Sign Up</a>
@@ -3407,7 +3407,7 @@ Answer questions accurately and specifically based on the content above.`,
 
       if (authState === "expired") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
-          <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
+          <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 56, width: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
           <p style={{ color: "#FBB040", fontSize: 15, maxWidth: 320 }}>Your 60-day trial has ended. Contact us to lock in $1/month.</p>
           <a href="/index.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>See Plans</a>
         </div>
@@ -3415,7 +3415,7 @@ Answer questions accurately and specifically based on the content above.`,
 
       if (authState === "inactive") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
-          <div style={{ fontFamily: "Syne,sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>ReelCall.app</div>
+          <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 56, width: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }} />
           <p style={{ color: "#F07070", fontSize: 15 }}>Your account has been deactivated. Contact us for help.</p>
         </div>
       );
