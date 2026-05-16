@@ -3,643 +3,246 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ReelCall Guide — Get the Most from Your Video Library</title>
+  <title>Settings · ReelCall</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▶</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --acc: #3B6EF5; --ok: #22C98A; --warn: #F5A623; --red: #EF4444;
+      --acc: #3B6EF5; --ok: #22C98A; --red: #EF4444; --warn: #F5A623;
       --bg: #F7F8FC; --card: #FFFFFF; --border: rgba(0,0,0,.08);
-      --ink: #0A0C10; --t2: #4A5568; --t3: #9BA3B5;
-      --s2: rgba(59,110,245,.06); --s3: rgba(0,0,0,.04);
-      --acc-lo: rgba(59,110,245,.08); --acc-mid: rgba(59,110,245,.2);
-      --ok-lo: rgba(34,201,138,.08); --ok-mid: rgba(34,201,138,.2);
-      --warn-lo: rgba(245,166,35,.08);
+      --ink: #0A0C10; --t2: #5A6478; --t3: #9BA3B5;
+      --s2: rgba(0,0,0,.04); --s3: rgba(0,0,0,.06);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Figtree', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    html, body { min-height: 100vh; font-family: 'Figtree', sans-serif; font-size: 15px; background: var(--bg); color: var(--ink); }
+    body { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
 
-    /* NAV */
-    nav { position: sticky; top: 0; z-index: 100; background: rgba(247,248,252,.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; }
-    .nav-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
-    .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; text-decoration: none; color: var(--ink); }
+    .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 28px; }
     .logo span { color: var(--acc); }
-    .nav-links { display: flex; gap: 6px; }
-    .nav-link { font-size: 12px; font-weight: 600; color: var(--t2); text-decoration: none; padding: 5px 10px; border-radius: 6px; transition: all .15s; white-space: nowrap; }
-    .nav-link:hover { background: var(--acc-lo); color: var(--acc); }
-    .nav-cta { background: var(--acc); color: #fff !important; border-radius: 8px; padding: 6px 14px !important; }
-    .nav-cta:hover { background: #2D5CE8 !important; }
 
-    /* HERO */
-    .hero { max-width: 900px; margin: 0 auto; padding: 60px 24px 40px; text-align: center; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--acc-lo); border: 1px solid var(--acc-mid); color: var(--acc); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: .05em; text-transform: uppercase; }
-    .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -.5px; line-height: 1.15; margin-bottom: 16px; }
-    .hero p { font-size: 17px; color: var(--t2); max-width: 560px; margin: 0 auto 32px; line-height: 1.7; }
-    .toc { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-    .toc-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--t2); text-decoration: none; transition: all .15s; display: flex; align-items: center; gap: 8px; }
-    .toc-item:hover { border-color: var(--acc); color: var(--acc); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,110,245,.12); }
+    .card { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,.06); margin-bottom: 16px; }
+    .card-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .card-sub { font-size: 13px; color: var(--t2); margin-bottom: 24px; line-height: 1.5; }
 
-    /* SECTIONS */
-    .section { max-width: 900px; margin: 0 auto; padding: 48px 24px 0; }
-    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
-    .section-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-    .section-icon.blue { background: var(--acc-lo); }
-    .section-icon.green { background: var(--ok-lo); }
-    .section-icon.yellow { background: var(--warn-lo); }
-    .section-icon.purple { background: rgba(139,92,246,.08); }
-    .section-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
-    .section-sub { font-size: 13px; color: var(--t3); margin-top: 2px; }
+    label { display: block; font-size: 11px; font-weight: 700; color: var(--t2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; margin-top: 16px; }
+    label:first-of-type { margin-top: 0; }
 
-    /* CARDS */
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 24px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-    .card-icon { font-size: 28px; margin-bottom: 10px; }
-    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-    .card-body { font-size: 13px; color: var(--t2); line-height: 1.65; }
+    input { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: 'Figtree', sans-serif; background: #fff; color: var(--ink); outline: none; transition: border-color .15s, box-shadow .15s; }
+    input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(59,110,245,.1); }
+    input:disabled { background: var(--s2); color: var(--t2); cursor: not-allowed; }
+    input::placeholder { color: var(--t3); }
 
-    /* STEPS */
-    .steps { display: flex; flex-direction: column; gap: 0; }
-    .step { display: flex; gap: 16px; align-items: flex-start; padding: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 10px; position: relative; }
-    .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--acc); color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'Syne', sans-serif; }
-    .step-content { flex: 1; }
-    .step-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .step-body { font-size: 13px; color: var(--t2); line-height: 1.6; }
-    .step-tip { margin-top: 8px; padding: 8px 12px; background: var(--acc-lo); border-radius: 8px; font-size: 12px; color: var(--acc); font-weight: 500; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 44px; }
+    .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--t2); font-size: 16px; padding: 4px; }
 
-    /* UI MOCKUPS */
-    .mockup { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
-    .mockup-bar { background: var(--s3); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 6px; }
-    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .mockup-body { padding: 20px; }
-    .mockup-url { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; color: var(--t3); font-family: 'JetBrains Mono', monospace; margin-left: 8px; }
+    .btn { width: 100%; margin-top: 20px; padding: 12px; background: var(--acc); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:hover:not(:disabled) { background: #2D5CE8; transform: translateY(-1px); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--t2); }
+    .btn-ghost:hover:not(:disabled) { background: var(--s2); transform: none; }
 
-    /* UI ELEMENTS */
-    .ui-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-    .ui-input { flex: 1; min-width: 160px; background: var(--s3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; font-size: 13px; color: var(--t3); font-family: 'Figtree', sans-serif; }
-    .ui-btn { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; font-family: 'Figtree', sans-serif; }
-    .ui-btn.primary { background: var(--acc); color: #fff; }
-    .ui-btn.ghost { background: var(--s3); border: 1px solid var(--border); color: var(--t2); }
-    .ui-btn.green { background: var(--ok); color: #fff; }
-    .ui-btn.small { padding: 5px 12px; font-size: 12px; }
-    .ui-pill { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; font-family: 'Figtree', sans-serif; background: var(--s3); border: 1px solid var(--border); color: var(--t2); }
-    .ui-pill.active { background: var(--acc); color: #fff; border-color: var(--acc); }
-    .ui-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-    .ui-tag.blue { background: var(--acc-lo); color: var(--acc); border: 1px solid var(--acc-mid); }
-    .ui-tag.green { background: var(--ok-lo); color: #16a371; border: 1px solid var(--ok-mid); }
-    .ui-tag.red { background: rgba(239,68,68,.08); color: var(--red); border: 1px solid rgba(239,68,68,.2); }
-    .ui-tag.warn { background: var(--warn-lo); color: #b87d0e; border: 1px solid rgba(245,166,35,.2); }
+    .msg { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+    .msg.ok { background: rgba(34,201,138,.08); border: 1px solid rgba(34,201,138,.2); color: #16a371; }
+    .msg.err { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); color: var(--red); }
 
-    /* FEATURE ROWS */
-    .feature { display: flex; gap: 14px; align-items: flex-start; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; }
-    .feature-icon { font-size: 22px; flex-shrink: 0; width: 36px; text-align: center; margin-top: 2px; }
-    .feature-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-    .feature-body { font-size: 13px; color: var(--t2); line-height: 1.6; }
+    .back-link { font-size: 13px; color: var(--t2); text-decoration: none; display: flex; align-items: center; gap: 6px; margin-bottom: 24px; align-self: flex-start; max-width: 440px; width: 100%; }
+    .back-link:hover { color: var(--acc); }
 
-    /* CALLOUTS */
-    .callout { padding: 16px 20px; border-radius: 12px; margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-start; }
-    .callout.blue { background: var(--acc-lo); border: 1px solid var(--acc-mid); }
-    .callout.green { background: var(--ok-lo); border: 1px solid var(--ok-mid); }
-    .callout.warn { background: var(--warn-lo); border: 1px solid rgba(245,166,35,.2); }
-    .callout-icon { font-size: 18px; flex-shrink: 0; }
-    .callout-text { font-size: 13px; color: var(--t2); line-height: 1.65; }
-    .callout-text strong { color: var(--ink); }
+    .user-badge { font-size: 13px; color: var(--t3); text-align: center; margin-top: 8px; }
 
-    /* THUMBNAIL GRID */
-    .thumb-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 8px; }
-    .thumb { aspect-ratio: 16/9; background: var(--s3); border-radius: 8px; position: relative; overflow: hidden; border: 1px solid var(--border); }
-    .thumb-img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb-badge { position: absolute; top: 4px; left: 4px; background: var(--red); color: #fff; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: .03em; }
-    .thumb-badge.green { background: rgba(34,201,138,.9); color: #fff; }
-    .thumb-dur { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.75); color: #fff; font-size: 8px; font-weight: 600; padding: 1px 4px; border-radius: 3px; font-family: monospace; }
-    .thumb-title { font-size: 10px; font-weight: 500; color: var(--t2); margin-top: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .spin { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* DIVIDER */
-    .divider { height: 1px; background: var(--border); margin: 48px 24px; max-width: 852px; margin-left: auto; margin-right: auto; }
-
-    /* FOOTER */
-    footer { text-align: center; padding: 40px 24px; color: var(--t3); font-size: 13px; }
-    footer a { color: var(--acc); text-decoration: none; }
-
-    @media (max-width: 600px) {
-      .nav-links { display: none; }
-      .thumb-grid { grid-template-columns: repeat(3, 1fr); }
-      .card-grid { grid-template-columns: 1fr; }
-    }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
   </style>
 </head>
 <body>
+  <div style="width:100%;max-width:440px">
+    <a href="/reel.html" class="back-link">← Back to Library</a>
+  </div>
 
-<nav>
-  <div class="nav-inner">
-    <a href="/reel.html" class="logo">Reel<span>Call</span></a>
-    <div class="nav-links">
-      <a href="#add" class="nav-link">Adding Videos</a>
-      <a href="#find" class="nav-link">Finding Videos</a>
-      <a href="#video" class="nav-link">Video Page</a>
-      <a href="#research" class="nav-link">Research Mode</a>
-      <a href="/reel.html" class="nav-link nav-cta" id="open-app-btn">Open App →</a>
+  <img src="/reelcall-logo.png" alt="ReelCall" style="height:64px;width:auto;max-width:200px">
+  <div class="card" id="card-homescreen" style="display:none">
+    <p class="card-title">📱 Add ReelCall to Your Home Screen</p>
+    <p class="card-sub">ReelCall works like a native app — add it to your home screen for one-tap access.</p>
+
+    <div style="background:var(--s2);border-radius:10px;padding:16px;margin-bottom:12px">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🍎 iPhone (Safari)</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Safari</li>
+        <li style="font-size:13px;color:var(--t2)">Tap the <strong>Share icon</strong> (square with up arrow) at the bottom</li>
+        <li style="font-size:13px;color:var(--t2)">Scroll down and tap <strong>Add to Home Screen</strong></li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add</strong></li>
+      </ol>
     </div>
-  </div>
-</nav>
 
-<!-- NEW USER WELCOME BANNER -->
-<div id="welcome-banner" style="display:none;background:linear-gradient(135deg,#3B6EF5,#6B3BF5);color:#fff;padding:24px;text-align:center">
-  <div style="max-width:600px;margin:0 auto">
-    <div style="font-size:36px;margin-bottom:12px">👋</div>
-    <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px">Welcome to ReelCall!</h2>
-    <p style="font-size:14px;opacity:.9;line-height:1.6;margin-bottom:20px">Read through this quick guide — it'll take 2 minutes and make the app 10x more useful. Then tap the button below to open your library.</p>
-    <button onclick="goToApp()" style="background:#fff;color:#3B6EF5;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Figtree',sans-serif">
-      Start My Library →
-    </button>
-  </div>
-</div>
-
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-badge">📖 ReelCall Guide</div>
-  <h1>Get the most from<br>your video library</h1>
-  <p>ReelCall turns any YouTube video into a searchable, queryable knowledge base. Here's everything you need to know.</p>
-  <div class="toc">
-    <a href="#add" class="toc-item">▶ Adding Videos</a>
-    <a href="#find" class="toc-item">🔍 Finding Videos</a>
-    <a href="#video" class="toc-item">📄 Video Page</a>
-    <a href="#research" class="toc-item">🔬 Research Mode</a>
-    <a href="#share" class="toc-item">📤 Sharing</a>
-  </div>
-</div>
-
-<!-- SECTION 1: ADDING VIDEOS -->
-<div class="section" id="add">
-  <div class="section-header">
-    <div class="section-icon blue">▶</div>
-    <div>
-      <div class="section-title">Adding Videos</div>
-      <div class="section-sub">Three ways to get any YouTube video into your library</div>
+    <div style="background:var(--s2);border-radius:10px;padding:16px">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px">🌍 Android (Chrome)</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li style="font-size:13px;color:var(--t2)">Open <strong>reelcall.app/reel.html</strong> in Chrome</li>
+        <li style="font-size:13px;color:var(--t2)">Tap the <strong>3-dot menu</strong> (top right)</li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+        <li style="font-size:13px;color:var(--t2)">Tap <strong>Add / Install</strong></li>
+      </ol>
     </div>
   </div>
 
-  <!-- Method 1: Paste & Analyze -->
-  <div class="mockup" style="margin-bottom:24px">
-    <div class="mockup-bar">
-      <div class="mockup-dot" style="background:#ff5f57"></div>
-      <div class="mockup-dot" style="background:#febc2e"></div>
-      <div class="mockup-dot" style="background:#28c840"></div>
-      <div class="mockup-url">reelcall.app/reel.html</div>
-    </div>
-    <div class="mockup-body">
-      <div class="ui-row">
-        <div class="ui-input">Paste a YouTube video or channel URL...</div>
-        <div class="ui-btn primary">Paste & Analyze</div>
-        <div class="ui-btn ghost" style="padding:9px 11px">📋</div>
-      </div>
-    </div>
+
+  <!-- Username Card -->
+  <div class="card" id="card-username" style="display:none">
+    <p class="card-title">Your Profile</p>
+    <p class="card-sub">Your username appears in the app and is used for referrals and future communications.</p>
+    <label>Email (read only)</label>
+    <input type="email" id="disp-email" disabled>
+    <label>Username</label>
+    <input type="text" id="new-username" placeholder="letters, numbers, underscore" maxlength="20" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
+    <p style="font-size:11px;color:var(--t3);margin-top:5px">3–20 characters · letters, numbers, and _ only</p>
+    <button class="btn" onclick="saveUsername()">Save Username</button>
+    <div id="msg-username"></div>
   </div>
 
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-icon">📋</div>
-      <div class="card-title">Paste & Analyze Button</div>
-      <div class="card-body">Tap <strong>Paste & Analyze</strong> — it reads your clipboard and immediately starts analyzing the video. No typing needed. On mobile this is the fastest way.</div>
+  <!-- Password Card -->
+  <div class="card" id="card-password" style="display:none">
+    <p class="card-title">Change Password</p>
+    <p class="card-sub">Choose a new password for your account.</p>
+    <label>New Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="new-pass" placeholder="Min 6 characters" autocomplete="new-password">
+      <button class="pw-toggle" type="button" onclick="togglePw('new-pass',this)">👁</button>
     </div>
-    <div class="card">
-      <div class="card-icon">🔗</div>
-      <div class="card-title">Paste URL Manually</div>
-      <div class="card-body">Click the URL bar, paste any YouTube link, and tap <strong>Analyze</strong> or press Enter. Tracking parameters like <code style="font-size:11px;background:var(--s3);padding:1px 4px;border-radius:3px">?si=xxx</code> are stripped automatically.</div>
+    <label>Confirm Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="confirm-pass" placeholder="Repeat new password" autocomplete="new-password">
+      <button class="pw-toggle" type="button" onclick="togglePw('confirm-pass',this)">👁</button>
     </div>
-    <div class="card">
-      <div class="card-icon">📤</div>
-      <div class="card-title">Share from YouTube App</div>
-      <div class="card-body">In the YouTube app, tap the <strong>Share icon</strong> (or ···) → Copy link, then paste in ReelCall. On iPhone you can Share → ReelCall directly if it's on your home screen.</div>
-    </div>
+    <button class="btn" onclick="savePassword()">Update Password</button>
+    <div id="msg-password"></div>
   </div>
 
-  <div class="callout blue">
-    <div class="callout-icon">💡</div>
-    <div class="callout-text"><strong>From a YouTube video page in your browser:</strong> Tap the three dots ··· or Share icon → Copy link → return to ReelCall → tap Paste & Analyze. Done in seconds.</div>
+  <!-- Sign out -->
+  <div class="card" id="card-signout" style="display:none">
+    <p class="card-title">Account</p>
+    <p class="card-sub">Sign out of ReelCall on this device.</p>
+    <button class="btn btn-ghost" onclick="signOut()" style="margin-top:0">Sign Out</button>
+
+    <div class="divider" style="margin:24px 0"></div>
+
+    <p class="card-title" style="color:#ef4444">Danger Zone</p>
+    <p class="card-sub">Deactivating your account hides your library but keeps your data. Deleting removes your account — your videos stay in the system for others to benefit from but are no longer in your library.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="deactivateAccount()" style="flex:1;padding:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;border-radius:10px;cursor:pointer;font-size:13px;font-family:'Figtree',sans-serif;font-weight:600">Deactivate Account</button>
+      <button onclick="deleteAccount()" style="flex:1;padding:10px;background:#ef4444;border:none;color:#fff;border-radius:10px;cursor:pointer;font-size:13px;font-family:'Figtree',sans-serif;font-weight:600">Delete Account</button>
+    </div>
+    <div id="msg-account"></div>
   </div>
 
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <div class="step-title">Find a video on YouTube</div>
-        <div class="step-body">On mobile, open the YouTube app or browser. Find the video you want to capture. You can add any public YouTube video — lectures, podcasts, tutorials, interviews, anything.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <div class="step-title">Copy the link</div>
-        <div class="step-body">Tap the <strong>Share</strong> button under the video → <strong>Copy link</strong>. On desktop, copy the URL from your browser's address bar.</div>
-        <div class="step-tip">📱 iPhone tip: Tap the share icon (box with up arrow) → Copy Link</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <div class="step-title">Tap Paste & Analyze in ReelCall</div>
-        <div class="step-body">Switch to ReelCall and tap the blue <strong>Paste & Analyze</strong> button. It reads your clipboard and starts immediately. Analysis takes 20–60 seconds depending on video length.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-content">
-        <div class="step-title">It appears in your library</div>
-        <div class="step-body">When done, the video is automatically saved to your library with a summary, key points, quotes, suggested actions, and credibility assessment. It's ready to ask questions immediately.</div>
-        <div class="step-tip">⚡ If the video is already in the system from another user — analysis is instant. No wait.</div>
-      </div>
-    </div>
-  </div>
+  <!-- Home Screen Install Card -->
 
-  <!-- Channel Import -->
-  <div style="margin-top:24px">
-    <div class="feature">
-      <div class="feature-icon">📺</div>
-      <div>
-        <div class="feature-title">Import an Entire Channel</div>
-        <div class="feature-body">Paste a channel URL like <code style="font-size:11px;background:var(--s3);padding:1px 4px;border-radius:3px">youtube.com/@ChannelName</code> or <code style="font-size:11px;background:var(--s3);padding:1px 4px;border-radius:3px">@ChannelName</code> directly. The button changes to <strong>Browse Channel</strong> — tap it to see recent videos and pick which ones to import in bulk.</div>
-      </div>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">📋</div>
-      <div>
-        <div class="feature-title">Paste Transcript (for movies & podcasts)</div>
-        <div class="feature-body">Some videos (YouTube Movies, audio-only content) don't have accessible captions. Tap the <strong>📋</strong> icon next to Paste & Analyze. On YouTube, tap ··· → <strong>Open transcript</strong> → copy all → paste into ReelCall. Timestamps are stripped automatically.</div>
-      </div>
-    </div>
-  </div>
-</div>
+  <div id="msg-loading" class="user-badge">Loading your settings...</div>
 
-<div class="divider"></div>
-
-<!-- SECTION 2: FINDING VIDEOS -->
-<div class="section" id="find">
-  <div class="section-header">
-    <div class="section-icon green">🔍</div>
-    <div>
-      <div class="section-title">Finding & Organizing</div>
-      <div class="section-sub">Search, sort, and browse your library</div>
-    </div>
-  </div>
-
-  <!-- Grid mockup -->
-  <div class="mockup" style="margin-bottom:24px">
-    <div class="mockup-body">
-      <div class="ui-row" style="margin-bottom:10px">
-        <div class="ui-input" style="min-width:120px">Who: person, guest...</div>
-        <div class="ui-input" style="min-width:120px">Topic / About: subject...</div>
-        <div class="ui-btn ghost" style="opacity:.4;font-size:12px">✦ Smart Find 🔒</div>
-      </div>
-      <div class="ui-row" style="margin-bottom:14px">
-        <div class="ui-pill active">[Recent Added]</div>
-        <div class="ui-pill">[Recently Opened]</div>
-        <div class="ui-pill">[Most Opened]</div>
-        <div class="ui-pill">[Most Shared]</div>
-        <div class="ui-pill">[A-Z Title]</div>
-        <div class="ui-pill">[A-Z Channel]</div>
-        <div style="margin-left:auto;display:flex;gap:4px">
-          <div class="ui-btn primary" style="padding:6px 10px;font-size:14px">⊞</div>
-          <div class="ui-btn ghost" style="padding:6px 10px;font-size:14px">≡</div>
-        </div>
-      </div>
-      <div class="thumb-grid">
-        <div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">
-          <div class="thumb-badge">New</div>
-          <div class="thumb-dur">14:22</div>
-        </div>
-        <div class="thumb" style="background:linear-gradient(135deg,#0f3460,#533483)">
-          <div class="thumb-badge green">Unread</div>
-          <div class="thumb-dur">1:02:14</div>
-        </div>
-        <div class="thumb" style="background:linear-gradient(135deg,#2d6a4f,#1b4332)">
-          <div class="thumb-dur">28:45</div>
-        </div>
-        <div class="thumb" style="background:linear-gradient(135deg,#7b2d00,#6d1a3e)">
-          <div class="thumb-dur">45:10</div>
-        </div>
-        <div class="thumb" style="background:linear-gradient(135deg,#1c3144,#0d1b2a)">
-          <div class="thumb-dur">8:33</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-icon">👤</div>
-      <div class="card-title">Who: Search</div>
-      <div class="card-body">Type a person's name — "Gromen", "Ferriss", "Jiang". Finds videos where that person appears regardless of which channel hosted them.</div>
-    </div>
-    <div class="card">
-      <div class="card-icon">🏷️</div>
-      <div class="card-title">Topic / About: Search</div>
-      <div class="card-body">Type any subject — "crude oil", "anxiety protocol", "Bitcoin ETF". Searches across titles, summaries, key points, and quotes simultaneously.</div>
-    </div>
-    <div class="card">
-      <div class="card-icon">✦</div>
-      <div class="card-title">Smart Find (paid)</div>
-      <div class="card-body">Describe what you remember in plain language — "that video about the Norwegian exercise study" and AI finds the right video even if you don't know the title.</div>
-    </div>
-  </div>
-
-  <div class="feature">
-    <div class="feature-icon">⊞</div>
-    <div>
-      <div class="feature-title">Grid vs List View</div>
-      <div class="feature-body">Toggle between <strong>Grid</strong> (thumbnail-first, 5 across on desktop) and <strong>List</strong> (title + 1-line summary preview). Grid is great for visual browsing. List is better for reading summaries before opening.</div>
-    </div>
-  </div>
-
-  <div class="feature">
-    <div class="feature-icon">🔢</div>
-    <div>
-      <div class="feature-title">Sort Options</div>
-      <div class="feature-body">
-        <strong>[Recent Added]</strong> — newest first (default) ·
-        <strong>[Recently Opened]</strong> — your most recently used videos ·
-        <strong>[Most Opened]</strong> — your go-to references (2+ opens) ·
-        <strong>[Most Shared]</strong> — videos you've shared most ·
-        <strong>[A-Z Title]</strong> / <strong>[A-Z Channel]</strong> — alphabetical
-      </div>
-    </div>
-  </div>
-
-  <div class="callout green">
-    <div class="callout-icon">🟢</div>
-    <div class="callout-text"><strong>Thumbnail badges tell you at a glance:</strong> 🔴 Red "New" = added in the last 3 days · Green "Unread" = never opened · Duration in the bottom-right corner of every thumbnail.</div>
-  </div>
-</div>
-
-<div class="divider"></div>
-
-<!-- SECTION 3: VIDEO PAGE -->
-<div class="section" id="video">
-  <div class="section-header">
-    <div class="section-icon yellow">📄</div>
-    <div>
-      <div class="section-title">The Video Page</div>
-      <div class="section-sub">Everything you can do once a video is open</div>
-    </div>
-  </div>
-
-  <!-- Credibility -->
-  <div class="feature">
-    <div class="feature-icon">🔍</div>
-    <div>
-      <div class="feature-title">Credibility Check</div>
-      <div class="feature-body">Every video is automatically assessed for credibility when added. If concerns are found, a colored banner appears below the video header:
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-          <span class="ui-tag warn">⚠️ Verify Before Sharing</span>
-          <span class="ui-tag red">⚠️ Credibility Concerns Detected</span>
-        </div>
-        <div style="margin-top:8px">Tap <strong>🔍 Deep Check</strong> for a full fact-checking analysis — specific claims are evaluated, missing context is flagged, and a verdict is returned. Results are saved so you never pay for the same check twice.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Share -->
-  <div class="feature">
-    <div class="feature-icon">📤</div>
-    <div>
-      <div class="feature-title">Share a Video</div>
-      <div class="feature-body">Tap <strong>Share</strong> on any video. On iPhone and Android, your native share sheet opens — send directly via iMessage, WhatsApp, or any app. The recipient sees a clean summary page with key points and can ask questions. You earn <span class="ui-tag blue">+2 videos</span> <span class="ui-tag green">+7 days</span> every time you share.</div>
-    </div>
-  </div>
-
-  <!-- Key Points -->
-  <div class="feature">
-    <div class="feature-icon">→</div>
-    <div>
-      <div class="feature-title">Key Points — Ask & Recall</div>
-      <div class="feature-body">Every key point has two buttons:
-        <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="ui-btn ghost small">Ask →</span>
-            <span style="font-size:13px;color:var(--t2)">Pre-fills the Q&A input with "Tell me more about: [point]" and scrolls to the ask box. One tap to go deeper on anything.</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="ui-btn ghost small">☆ Recall</span>
-            <span style="font-size:13px;color:var(--t2)">Stars the point and highlights it in amber. Use this for insights worth remembering. Starred points show a badge on the video card in your library.</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Ask Questions -->
-  <div class="feature">
-    <div class="feature-icon">💬</div>
-    <div>
-      <div class="feature-title">Ask Questions</div>
-      <div class="feature-body">The Q&A section uses the <strong>full transcript</strong> — not just the summary. Ask anything about the video and get a specific, sourced answer. A brief loading bar appears while the transcript prepares. Your questions and answers are saved automatically so you can continue any session later.</div>
-      <div style="margin-top:10px;background:var(--s3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--t2)">
-        <strong>💡 Example questions:</strong> "What specific exercise protocol did he recommend?" · "At what point did they mention the 40% statistic?" · "What's the counterargument they didn't address?"
-      </div>
-    </div>
-  </div>
-
-  <!-- Discussion -->
-  <div class="feature">
-    <div class="feature-icon">🗨️</div>
-    <div>
-      <div class="feature-title">Discussion</div>
-      <div class="feature-body">Every video has a discussion section where ReelCall users can leave comments. If someone shares a video with you and you sign in, you'll see what others thought about it. Comments are visible to all logged-in users who have the video — a great way to share context with people you send videos to.</div>
-    </div>
-  </div>
-
-  <div class="callout blue">
-    <div class="callout-icon">💡</div>
-    <div class="callout-text"><strong>Pro tip:</strong> Use <strong>Capture to Brain</strong> at the bottom of the video page to save personal notes or action items directly to your Studio Strong brain system — separate from the video's Q&A history.</div>
-  </div>
-</div>
-
-<div class="divider"></div>
-
-<!-- SECTION 4: RESEARCH MODE -->
-<div class="section" id="research">
-  <div class="section-header">
-    <div class="section-icon purple">🔬</div>
-    <div>
-      <div class="section-title">Research Mode</div>
-      <div class="section-sub">Ask one question across multiple videos simultaneously</div>
-    </div>
-  </div>
-
-  <div class="callout blue">
-    <div class="callout-icon">🔬</div>
-    <div class="callout-text"><strong>Research Mode</strong> is unlocked when you have 2+ videos. Find it in the top-right corner of your library. It lets you select any combination of videos and ask one question that gets answered using all of them at once — perfect for comparing perspectives, finding patterns, or researching a topic across multiple creators.</div>
-  </div>
-
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <div class="step-title">Type your question at the top</div>
-        <div class="step-body">Enter what you want to know — "What do all these creators say about inflation?" or "Who disagrees with the consensus view?" You can type your question before selecting videos.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <div class="step-title">Filter to find the right videos</div>
-        <div class="step-body">Use the <strong>Who:</strong> and <strong>About:</strong> boxes to filter which videos appear. Type "Gromen" to show only Luke Gromen videos. Type "gold" to show only gold-related content.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <div class="step-title">Select the videos to include</div>
-        <div class="step-body">Click thumbnails to select them (up to 20). A checkmark appears on selected videos. Or use <strong>Select shown</strong> to grab all filtered results at once.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-content">
-        <div class="step-title">Ask — then ask more</div>
-        <div class="step-body">Tap <strong>Ask</strong>. The answer synthesizes across all selected videos. After the first answer, the button changes to <strong>Ask More</strong> — each follow-up builds on previous context for a true research conversation.</div>
-        <div class="step-tip">Sessions are saved automatically. Find any previous Research Mode session in the Q&A History tab.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card-grid" style="margin-top:20px">
-    <div class="card">
-      <div class="card-icon">📊</div>
-      <div class="card-title">Compare perspectives</div>
-      <div class="card-body">"What does each creator say about the Fed's next move?" — get a side-by-side synthesis from all your finance videos at once.</div>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔗</div>
-      <div class="card-title">Find connections</div>
-      <div class="card-body">"Which of these videos reference the same study or data point?" — surface patterns and cross-references you'd never find manually.</div>
-    </div>
-    <div class="card">
-      <div class="card-icon">⚡</div>
-      <div class="card-title">Smart Find (paid)</div>
-      <div class="card-body">Type a description in the search boxes and tap ✦ Smart Find — AI automatically selects the most relevant videos for your research question.</div>
-    </div>
-  </div>
-</div>
-
-<div class="divider"></div>
-
-<!-- SECTION 5: SHARING -->
-<div class="section" id="share">
-  <div class="section-header">
-    <div class="section-icon blue">📤</div>
-    <div>
-      <div class="section-title">Sharing Videos</div>
-      <div class="section-sub">Share insights and earn rewards</div>
-    </div>
-  </div>
-
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <div class="step-title">Tap Share on any video</div>
-        <div class="step-body">Open any video in your library and tap the <strong>Share</strong> button. On mobile, your native share sheet opens instantly — send to iMessage, WhatsApp, email, or any app.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <div class="step-title">Recipient sees a clean summary page</div>
-        <div class="step-body">They get a full read-only view: thumbnail, summary, key points, key quotes, credibility assessment, and a working Q&A section. No account needed to read or ask questions.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <div class="step-title">You earn rewards every time</div>
-        <div class="step-body">Every unique video you share earns you <span class="ui-tag blue">+2 videos</span> and <span class="ui-tag green">+7 days</span> on your membership — unlimited. If they sign up from your shared link, you earn <span class="ui-tag blue">+15 videos</span> and <span class="ui-tag green">+15 days</span>.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="callout warn">
-    <div class="callout-icon">⚠️</div>
-    <div class="callout-text"><strong>Check credibility before sharing.</strong> The credibility banner appears automatically when concerns are detected. If you see an amber or red banner, run a Deep Check before sending to others.</div>
-  </div>
-</div>
-
-<div class="divider"></div>
-
-<!-- Add to Home Screen -->
-<div class="section" id="homescreen" style="padding-bottom:48px">
-  <div class="section-header">
-    <div class="section-icon green">📱</div>
-    <div>
-      <div class="section-title">Add to Your Home Screen</div>
-      <div class="section-sub">ReelCall works like a native app</div>
-    </div>
-  </div>
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-icon">🍎</div>
-      <div class="card-title">iPhone (Safari)</div>
-      <div class="card-body">
-        <ol style="padding-left:16px;display:flex;flex-direction:column;gap:5px;margin-top:4px">
-          <li>Open <strong>reelcall.app/reel.html</strong> in Safari</li>
-          <li>Tap the <strong>Share icon</strong> at the bottom (box with ↑)</li>
-          <li>Scroll down → tap <strong>Add to Home Screen</strong></li>
-          <li>Tap <strong>Add</strong></li>
-        </ol>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-icon">🌍</div>
-      <div class="card-title">Android (Chrome)</div>
-      <div class="card-body">
-        <ol style="padding-left:16px;display:flex;flex-direction:column;gap:5px;margin-top:4px">
-          <li>Open <strong>reelcall.app/reel.html</strong> in Chrome</li>
-          <li>Tap the <strong>3-dot menu</strong> (top right)</li>
-          <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
-          <li>Tap <strong>Add / Install</strong></li>
-        </ol>
-      </div>
-    </div>
-  </div>
-</div>
-
-<footer>
-  <p style="margin-bottom:8px">ReelCall.app · Your personal YouTube knowledge base</p>
-  <p><a href="/reel.html">Open App</a> · <a href="/settings.html">Settings</a> · <a href="/signup.html">Sign In</a></p>
-</footer>
-
-</body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
-  const isNew = new URLSearchParams(window.location.search).get("new") === "1";
-
-  if (isNew) {
-    document.getElementById("welcome-banner").style.display = "block";
-    document.getElementById("open-app-btn").textContent = "Skip Guide →";
-  }
-
-  async function goToApp() {
-    // Clear the onboarding flag in DB
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
     const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
     const sb = supabase.createClient(SB_URL, SB_KEY);
-    try {
-      const { data: { user } } = await sb.auth.getUser();
-      if (user) {
-        await sb.from("reel_users").update({ needs_onboarding: false }).eq("id", user.id);
-      }
-    } catch {}
-    window.location.href = "/reel.html";
-  }
 
-  // Also add "Start My Library" button at bottom of page for new users
-  if (isNew) {
-    const footer = document.querySelector("footer");
-    const btn = document.createElement("div");
-    btn.style.cssText = "text-align:center;padding:32px 24px 0";
-    btn.innerHTML = `<button onclick="goToApp()" style="background:#3B6EF5;color:#fff;border:none;border-radius:12px;padding:14px 36px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Figtree',sans-serif;box-shadow:0 4px 20px rgba(59,110,245,.3)">Open My Library →</button><p style="font-size:12px;color:#9BA3B5;margin-top:10px">You can always come back to this guide from the library</p>`;
-    footer.before(btn);
-  }
-</script>
+    let currentUser = null;
+    let currentProfile = null;
+
+    async function init() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { window.location.href = "/signup.html"; return; }
+      currentUser = user;
+
+      const { data: profile } = await sb.from("reel_users").select("*").eq("id", user.id).single();
+      currentProfile = profile;
+
+      document.getElementById("msg-loading").style.display = "none";
+      document.getElementById("disp-email").value = user.email || "";
+      document.getElementById("new-username").value = profile?.owner || "";
+      document.getElementById("card-homescreen").style.display = "block";
+      document.getElementById("card-username").style.display = "block";
+      document.getElementById("card-password").style.display = "block";
+      document.getElementById("card-signout").style.display = "block";
+    }
+
+    function togglePw(id, btn) {
+      const inp = document.getElementById(id);
+      inp.type = inp.type === "password" ? "text" : "password";
+      btn.textContent = inp.type === "password" ? "👁" : "🙈";
+    }
+
+    function setMsg(id, text, type) {
+      const el = document.getElementById(id);
+      el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+    }
+
+    async function saveUsername() {
+      const username = document.getElementById("new-username").value.trim();
+      if (!username || username.length < 3) { setMsg("msg-username", "Username must be at least 3 characters.", "err"); return; }
+      if (username === currentProfile?.owner) { setMsg("msg-username", "That's already your username.", "err"); return; }
+
+      // Check uniqueness
+      const { data: existing } = await sb.from("reel_users").select("id").eq("owner", username).maybeSingle();
+      if (existing && existing.id !== currentUser.id) { setMsg("msg-username", "That username is already taken — try another.", "err"); return; }
+
+      const { error } = await sb.from("reel_users").update({ owner: username }).eq("id", currentUser.id);
+      if (error) { setMsg("msg-username", "Save failed: " + error.message, "err"); return; }
+
+      // Also update all their videos to new owner
+      await sb.from("youtube_videos").update({ owner: username }).eq("owner", currentProfile.owner);
+
+      currentProfile = { ...currentProfile, owner: username };
+      setMsg("msg-username", "✓ Username updated to <strong>" + username + "</strong> — changes take effect on next library load.", "ok");
+    }
+
+    async function savePassword() {
+      const pass = document.getElementById("new-pass").value;
+      const confirm = document.getElementById("confirm-pass").value;
+      if (!pass || pass.length < 6) { setMsg("msg-password", "Password must be at least 6 characters.", "err"); return; }
+      if (pass !== confirm) { setMsg("msg-password", "Passwords don't match.", "err"); return; }
+
+      const { error } = await sb.auth.updateUser({ password: pass });
+      if (error) { setMsg("msg-password", "Error: " + error.message, "err"); return; }
+
+      document.getElementById("new-pass").value = "";
+      document.getElementById("confirm-pass").value = "";
+      setMsg("msg-password", "✓ Password updated successfully.", "ok");
+    }
+
+    async function signOut() {
+      await sb.auth.signOut();
+      window.location.href = "/signup.html";
+    }
+
+    async function deactivateAccount() {
+      if (!confirm("Deactivate your account? Your library will be hidden but your data is kept. You can reactivate by contacting us.")) return;
+      const { error } = await sb.from("reel_users").update({ active: false }).eq("id", currentUser.id);
+      if (error) { setMsg("msg-account", "Error: " + error.message, "err"); return; }
+      await sb.auth.signOut();
+      window.location.href = "/signup.html";
+    }
+
+    async function deleteAccount() {
+      const confirm1 = confirm("⚠️ Delete your account permanently?\n\nYour profile and library association will be removed. This CANNOT be undone.");
+      if (!confirm1) return;
+      const typed = prompt("Type DELETE to confirm:");
+      if (typed !== "DELETE") { setMsg("msg-account", "Account not deleted — confirmation didn't match.", "err"); return; }
+      try {
+        // Disassociate videos from this owner (keep in DB for cache — set owner to null)
+        await sb.from("youtube_videos").update({ owner: null, shared: false }).eq("owner", currentProfile.owner);
+        // Deactivate their profile
+        await sb.from("reel_users").update({ active: false, owner: "deleted_" + currentProfile.owner }).eq("id", currentUser.id);
+        await sb.auth.signOut();
+        window.location.href = "/signup.html";
+      } catch (e) {
+        setMsg("msg-account", "Delete failed: " + e.message + " — please contact support.", "err");
+      }
+    }
+
+    init();
+  </script>
+</body>
 </html>
