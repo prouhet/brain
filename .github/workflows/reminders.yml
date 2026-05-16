@@ -1,19 +1,17 @@
-name: Rosey Reminders
+name: Rosi Reminders
 
-# Checks brain for due reminders every hour and sends email.
+# Checks rosi_reminders in Supabase every hour and sends email via Postmark.
 #
 # Required GitHub Secrets (Settings → Secrets → Actions):
-#   ANTHROPIC_API_KEY  — your Anthropic key
-#   BRAIN_KEY          — the household key (same one used in the ?key= URL)
-#   EMAIL_TO           — recipient address(es), comma-separated
-#   SMTP_USER          — Gmail address used to send
-#   SMTP_PASS          — Gmail App Password (NOT your regular password)
-#                        Generate one at: myaccount.google.com/apppasswords
+#   SUPABASE_ANON_KEY   the anon/public JWT key from Supabase → Settings → API
+#   EMAIL_TO            prouhet@gmail.com,rprouhet@gmail.com
+#   POSTMARK_TOKEN      Postmark Server API Token
+#   POSTMARK_FROM       connect@reformed.fit
 
 on:
   schedule:
     - cron: '0 * * * *'   # top of every hour
-  workflow_dispatch:       # also runnable manually from the Actions tab
+  workflow_dispatch:       # run manually from Actions tab to test
 
 jobs:
   reminders:
@@ -25,14 +23,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install anthropic
-
       - name: Check and send reminders
         run: python scripts/send_reminders.py
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          BRAIN_KEY:         ${{ secrets.BRAIN_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           EMAIL_TO:          ${{ secrets.EMAIL_TO }}
-          SMTP_USER:         ${{ secrets.SMTP_USER }}
-          SMTP_PASS:         ${{ secrets.SMTP_PASS }}
+          POSTMARK_TOKEN:    ${{ secrets.POSTMARK_TOKEN }}
+          POSTMARK_FROM:     ${{ secrets.POSTMARK_FROM }}
