@@ -358,8 +358,8 @@
     }
 
     // ─── Library ──────────────────────────────────────────────────────────────
-    // ─── Expanded Cross Query (Q&A History continue) ─────────────────────────
-    function ExpandedCrossQuery({ query, videos, onUpdate }) {
+    // ─── Expanded Research Mode (Q&A History continue) ─────────────────────────
+    function ExpandedResearchMode({ query, videos, onUpdate }) {
       const [qa, setQa] = useState(query.qa || []);
       const [input, setInput] = useState("");
       const [loading, setLoading] = useState(false);
@@ -417,7 +417,7 @@
       );
     }
 
-    function LibraryView({ videos, onSelect, onDelete, onAddNew, onCrossQuery, onPaste, onChannelImport, onUpsertVideo, dark, onToggleDark }) {
+    function LibraryView({ videos, onSelect, onDelete, onAddNew, onResearchMode, onPaste, onChannelImport, onUpsertVideo, dark, onToggleDark }) {
       const [whoSearch, setWhoSearch] = useState("");
       const [topicSearch, setTopicSearch] = useState("");
       const [sort, setSort] = useState("recent");
@@ -519,7 +519,7 @@
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
-                <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 64, width: "auto", maxWidth: 220, display: "block" }} />
+                <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 90, width: "auto", maxWidth: 300, display: "block" }} />
               </div>
               <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · your video knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
               {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
@@ -549,7 +549,7 @@
               })()}
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {videos.length >= 2 && <button className="rbtn-g" onClick={onCrossQuery} style={{ whiteSpace: "nowrap" }}>✦ Cross-Query</button>}
+              {videos.length >= 2 && <button className="rbtn-g" onClick={onResearchMode} style={{ whiteSpace: "nowrap" }}>✦ Research Mode</button>}
               <button onClick={onToggleDark} style={{ padding: "7px 11px", borderRadius: 8, background: "transparent", border: "1px solid var(--b)", color: "var(--t2)", cursor: "pointer", fontSize: 15 }}>{dark ? "☀" : "🌙"}</button>
             </div>
           </div>
@@ -695,7 +695,7 @@
                 <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--t2)" }}>
                   <div style={{ fontSize: 40, marginBottom: 14, opacity: .25 }}>💬</div>
                   <p style={{ fontSize: 16, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>No Q&A history yet</p>
-                  <p style={{ fontSize: 14 }}>Ask questions inside a video or use ✦ Cross-Query.</p>
+                  <p style={{ fontSize: 14 }}>Ask questions inside a video or use ✦ Research Mode.</p>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -734,7 +734,7 @@
                     })}
                   </>)}
                   {queries.length > 0 && (<>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", marginTop: videosWithQa.length > 0 ? 10 : 0, marginBottom: 4 }}>Cross-Query Sessions</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".07em", marginTop: videosWithQa.length > 0 ? 10 : 0, marginBottom: 4 }}>Research Mode Sessions</p>
                     {queries.map((q) => {
                       const firstQ = (q.qa || []).find((m) => m.role === "user");
                       const isExpanded = expandedQuery === q.id;
@@ -754,7 +754,7 @@
                               <span style={{ fontSize: 11, color: "var(--t3)", marginLeft: 4 }}>{Math.floor((q.qa?.length || 0) / 2)} exchange{Math.floor((q.qa?.length || 0) / 2) !== 1 ? "s" : ""}</span>
                             </div>
                           </div>
-                          {isExpanded && <ExpandedCrossQuery query={q} videos={videos} onUpdate={(updatedQ) => setQueries(queries.map((x) => x.id === q.id ? updatedQ : x))} />}
+                          {isExpanded && <ExpandedResearchMode query={q} videos={videos} onUpdate={(updatedQ) => setQueries(queries.map((x) => x.id === q.id ? updatedQ : x))} />}
                         </div>
                       );
                     })}
@@ -1782,11 +1782,11 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       "Share any video to earn +2 free videos and +7 days membership — no limit.",
       "Click 'Ask →' next to any key point to instantly ask a question about it.",
       "Paste a channel URL like @ChannelName to browse and bulk import recent videos.",
-      "Cross-Query lets you ask one question across up to 20 videos simultaneously.",
+      "Research Mode lets you ask one question across up to 20 videos simultaneously.",
       "Star key points with ☆ Recall to highlight the insights worth remembering.",
       "Your Q&A history is saved automatically — find it in the Q&A History tab.",
       "The 📋 button lets you paste a transcript if a video has no captions.",
-      "In Cross-Query, type in the Who or About boxes to filter videos before selecting.",
+      "In Research Mode, type in the Who or About boxes to filter videos before selecting.",
       "Every shared video link includes your referral — if someone signs up, you earn +15 videos.",
       "Expand any Q&A History session to continue asking follow-up questions.",
       "The Summary tells the story of the video — Key Points give you the specific facts.",
@@ -1811,13 +1811,13 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       "The 'Back to Library' button at the bottom means you never have to scroll back up.",
       "Browser back button stays within ReelCall — it never takes you out of the app.",
       "Videos from the same channel get compared for what's new vs what's already captured.",
-      "Cross-Query sessions are saved automatically — continue any session from Q&A History.",
+      "Research Mode sessions are saved automatically — continue any session from Q&A History.",
       "Paste & Analyze button reads your clipboard and starts analysis in one click.",
       "Your video library loads fast because transcripts are only fetched when you need them.",
       "The membership bar shows videos used and days remaining — share to extend both.",
       "Refer someone who signs up from your shared video and earn +15 videos +15 days.",
       "First time using channel import? Earn +2 bonus videos as a one-time milestone.",
-      "First cross-query earns +2 videos — the system rewards you for exploring.",
+      "First research-mode earns +2 videos — the system rewards you for exploring.",
       "Ask 5 Q&A questions total and earn +2 bonus videos as a milestone reward.",
       "The Guide at reelcall.app/guide.html explains every feature in detail.",
       "You can paste @ChannelName directly — no need for the full YouTube URL.",
@@ -1826,7 +1826,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       "Videos never get deleted from the system even if you delete them from your library.",
       "The analysis prompt scales key points by video length — longer videos get more points.",
       "Sort by A-Z Channel to visually group all videos from the same creator.",
-      "In Cross-Query, 'Ask More' button changes after first answer — conversation keeps going.",
+      "In Research Mode, 'Ask More' button changes after first answer — conversation keeps going.",
       "ReelCall works on mobile — the grid adjusts to 2-3 columns automatically.",
       "Every feature you use helps train you to get more value from your video library.",
       "YouTube Movies captions can't be fetched automatically — use 📋 Paste Transcript instead.",
@@ -2534,7 +2534,7 @@ Answer questions accurately and specifically based on the content above.`,
       );
     }
 
-    function CrossQueryView({ videos, onBack }) {
+    function ResearchModeView({ videos, onBack }) {
       const [selected, setSelected] = useState(new Set()); // default none selected
       const MAX_SELECTED = 20;
       const [filterChannel, setFilterChannel] = useState(null);
@@ -2635,7 +2635,7 @@ Instructions:
         try {
           await callClaude({
             system: `Capture for owner "dave" (personal scope) as a note using capture_thought.`,
-            messages: [{ role: "user", content: `REEL cross-query note (scope personal, owner dave):\n\n${content}` }],
+            messages: [{ role: "user", content: `REEL research-mode note (scope personal, owner dave):\n\n${content}` }],
             maxTokens: 400, mcp: BRAIN_MCP,
           });
           setCaptureStatus("done"); setTimeout(() => setCaptureStatus("idle"), 3000);
@@ -3199,7 +3199,7 @@ Answer questions accurately and specifically based on the content above.`,
           <div className="preview-bar">
             {collection
               ? <a href={collectionUrl} className="back-link">← {collectionLabel}</a>
-              : <img src="/reelcall-logo.png" alt="ReelCall" style={{ height:32, width:"auto", filter:"brightness(0) invert(1)", opacity:0.9 }} />
+              : <img src="/reelcall-logo.png" alt="ReelCall" style={{ height:44, width:"auto", filter:"brightness(0) invert(1)", opacity:0.9 }} />
             }
             <span className="preview-offer-text">
               Free {freeDays} days · {freeVideos} videos
@@ -3399,7 +3399,7 @@ Answer questions accurately and specifically based on the content above.`,
       if (authState === "noauth" || authState === "noprofile") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 80, width: "auto", maxWidth: 260, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 100, width: "auto", maxWidth: 320, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
             </div>
           <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 340, lineHeight: 1.6 }}>Sign in to access your YouTube knowledge base.</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
@@ -3412,7 +3412,7 @@ Answer questions accurately and specifically based on the content above.`,
       if (authState === "expired") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 80, width: "auto", maxWidth: 260, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 100, width: "auto", maxWidth: 320, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
             </div>
           <p style={{ color: "#FBB040", fontSize: 15, maxWidth: 320 }}>Your 60-day trial has ended. Contact us to lock in $1/month.</p>
           <a href="/index.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>See Plans</a>
@@ -3422,7 +3422,7 @@ Answer questions accurately and specifically based on the content above.`,
       if (authState === "inactive") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 80, width: "auto", maxWidth: 260, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 100, width: "auto", maxWidth: 320, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
             </div>
           <p style={{ color: "#F07070", fontSize: 15 }}>Your account has been deactivated. Contact us for help.</p>
         </div>
@@ -3471,11 +3471,11 @@ Answer questions accurately and specifically based on the content above.`,
               {dark ? "☀" : "🌙"}
             </button>
           )}
-          {view === "library" && <LibraryView videos={videos} onSelect={openVideo} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onCrossQuery={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
+          {view === "library" && <LibraryView videos={videos} onSelect={openVideo} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onResearchMode={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
           {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} />}
           {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); navigate("library"); }} onBack={() => navigate("library")} />}
-          {view === "query" && <CrossQueryView videos={videos} onBack={() => navigate("library")} />}
+          {view === "query" && <ResearchModeView videos={videos} onBack={() => navigate("library")} />}
           {view === "channel" && (
             <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
               <button className="rbtn-g" onClick={() => navigate("library")} style={{ marginBottom: 24 }}>← Back</button>
