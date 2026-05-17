@@ -3152,10 +3152,15 @@ Answer questions accurately and specifically based on the content above.`,
 
     // ─── Teaser Q&A ───────────────────────────────────────────────────────────
     function TeaserQA({ video }) {
+      const storageKey = `reelcall_preview_asked_${video.videoId}`;
       const [input, setInput] = useState("");
-      const [answer, setAnswer] = useState(null);
+      const [answer, setAnswer] = useState(() => {
+        try { return localStorage.getItem(`${storageKey}_answer`) || null; } catch { return null; }
+      });
       const [loading, setLoading] = useState(false);
-      const [used, setUsed] = useState(false);
+      const [used, setUsed] = useState(() => {
+        try { return !!localStorage.getItem(storageKey); } catch { return false; }
+      });
 
       async function ask() {
         const q = input.trim();
@@ -3176,6 +3181,10 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           });
           setAnswer(getText(data));
           setUsed(true);
+          try {
+            localStorage.setItem(storageKey, "1");
+            localStorage.setItem(`${storageKey}_answer`, getText(data));
+          } catch {}
         } catch (e) {
           setAnswer("Something went wrong — try again.");
         } finally { setLoading(false); }
@@ -3185,7 +3194,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         <div style={{ background: "var(--s1)", border: "1px solid var(--b)", borderRadius: 12, padding: "18px 20px", marginBottom: 14 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>💬 Ask a question about this video</p>
           <p style={{ fontSize: 12, color: "var(--t3)", marginBottom: 14 }}>
-            {used ? "That was 1 of 1 free questions on preview pages." : "Try one free question — answered from real transcript analysis"}
+            {used ? "You've used your free question for this video." : "One free question per video — ask anything about this specific episode"}
           </p>
 
           {answer && (
