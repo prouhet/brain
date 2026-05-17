@@ -3150,6 +3150,92 @@ Answer questions accurately and specifically based on the content above.`,
       );
     }
 
+    // ─── Teaser Q&A ───────────────────────────────────────────────────────────
+    function TeaserQA({ video }) {
+      const [input, setInput] = useState("");
+      const [answer, setAnswer] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [used, setUsed] = useState(false);
+
+      async function ask() {
+        const q = input.trim();
+        if (!q || loading || used) return;
+        setLoading(true);
+        try {
+          const data = await callClaude({
+            system: `You are answering one question about a video for a visitor previewing ReelCall. Use ONLY the summary and key points provided — be helpful and specific. Keep your answer to 3-4 sentences max.
+
+Video: "${video.title}" by ${video.channel}
+
+Summary: ${video.summary}
+
+Key Points:
+${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
+            messages: [{ role: "user", content: q }],
+            maxTokens: 300,
+          });
+          setAnswer(getText(data));
+          setUsed(true);
+        } catch (e) {
+          setAnswer("Something went wrong — try again.");
+        } finally { setLoading(false); }
+      }
+
+      return (
+        <div style={{ background: "var(--s1)", border: "1px solid var(--b)", borderRadius: 12, padding: "18px 20px", marginBottom: 14 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>💬 Ask a question about this video</p>
+          <p style={{ fontSize: 12, color: "var(--t3)", marginBottom: 14 }}>
+            {used ? "That was 1 of 1 free questions on preview pages." : "Try one free question — answered from real transcript analysis"}
+          </p>
+
+          {answer && (
+            <div style={{ background: "var(--s2)", borderRadius: 10, padding: "12px 14px", marginBottom: 14, borderLeft: "3px solid var(--acc)" }}>
+              <p style={{ fontSize: 13, color: "var(--t2)", lineHeight: 1.7 }}>{answer}</p>
+            </div>
+          )}
+
+          {answer && (
+            <div style={{ background: "var(--acc-lo)", border: "1px solid var(--acc-mid)", borderRadius: 10, padding: "12px 16px", marginBottom: 14 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--acc)", marginBottom: 3 }}>Want to keep going?</p>
+              <p style={{ fontSize: 12, color: "var(--t2)", lineHeight: 1.6 }}>
+                Add this video to your library and ask <strong>unlimited questions</strong> — answered from the full transcript, not just the summary. Plus ask across multiple videos at once with Research Mode.
+              </p>
+            </div>
+          )}
+
+          {!used ? (
+            <div style={{ display: "flex", gap: 10 }}>
+              <input
+                placeholder="e.g. What are the main benefits of BPC-157?"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && ask()}
+                style={{ flex: 1, fontSize: 14 }}
+                disabled={loading}
+              />
+              <button
+                onClick={ask}
+                disabled={loading || !input.trim()}
+                className="rbtn-p"
+                style={{ flexShrink: 0, padding: "10px 18px", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                {loading ? <Spinner size={14} /> : "Ask"}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <a href="/signup.html" style={{ flex: 1, background: "var(--acc)", color: "#fff", padding: "12px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 700, fontSize: 14, textAlign: "center", whiteSpace: "nowrap" }}>
+                Add to Library — Ask Unlimited →
+              </a>
+              <a href="/signup.html" style={{ flexShrink: 0, background: "var(--s2)", color: "var(--t2)", padding: "12px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>
+                🔬 Research Mode — Ask Across All Videos
+              </a>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // ─── Preview Video View ───────────────────────────────────────────────────────
     function PreviewVideoView({ videoId, collection }) {
       const [video, setVideo] = useState(null);
@@ -3264,6 +3350,9 @@ Answer questions accurately and specifically based on the content above.`,
                 </ul>
               </Sec>
             )}
+
+            {/* Teaser Q&A box */}
+            <TeaserQA video={video} />
 
             <Sec title="Save to unlock" subtitle="Free for 60 days — no credit card needed">
               <div style={{ display:"flex", flexDirection:"column" }}>
