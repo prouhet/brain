@@ -156,11 +156,19 @@
                 <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px">Add Video to Collection</p>
                 <div style="display:flex;flex-direction:column;gap:8px">
                   <input id="coll-url" placeholder="Paste YouTube URL..." style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:9px 12px;font-size:13px;outline:none;width:100%">
-                  <select id="coll-select" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:9px 12px;font-size:13px;outline:none;width:100%;font-family:inherit;cursor:pointer">
+                  <select id="coll-select" onchange="collSelectChange(this)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:9px 12px;font-size:13px;outline:none;width:100%;font-family:inherit;cursor:pointer">
                     <option value="huberman-lab">Huberman Lab</option>
                     <option value="peptides">Peptides Explained</option>
+                    <option value="glp1">GLP-1 Explained</option>
+                    <option value="longevity">Longevity & Anti-Aging</option>
+                    <option value="fitness">Fitness & Performance</option>
                     <option value="general">General Collection</option>
+                    <option value="__new__">+ Add new collection...</option>
                   </select>
+                  <div id="coll-new-box" style="display:none;display:flex;gap:6px;margin-top:6px">
+                    <input id="coll-new-name" placeholder="Collection name (e.g. Lex Fridman)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1">
+                    <button class="btn-ok" onclick="collAddNew()" style="padding:8px 12px;white-space:nowrap">Add</button>
+                  </div>
                   <button class="btn-acc" id="coll-analyze-btn" onclick="collAnalyze()" style="padding:9px;font-size:13px;font-weight:600;width:100%">Analyze & Add to Collection</button>
                 </div>
               </div>
@@ -349,7 +357,7 @@
       ]);
       users = usersRes.data || [];
       (videosRes.data || []).forEach(v => { videoCounts[v.owner] = (videoCounts[v.owner] || 0) + 1; });
-      renderStats(); renderTable(); collLoad();
+      renderStats(); renderTable(); collLoad(); collLoadSavedCollections();
     }
 
     function trialStatus(u) {
@@ -508,7 +516,7 @@
 
     // ── Collections ───────────────────────────────────────────────────────────
     let collVideos = [], collFilter_active = 'all', collCurrentResult = null;
-    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides", "general": "General" };
+    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides", "glp1": "GLP-1", "longevity": "Longevity", "fitness": "Fitness", "general": "General" };
 
     function collToast(msg) {
       const el = document.getElementById('coll-toast');
@@ -560,6 +568,47 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function collSelectChange(sel) {
+      const newBox = document.getElementById('coll-new-box');
+      newBox.style.display = sel.value === '__new__' ? 'flex' : 'none';
+      if (sel.value === '__new__') setTimeout(() => document.getElementById('coll-new-name').focus(), 50);
+    }
+
+    function collAddNew() {
+      const name = document.getElementById('coll-new-name').value.trim();
+      if (!name) return;
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const sel = document.getElementById('coll-select');
+      // Check if already exists
+      const exists = Array.from(sel.options).some(o => o.value === slug);
+      if (!exists) {
+        const opt = new Option(name, slug);
+        sel.insertBefore(opt, sel.options[sel.options.length - 1]); // before "Add new..."
+        // Persist to localStorage
+        const saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
+        if (!saved.find(c => c.slug === slug)) {
+          saved.push({ slug, name });
+          localStorage.setItem('reelcall_collections', JSON.stringify(saved));
+        }
+        COLL_LABEL[slug] = name;
+      }
+      sel.value = slug;
+      document.getElementById('coll-new-box').style.display = 'none';
+      document.getElementById('coll-new-name').value = '';
+    }
+
+    function collLoadSavedCollections() {
+      const saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
+      const sel = document.getElementById('coll-select');
+      saved.forEach(({ slug, name }) => {
+        if (!Array.from(sel.options).some(o => o.value === slug)) {
+          const opt = new Option(name, slug);
+          sel.insertBefore(opt, sel.options[sel.options.length - 1]);
+          COLL_LABEL[slug] = name;
+        }
+      });
     }
 
     async function collAnalyze() {
@@ -640,14 +689,8 @@
         }
 
         collCurrentResult = { videoId, url: `https://www.youtube.com/watch?v=${videoId}`, transcript, collection, ...analysisData };
-        document.getElementById('coll-progress').style.display = 'none';
-        document.getElementById('coll-result').style.display = 'block';
-        const img = document.getElementById('coll-res-img');
-        img.src = thumb(videoId); img.style.display = 'block';
-        document.getElementById('coll-res-title').textContent = analysisData.title || '';
-        document.getElementById('coll-res-channel').textContent = analysisData.channel || '';
-        document.getElementById('coll-res-summary').textContent = analysisData.summary || '';
-        document.getElementById('coll-res-tags').innerHTML = (analysisData.tags || []).map(t => `<span style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:20px;padding:1px 8px;font-size:10px">${t}</span>`).join('');
+        // Autosave — no confirmation step needed
+        await collSave();
       } catch(e) { collShowError(e.message); }
     }
 
@@ -669,17 +712,16 @@
 
     async function collSave() {
       if (!collCurrentResult) return;
-      document.getElementById('coll-save-btn').disabled = true;
-      document.getElementById('coll-save-btn').textContent = 'Saving...';
+      document.getElementById('coll-prog-msg').textContent = 'Saving to collection...';
+      document.getElementById('coll-progress').style.display = 'block';
+      document.getElementById('coll-result').style.display = 'none';
       try {
         const r = collCurrentResult;
         await sbReq('youtube_videos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ id: genId(), video_id: r.videoId, url: r.url, title: r.title || 'Untitled', channel: r.channel || '', summary: r.summary, key_points: r.keyPoints || [], point_status: [], tags: r.tags || [], quotes: r.quotes || [], credibility: r.credibility || null, qa: [], whats_new: r.whatsNew || '', action_suggestions: r.actionSuggestions || [], transcript: r.transcript || null, duration: r.duration || null, shared: true, open_count: 0, share_count: 0, date_added: new Date().toISOString(), owner: COLLECTION_OWNER, collection_tag: r.collection }) });
         collToast('✓ Saved to ' + (COLL_LABEL[r.collection] || r.collection) + ' collection');
         collReset(); collLoad();
       } catch(e) {
-        collToast('Error: ' + e.message);
-        document.getElementById('coll-save-btn').disabled = false;
-        document.getElementById('coll-save-btn').textContent = 'Save to Collection';
+        collShowError('Save failed: ' + e.message);
       }
     }
 
