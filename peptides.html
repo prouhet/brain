@@ -637,12 +637,13 @@
   const COLLECTION_OWNER = "reelcall_collections";
 
   function mdToHtml(text) {
+    if (!text) return '';
     return text
-      .replace(/## (.*?)(?:\n|$)/g, '<h3 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);margin:18px 0 8px">$1</h3>')
+      .replace(/## (.*?)(?:\n|$)/g, function(m, s) { return '<h3 style="font-size:15px;font-weight:700;color:var(--ink);margin:16px 0 6px">' + s + '</h3>'; })
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n\n/g, '</p><p style="margin-bottom:10px">')
+      .replace(/\n\n/g, '</p><p style="margin-bottom:10px;font-size:14px;color:var(--ink-mid);line-height:1.75">')
       .replace(/\n/g, '<br>')
-      .replace(/^/, '<p style="margin-bottom:10px">')
+      .replace(/^/, '<p style="margin-bottom:10px;font-size:14px;color:var(--ink-mid);line-height:1.75">')
       .replace(/$/, '</p>');
   }
 
