@@ -223,7 +223,7 @@
     <div class="feat reveal">
       <span class="feat-icon">&#127381;</span>
       <h3>Share one, get two — free forever</h3>
-      <p>Every video you share earns +2 more free videos and +7 days membership. Share 4 videos a month and your membership never expires.</p>
+      <p>Every video you share earns +2 more free videos and . Share 4 videos a month and your membership never expires.</p>
     </div>
   </div>
 </section>
@@ -328,25 +328,36 @@
     obs.observe(el);
   });
 
-  // Scarcity counter — Tier 1
+  // Live subscription counter — pulls from offer_config
   (async function() {
     try {
       const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
       const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
-      const LAUNCH = new Date("2026-04-23");
-      const SEED = 12;
-      const TOTAL = 60;
-      const DECAY_PER_DAY = 1;
-      const daysSinceLaunch = Math.floor((Date.now() - LAUNCH.getTime()) / 86400000);
-      const decayed = Math.min(daysSinceLaunch * DECAY_PER_DAY, TOTAL - 3);
-      // Get real paid users
-      const r = await fetch(`${SB_URL}/rest/v1/reel_users?select=id&stripe_subscription_id=not.is.null`, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
-      const paid = await r.json();
-      const claimed = SEED + (paid?.length || 0) + decayed;
-      const remaining = Math.max(3, TOTAL - claimed);
-      // Update all scarcity elements
+
+      // Get offer config
+      const r = await fetch(`${SB_URL}/rest/v1/offer_config?select=*&limit=1`, {
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+      });
+      const configs = await r.json();
+      const cfg = configs?.[0];
+      if (!cfg) return;
+
+      const remaining = Math.max(0, cfg.founding_slots_total - cfg.founding_slots_used);
+      const foundingPrice = (cfg.founding_price_cents / 100).toFixed(0);
+      const nextPrice = (cfg.next_price_cents / 100).toFixed(0);
+
+      // Update all counter elements
       document.querySelectorAll('.tier1-remaining').forEach(el => el.textContent = remaining);
-      document.querySelectorAll('.tier1-claimed').forEach(el => el.textContent = claimed);
+      document.querySelectorAll('.founding-price').forEach(el => el.textContent = `$${foundingPrice}`);
+      document.querySelectorAll('.next-price').forEach(el => el.textContent = `$${nextPrice}`);
+
+      // Show urgency if low
+      if (remaining <= 10) {
+        document.querySelectorAll('.slots-urgency').forEach(el => {
+          el.style.display = 'block';
+          el.textContent = `⚡ Only ${remaining} founding spots left — price goes to $${nextPrice}/mo after`;
+        });
+      }
     } catch(e) {}
   })();
 </script>
