@@ -595,12 +595,9 @@
 <section class="episodes-section" style="padding-top:0" id="crossquerySection" style="display:none">
   <div class="crossquery-block">
     <div class="crossquery-label">ReelCall · Research Mode Demo</div>
-    <div class="crossquery-q">"What do these experts agree and disagree on when it comes to BPC-157 safety and the science behind it?"</div>
+    <div class="crossquery-q" id="demoQuestion"></div>
     <div class="crossquery-sources" id="crossquerySources"></div>
-    <div class="crossquery-answer"><strong>Where they agree:</strong> BPC-157 works through angiogenesis — new blood vessel formation — and has remarkable tissue repair properties in animal research. All acknowledge the gastric origin, the stability advantage, and consistent anecdotal results.<br><br>
-      <strong>Where they diverge:</strong> The physician/surgeon voices raise the cancer risk flag directly — the same angiogenic mechanism that heals tissue could accelerate precancerous cell growth. This concern is almost never mentioned in biohacker content.<br><br>
-      <strong>The source quality problem:</strong> 20% of unregulated peptides tested were found to be mislabeled. The real risk isn't the compound — it's the gray market.<br><br>
-      <strong>Practical consensus:</strong> Pharmacy-grade compounding with physician oversight is the only defensible path.</div>
+    <div class="crossquery-answer" id="demoAnswer"></div>
     <a href="https://reelcall.app/signup.html" class="crossquery-cta">Ask your own question across all episodes → Free for 60 days</a>
   </div>
   <div class="forget-banner">
@@ -635,11 +632,12 @@
 
   async function loadCollection() {
     try {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/youtube_videos?select=id,video_id,title,channel,summary,key_points,tags,credibility,duration,date_added&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${COLLECTION_TAG}&order=date_added.asc`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      );
-      const videos = await res.json();
+      const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
+      const [videosRes, demoRes] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/youtube_videos?select=id,video_id,title,channel,summary,key_points,tags,credibility,duration,date_added&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${COLLECTION_TAG}&order=date_added.asc`, { headers }),
+        fetch(`${SB_URL}/rest/v1/collection_demos?collection_tag=eq.${COLLECTION_TAG}&limit=1`, { headers }).catch(() => null)
+      ]);
+      const videos = await videosRes.json();
 
       if (!videos?.length) {
         document.getElementById('episodeList').innerHTML = '<div class="empty-state">No episodes in this collection yet.<br>Add them via the admin panel.</div>';
@@ -655,9 +653,20 @@
       // Render episodes
       document.getElementById('episodeList').innerHTML = videos.map((v, i) => buildCard(v, i)).join('');
 
-      // Show crossquery section
-      document.getElementById('crossquerySection').style.display = '';
-      buildCrossquerySources(videos);
+      // Load and show demo Q&A if saved
+      const crossSection = document.getElementById('crossquerySection');
+      if (demoRes?.ok) {
+        try {
+          const demos = await demoRes.json();
+          if (demos?.[0]) {
+            const demo = demos[0];
+            document.getElementById('demoQuestion').textContent = '"' + demo.question + '"';
+            document.getElementById('demoAnswer').innerHTML = demo.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+            buildCrossquerySources(videos);
+            crossSection.style.display = '';
+          } else { crossSection.style.display = 'none'; }
+        } catch { crossSection.style.display = 'none'; }
+      } else { crossSection.style.display = 'none'; }
 
     } catch(e) {
       document.getElementById('episodeList').innerHTML = `<div class="empty-state">Error loading: ${e.message}</div>`;
