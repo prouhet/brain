@@ -1364,6 +1364,13 @@ Return ONLY valid JSON (no markdown fences):
     // ─── Add Video View ───────────────────────────────────────────────────────
     function AddVideoView({ onSave, onBack, existingVideos, prefillUrl = "" }) {
       const [url, setUrl] = useState(prefillUrl);
+      const cleanUrl = (raw) => {
+        // Strip ?si= and all tracking params — keep only ?v= for regular URLs
+        const vid = extractVid(raw);
+        if (vid) return `https://www.youtube.com/watch?v=${vid}`;
+        return raw.trim();
+      };
+      const handleUrlChange = (raw) => setUrl(cleanUrl(raw));
       const [meta, setMeta] = useState(null);
       const [step, setStep] = useState("idle");
       const [result, setResult] = useState(null);
@@ -1624,7 +1631,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           <button className="rbtn-g" onClick={onBack} style={{ marginBottom: 24, padding: "9px 18px", fontWeight: 600, fontSize: 14 }}>← Back to Library</button>
           {!prefillUrl && <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Add YouTube Video</h2>}
           {!prefillUrl && <p style={{ color: "var(--t2)", fontSize: 14, marginBottom: 24 }}>Paste a URL — Claude finds the transcript and analyzes it against your existing library.</p>}
-          {!prefillUrl && <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => setUrl(e.target.value)} style={{ marginBottom: 16 }} autoFocus />}
+          {!prefillUrl && <input placeholder="https://youtube.com/watch?v=..." value={url} onChange={(e) => handleUrlChange(e.target.value)} style={{ marginBottom: 16 }} autoFocus />}
 
           {url.trim() && !videoId && (
             <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
