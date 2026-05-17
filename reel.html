@@ -96,8 +96,8 @@
     const IS_PREVIEW = params.get("preview") === "true";
     const PREVIEW_VID = params.get("vid");
     const COLLECTION = params.get("collection");
-    const COLLECTION_LABELS = { "huberman-lab": "Huberman Lab" };
-    const COLLECTION_URLS  = { "huberman-lab": "/huberman-lab.html" };
+    const COLLECTION_LABELS = { "huberman-lab": "Huberman Lab", "peptides": "Peptides Collection" };
+    const COLLECTION_URLS  = { "huberman-lab": "/huberman-lab.html", "peptides": "/peptides.html" };
     const userParam = (params.get("user") || "").toLowerCase();
     const sbAuth = supabase.createClient(SB_URL, SB_KEY);
 
@@ -3253,7 +3253,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
 
       const collectionLabel = COLLECTION_LABELS[collection] || "Collection";
-      const collectionUrl   = COLLECTION_URLS[collection]  || "/huberman-lab.html";
+      const collectionUrl   = COLLECTION_URLS[collection]  || "/index.html";
 
       useEffect(() => {
         document.body.style.background = dark ? "#07090F" : "#F8F9FC";
@@ -3261,7 +3261,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       }, [dark]);
 
       useEffect(() => {
-        sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added&video_id=eq.${videoId}&shared=eq.true&limit=1`)
+        sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility&video_id=eq.${videoId}&shared=eq.true&limit=1`)
           .then((rows) => {
             if (!rows?.length) setErr("Preview not available yet — check back soon.");
             else setVideo(fromDb(rows[0]));
@@ -3378,6 +3378,28 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                 ))}
               </div>
             </Sec>
+
+            {/* Credibility warning — only show for medium or low */}
+            {(video.credibility?.score === "medium" || video.credibility?.score === "low") && (
+              <div style={{ background: video.credibility.score === "low" ? "rgba(239,68,68,.06)" : "rgba(245,166,35,.06)", border: `1px solid ${video.credibility.score === "low" ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>{video.credibility.score === "low" ? "⚠️" : "🔍"}</span>
+                  <div>
+                    <p style={{ fontSize:13, fontWeight:700, color: video.credibility.score === "low" ? "#ef4444" : "var(--warn)", marginBottom:4 }}>
+                      {video.credibility.score === "low" ? "Credibility Concerns Detected" : "Verify Before Sharing"}
+                    </p>
+                    {video.credibility.note && <p style={{ fontSize:13, color:"var(--t2)", lineHeight:1.6 }}>{video.credibility.note}</p>}
+                    {video.credibility.flags?.length > 0 && (
+                      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:8 }}>
+                        {video.credibility.flags.filter(f => f).map((f, i) => (
+                          <span key={i} style={{ fontSize:11, background: video.credibility.score === "low" ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", color: video.credibility.score === "low" ? "#ef4444" : "var(--warn)", border:`1px solid ${video.credibility.score === "low" ? "rgba(239,68,68,.2)" : "rgba(245,166,35,.2)"}`, borderRadius:4, padding:"2px 8px" }}>{f}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{ background:"var(--s1)", border:"1px solid var(--acc-mid)", borderRadius:12, padding:"24px", textAlign:"center", marginBottom:14 }}>
               {slotsLeft > 0 ? (
