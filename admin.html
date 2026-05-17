@@ -237,8 +237,43 @@
               <div id="coll-video-list">
                 <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Loading...</div>
               </div>
+            </div>
+          </div>
 
-
+          <!-- Research Mode Demo Builder — collapsible at bottom of Collections card -->
+          <div style="border-top:1px solid var(--b)">
+            <div onclick="toggleDemoPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer">
+              <div>
+                <p style="font-size:12px;font-weight:700;color:var(--t2)">✦ Research Mode Demo Builder</p>
+                <p style="font-size:11px;color:var(--t3);margin-top:2px">Set the live demo Q&A block shown on huberman-lab.html, peptides.html etc.</p>
+              </div>
+              <span id="demo-chevron" style="color:var(--t3);font-size:12px;transition:transform .2s">▼</span>
+            </div>
+            <div id="demo-panel" style="display:none;padding:0 20px 20px;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <select id="demo-coll-select" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit;width:160px">
+                  <option value="huberman-lab">Huberman Lab</option>
+                  <option value="peptides">Peptides</option>
+                  <option value="glp1">GLP-1</option>
+                  <option value="longevity">Longevity</option>
+                  <option value="fitness">Fitness</option>
+                  <option value="general">General</option>
+                </select>
+                <input id="demo-question" placeholder="Ask a question across all videos in this collection..." style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1;min-width:180px">
+                <button class="btn-acc" onclick="runDemoQuery()" id="demo-run-btn" style="padding:8px 16px;font-weight:600;white-space:nowrap">▶ Run</button>
+              </div>
+              <div id="demo-loading" style="display:none;color:var(--t2);font-size:12px">Running Research Mode across collection...</div>
+              <div id="demo-result" style="display:none;flex-direction:column;gap:10px">
+                <div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:14px">
+                  <p style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Answer Preview</p>
+                  <p id="demo-answer-text" style="font-size:12px;color:#DDE4F5;line-height:1.7;white-space:pre-wrap;max-height:220px;overflow-y:auto"></p>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <button class="btn-ok" onclick="saveDemoToDb()" style="font-weight:600">✓ Set as Demo on Page</button>
+                  <button class="btn-g" onclick="clearDemo()" style="font-size:12px">Clear</button>
+                  <p id="demo-save-msg" style="font-size:11px;color:var(--ok);display:none;margin:0">✓ Saved — refresh the public page to see it</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
