@@ -42,14 +42,6 @@
       align-items: center;
       justify-content: space-between;
     }
-    .header-logo-img {
-      height: 36px;
-      width: auto;
-      display: block;
-      /* logo is red+black on white — invert on dark header */
-      background: #fff; border-radius: 4px; padding: 4px 8px;
-    }
-    .logo-img-link { display: flex; align-items: center; text-decoration: none; }
     .logo {
       font-family: 'DM Mono', monospace;
       font-size: 18px;
@@ -556,11 +548,23 @@
     footer a { color: #6a635e; text-decoration: none; }
     footer a:hover { color: #aaa; }
   </style>
+  <style>
+    .ep-card { opacity: 0; animation: fadeIn .3s ease forwards; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }
+    .loading-state { text-align:center; padding:48px 20px; color:var(--ink-light); }
+    .loading-spin { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 16px; }
+    @keyframes spin { to { transform:rotate(360deg) } }
+    .empty-state { text-align:center; padding:48px 20px; color:var(--ink-light); font-size:14px; }
+    .cred-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-left:8px; vertical-align:middle; }
+    .cred-high { background:rgba(5,150,105,.1); color:#059669; border:1px solid rgba(5,150,105,.2); }
+    .cred-medium { background:rgba(180,83,9,.1); color:#b45309; border:1px solid rgba(180,83,9,.2); }
+    .cred-low { background:rgba(220,38,38,.1); color:#dc2626; border:1px solid rgba(220,38,38,.2); }
+  </style>
 </head>
 <body>
 
 <header class="site-header">
-  <a href="https://reelcall.app" class="logo-img-link"><img src="reelcall-logo.png" alt="ReelCall — Video In. Answers Out." class="header-logo-img"></a>
+  <a href="https://reelcall.app" class="logo">Reel<span>Call</span></a>
   <a href="https://reelcall.app/signup.html" class="header-cta">Start Free →</a>
 </header>
 
@@ -569,392 +573,36 @@
   <div class="hero-kicker">ReelCall · Huberman Lab</div>
   <h1>Stop Rewatching.<br><em>Start Knowing.</em></h1>
   <p class="hero-sub">The top Huberman Lab episodes — distilled to key takeaways. No filler. No timestamps. Just the science, ready to apply.</p>
-  <p class="hero-gap">Huberman has <strong>200+ episodes.</strong> ReelCall lets you talk to one video or ask questions across many — and saves every answer.</p>
-  <div class="hero-meta">
-    <div class="hero-stat"><strong>10</strong> episodes</div>
-    <div class="divider-dot">·</div>
-    <div class="hero-stat"><strong>~20 hrs</strong> of content</div>
+  <p class="hero-gap" id="heroGap">Loading collection...</p>
+  <div class="hero-meta" id="heroMeta" style="visibility:hidden">
+    <div class="hero-stat"><strong id="statCount">—</strong> episodes</div>
     <div class="divider-dot">·</div>
     <div class="hero-stat"><strong>5 min</strong> per summary</div>
   </div>
 </section>
 
 <section class="episodes-section">
-  <div class="section-label">Top Episodes</div>
-
-  <!-- EPISODE 1 -->
-  <div class="ep-card" id="ep1">
-    <div class="ep-header" onclick="toggle('ep1')">
-      <div class="ep-num">01</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Sleep</div>
-        <div class="ep-title">Master Your Sleep & Be More Alert When Awake</div>
-        <div class="ep-desc">The sleep toolkit that launched a million routines</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Get bright light (ideally sunlight) in your eyes within 30–60 minutes of waking. This sets your cortisol pulse and anchors your circadian clock for the day.</li>
-              <li>Avoid bright light between 10 PM–4 AM — even brief exposure suppresses melatonin and delays your sleep timer significantly.</li>
-              <li>Temperature drops of 1–3°F trigger sleep onset. A warm bath before bed paradoxically cools core temperature by drawing blood to the surface.</li>
-              <li>Non-Sleep Deep Rest (NSDR) — 10–20 minute body scans or yoga nidra — restores mental freshness and can recover lost sleep capacity.</li>
-              <li>Caffeine blocks adenosine receptors but doesn't clear it. Delay your first coffee 90–120 minutes after waking to prevent the afternoon crash.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=nm1TxQj9IsQ&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
+  <div class="section-label">Collection</div>
+  <div id="episodeList">
+    <div class="loading-state">
+      <div class="loading-spin"></div>
+      <p>Loading episodes...</p>
     </div>
   </div>
-
-  <!-- EPISODE 2 -->
-  <div class="ep-card" id="ep2">
-    <div class="ep-header" onclick="toggle('ep2')">
-      <div class="ep-num">02</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Dopamine</div>
-        <div class="ep-title">How Dopamine Controls Motivation, Focus & Satisfaction</div>
-        <div class="ep-desc">Why you feel unmotivated — and the neuroscience to fix it</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Dopamine is about anticipation and pursuit, not pleasure itself. The wanting system is separate from the liking system — which is why achieving goals can feel empty.</li>
-              <li>Every dopamine spike is followed by a trough below baseline. Layering multiple pleasures (caffeine + music + exercise) accelerates burnout and reduces baseline motivation.</li>
-              <li>"Dopamine scheduling" — intermittently removing rewards from activities you enjoy — prevents tolerance and keeps motivation circuits healthy.</li>
-              <li>Cold exposure causes a long-lasting dopamine increase (250%) without the crash that follows other stimulants, making it uniquely valuable for sustained motivation.</li>
-              <li>The key to sustained drive: find meaning in the effort itself, not just the outcome. This rewires the dopamine system to reward the process.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=QmOF0crdyRU&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 3 -->
-  <div class="ep-card" id="ep3">
-    <div class="ep-header" onclick="toggle('ep3')">
-      <div class="ep-num">03</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Cold Exposure</div>
-        <div class="ep-title">Using Deliberate Cold Exposure for Health & Performance</div>
-        <div class="ep-desc">The science behind ice baths — without the bro culture</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>11 minutes per week total (split across 2–4 sessions) is sufficient to get the full norepinephrine and dopamine benefits of cold exposure.</li>
-              <li>Deliberate cold exposure raises metabolism through brown fat activation and shivering thermogenesis — both convert calories to heat more efficiently.</li>
-              <li>Cold immediately after strength training blunts hypertrophy signals (mTOR). Wait 4–6 hours if muscle growth is the goal, or do cold before training instead.</li>
-              <li>The "messy mind" discomfort of cold is the protocol — the neurochemical benefits come from tolerating the stress, not just the temperature drop.</li>
-              <li>Cold showers have most of the psychological benefits (epinephrine spike, mental toughness training) with less infrastructure than full ice baths.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=pq6WHJzOkno&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 4 -->
-  <div class="ep-card" id="ep4">
-    <div class="ep-header" onclick="toggle('ep4')">
-      <div class="ep-num">04</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Focus</div>
-        <div class="ep-title">Focus Toolkit: Tools to Improve Your Focus & Concentration</div>
-        <div class="ep-desc">How to build sustained attention in a distraction economy</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>The first 5 minutes of any focus session are always hard — this is normal. The transition from diffuse to focused cognition requires tolerating the initial friction.</li>
-              <li>Visual focus precedes cognitive focus. Narrowing your physical gaze to a fixed point for 30–60 seconds activates the attention circuits you need for mental work.</li>
-              <li>40 Hz binaural beats (gamma frequency) during work sessions are backed by research showing improved working memory and attention span.</li>
-              <li>90-minute ultradian cycles are your brain's natural focus window. After one full cycle, a 10–20 minute non-sleep rest period restores capacity for the next.</li>
-              <li>Random intermittent reinforcement (not knowing when a reward will come) is the most powerful schedule for sustaining motivation on long tasks.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=yb5zpo5WDG4&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 5 -->
-  <div class="ep-card" id="ep5">
-    <div class="ep-header" onclick="toggle('ep5')">
-      <div class="ep-num">05</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Habits</div>
-        <div class="ep-title">The Science of Making & Breaking Habits</div>
-        <div class="ep-desc">Why willpower fails — and what actually rewires behavior</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Habits are built in the limbic system, not the prefrontal cortex — which is why willpower (a PFC function) is the wrong tool for habit formation.</li>
-              <li>The immediate reward must come during the behavior, not after. Pairing a habit with something inherently enjoyable (not a future promise) is what wires the circuit.</li>
-              <li>"Task bracketing" — a brief anticipatory state before the habit and a brief reward state after — is what the basal ganglia uses to mark and reinforce the behavior.</li>
-              <li>Habit stacking (linking a new behavior to an existing anchor) works because it borrows the neurological pathways already carved by the established habit.</li>
-              <li>Breaking habits requires replacing the dopamine hit, not just removing the behavior. Substitution works far better than pure suppression.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=Wcs2PFz5q6g&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 6 -->
-  <div class="ep-card" id="ep6">
-    <div class="ep-header" onclick="toggle('ep6')">
-      <div class="ep-num">06</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Breathing</div>
-        <div class="ep-title">How to Breathe Correctly for Optimal Health, Mood & Performance</div>
-        <div class="ep-desc">The most underrated performance lever in your body</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Nasal breathing filters, humidifies, and nitric-oxide-enriches air in ways that mouth breathing cannot. Chronic mouth breathing degrades sleep quality and cognitive performance.</li>
-              <li>The physiological sigh (double inhale through the nose, long exhale through the mouth) is the fastest way to reduce real-time anxiety — and it works in under 60 seconds.</li>
-              <li>Carbon dioxide tolerance, not oxygen capacity, determines how quickly you panic. Box breathing and slow breathing extend CO2 tolerance and raise your stress ceiling.</li>
-              <li>Cyclic hyperventilation (Wim Hof style) activates the sympathetic nervous system and is best used before performance or cold — not for relaxation or focus work.</li>
-              <li>Exhale-emphasized breathing (longer out than in) is the primary lever for real-time parasympathetic activation and heart rate reduction.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=x4m_PdFbu-s&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 7 -->
-  <div class="ep-card" id="ep7">
-    <div class="ep-header" onclick="toggle('ep7')">
-      <div class="ep-num">07</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Exercise</div>
-        <div class="ep-title">Science of Muscle Growth, Increasing Strength & Recovery</div>
-        <div class="ep-desc">The minimum effective dose for hypertrophy — and how to actually recover</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>5 sets per muscle group per week is the minimum threshold for hypertrophy. Most people overthink volume — consistency and progressive overload matter more than total sets.</li>
-              <li>The eccentric (lowering) phase of a rep generates more muscle damage and growth signal than the concentric. Slow, controlled lowering is worth the discomfort.</li>
-              <li>Sleep is when growth hormone release peaks. Disrupting sleep consistently will blunt muscle gain regardless of training volume.</li>
-              <li>Resistance training within 3 hours of waking capitalizes on naturally elevated cortisol and testosterone, making morning sessions biologically favorable for strength work.</li>
-              <li>Soreness is inflammation, not growth. DOMS is not a reliable indicator of productive training — you can build muscle without feeling wrecked.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=XLr2RKoD-oY&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 8 -->
-  <div class="ep-card" id="ep8">
-    <div class="ep-header" onclick="toggle('ep8')">
-      <div class="ep-num">08</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Learning</div>
-        <div class="ep-title">Optimize Your Learning & Creativity with Science-Based Tools</div>
-        <div class="ep-desc">How to make new information actually stick</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Neuroplasticity requires two conditions: intense focus during learning, and quality sleep afterward. The actual rewiring happens during sleep, not during study.</li>
-              <li>Testing yourself (retrieval practice) encodes information 3–4x more effectively than re-reading. The struggle of recall is the mechanism of learning.</li>
-              <li>Brief (10 min) eyes-closed rest immediately after learning accelerates consolidation — the brain replays and cements the new material during this quiet window.</li>
-              <li>Frustration and confusion during learning is a sign that neuroplasticity circuits are active, not that the approach is wrong. Leaning into difficulty is the protocol.</li>
-              <li>Interleaved practice (mixing topics) feels harder and performs worse short-term but produces dramatically superior long-term retention than blocked practice.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=D97TQuy946k&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 9 -->
-  <div class="ep-card" id="ep9">
-    <div class="ep-header" onclick="toggle('ep9')">
-      <div class="ep-num">09</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Stress</div>
-        <div class="ep-title">The Science of Stress & How to Manage It</div>
-        <div class="ep-desc">Not all stress is bad — and some is essential to pursue</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Adrenaline is the primary stress molecule in short-term responses — not cortisol. Cortisol manages sustained stress over hours and days, including immune and metabolic effects.</li>
-              <li>Reframing stress as performance-enhancing rather than harmful changes its measurable physiological effects. Mindset shapes biology here in a documented way.</li>
-              <li>Social connection is one of the most potent buffers against chronic stress. Isolation amplifies cortisol and shrinks the hippocampus over time.</li>
-              <li>Deliberate heat exposure (sauna) triggers heat shock proteins that protect cells from stress damage and may partially inoculate the body against future stressors.</li>
-              <li>Short-term stress (acute) is a feature: it enhances immune function, focus, and memory. Chronic stress is the enemy. The goal is not to eliminate stress but to recover from it faster.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=qUz93CyNIz0&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EPISODE 10 -->
-  <div class="ep-card" id="ep10">
-    <div class="ep-header" onclick="toggle('ep10')">
-      <div class="ep-num">10</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Fitness Protocol</div>
-        <div class="ep-title">Fitness Toolkit: Protocol & Tools to Optimize Physical Health</div>
-        <div class="ep-desc">The complete Huberman weekly training framework</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>The recommended weekly split: Day 1 long slow cardio, Day 2 legs, Day 3 rest/recovery, Day 4 upper body push, Day 5 upper body pull, Days 6–7 moderate intensity cardio + rest.</li>
-              <li>Zone 2 cardio (able to hold a conversation) for 150–200 minutes per week is the longevity baseline — it builds mitochondrial density and cardiovascular resilience.</li>
-              <li>One VO2 max session per week (all-out effort for 8–12 minutes) provides outsized longevity benefits that zone 2 alone cannot replicate.</li>
-              <li>Neck and posterior chain training is consistently neglected and disproportionately important for posture, injury prevention, and athletic performance.</li>
-              <li>Training fasted is viable for most people — but protein timing within a few hours post-workout is more important than pre-workout nutrition for muscle protein synthesis.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=q1Ss8sTbFBY&preview=true&collection=huberman-lab" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </section>
 
-
-<section class="episodes-section" style="padding-top:0">
+<!-- Cross-query demo -->
+<section class="episodes-section" style="padding-top:0" id="crossquerySection" style="display:none">
   <div class="crossquery-block">
     <div class="crossquery-label">ReelCall · Cross-Query Demo</div>
     <div class="crossquery-q">"What does Huberman say about combining cold exposure and exercise — and how does this affect dopamine and sleep?"</div>
-    <div class="crossquery-sources">
-      <span class="crossquery-source">Ep 01 · Sleep</span>
-      <span class="crossquery-source">Ep 02 · Dopamine</span>
-      <span class="crossquery-source">Ep 03 · Cold Exposure</span>
-      <span class="crossquery-source">Ep 07 · Muscle Growth</span>
-      <span class="crossquery-source">Ep 10 · Fitness Protocol</span>
-    </div>
-    <div class="crossquery-answer">
-      <strong>Never cold immediately after strength training.</strong> Cold within 4 hours of a hypertrophy session blocks the inflammatory response your muscles need to grow — do it before training or skip it that day.<br><br>
+    <div class="crossquery-sources" id="crossquerySources"></div>
+    <div class="crossquery-answer"><strong>Never cold immediately after strength training.</strong> Cold within 4 hours of a hypertrophy session blocks the inflammatory response your muscles need to grow — do it before training or skip it that day.<br><br>
       <strong>Cold between sets is a different story.</strong> Palmer cooling between exercise sets increased pull-up volume by 144% over 6 weeks. Muscle contraction enzymes only work in a narrow temperature range — strategic cooling during cardio prevents overheating without killing adaptation signals.<br><br>
-      <strong>The dopamine effect is outsized.</strong> Cold exposure raises dopamine 250% above baseline and holds it there for up to 3 hours — Huberman compares it to cocaine in magnitude, without the crash. Combined with exercise (which also releases dopamine), the neurochemical state is powerful. Adding 300mg caffeine 60–120 minutes beforehand increases dopamine receptor density in the striatum, amplifying it further.<br><br>
-      <strong>Timing protects your sleep.</strong> Cold late in the day raises core temperature when it needs to drop 1–3°F to initiate sleep. Keep cold exposure to the morning or early afternoon. The 11-minute weekly minimum still applies — spread across 2–4 sessions.
-    </div>
-    <a href="https://reelcall.app/signup.html" class="crossquery-cta">Ask your own question across all 10 episodes → Free for 60 days</a>
+      <strong>The dopamine effect is outsized.</strong> Cold exposure raises dopamine 250% above baseline and holds it there for up to 3 hours. Combined with exercise (which also releases dopamine), the neurochemical state is powerful.<br><br>
+      <strong>Timing protects your sleep.</strong> Cold late in the day raises core temperature when it needs to drop 1–3°F to initiate sleep. Keep cold exposure to the morning or early afternoon.</div>
+    <a href="https://reelcall.app/signup.html" class="crossquery-cta">Ask your own question across all episodes → Free for 60 days</a>
   </div>
-
   <div class="forget-banner">
     <div class="forget-text"><strong>You read this in 5 minutes.</strong> You'll forget 80% by tomorrow. ReelCall lets you save unlimited videos, ask questions across up to 20 at once, and saves every conversation.</div>
     <a href="https://reelcall.app/signup.html" class="forget-cta">Make it permanent →</a>
@@ -964,9 +612,9 @@
 <section class="bottom-section">
   <img src="reelcall-logo.png" alt="ReelCall" style="height:240px;width:auto;margin:0 auto 32px;display:block;">
   <h2>Turn any video into<br>your <em>personal knowledge base.</em></h2>
-  <p>Ask questions. Star key points. Cross-query across every video you've saved. Free for 60 days — no credit card.</p>
+  <p>This collection took 5 minutes to read. ReelCall makes every episode permanently queryable — search it, ask it, cross-reference it across every video you save. Free for 60 days.</p>
   <a href="https://reelcall.app/signup.html" class="btn-large">Start Free — Lock In $1/mo Forever</a>
-  <p class="free-note">Free 60 days · 30 videos · then $1/mo locked forever · first 50 founding members only<br>After 50 spots the price goes to $2/mo — never offered again at $1</p>
+  <p class="free-note">Free 60 days · unlimited videos · ask questions across up to 20 at once · then $1/mo locked forever · first 50 founding members only<br>After 50 spots the price goes to $2/mo — never offered again at $1</p>
 </section>
 
 <div class="sticky-cta" id="stickyCta">
@@ -975,25 +623,122 @@
 </div>
 
 <footer>
-  <a href="https://reelcall.app" class="logo-img-link"><img src="reelcall-logo.png" alt="ReelCall — Video In. Answers Out." class="header-logo-img"></a>
-  <p>© 2026 ReelCall · <a href="https://reelcall.app/signup.html">Start Free</a> · Not affiliated with Huberman Lab</p>
+  <a href="https://reelcall.app" class="logo">Reel<span>Call</span></a>
+  <p>© 2026 ReelCall · <a href="https://reelcall.app/signup.html">Start Free</a> · Not affiliated with any creators featured</p>
 </footer>
 
 <script>
+  const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+  const COLLECTION_TAG = "huberman-lab";
+  const COLLECTION_OWNER = "reelcall_collections";
+
+  async function loadCollection() {
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/youtube_videos?select=id,video_id,title,channel,summary,key_points,tags,credibility,duration,date_added&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${COLLECTION_TAG}&order=date_added.asc`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const videos = await res.json();
+
+      if (!videos?.length) {
+        document.getElementById('episodeList').innerHTML = '<div class="empty-state">No episodes in this collection yet.<br>Add them via the admin panel.</div>';
+        document.getElementById('heroGap').textContent = 'Episodes coming soon — check back shortly.';
+        return;
+      }
+
+      // Update hero stats
+      document.getElementById('statCount').textContent = videos.length;
+      document.getElementById('heroMeta').style.visibility = 'visible';
+      document.getElementById('heroGap').innerHTML = buildHeroGap(videos);
+
+      // Render episodes
+      document.getElementById('episodeList').innerHTML = videos.map((v, i) => buildCard(v, i)).join('');
+
+      // Show crossquery section
+      document.getElementById('crossquerySection').style.display = '';
+      buildCrossquerySources(videos);
+
+    } catch(e) {
+      document.getElementById('episodeList').innerHTML = `<div class="empty-state">Error loading: ${e.message}</div>`;
+    }
+  }
+
+  function buildHeroGap(videos) {
+    const channelNames = [...new Set(videos.map(v => v.channel).filter(Boolean))].slice(0, 3);
+    return `From <strong>${channelNames.join(', ')}</strong> and more — ReelCall lets you talk to one video or ask questions across many at once.`;
+  }
+
+  function buildCrossquerySources(videos) {
+    const el = document.getElementById('crossquerySources');
+    el.innerHTML = videos.slice(0, 5).map(v =>
+      `<span class="crossquery-source">${v.title?.slice(0,40)}${v.title?.length > 40 ? '...' : ''}</span>`
+    ).join('');
+  }
+
+  function credBadge(credibility) {
+    if (!credibility?.score) return '';
+    const cls = credibility.score === 'high' ? 'cred-high' : credibility.score === 'medium' ? 'cred-medium' : 'cred-low';
+    return `<span class="cred-badge ${cls}">${credibility.score}</span>`;
+  }
+
+  function buildCard(v, i) {
+    const keyPoints = (v.key_points || []).slice(0, 5);
+    const previewUrl = `https://reelcall.app/reel.html?vid=${v.video_id}&preview=true&collection=${COLLECTION_TAG}`;
+    const thumbUrl = `https://img.youtube.com/vi/${v.video_id}/mqdefault.jpg`;
+    const num = String(i + 1).padStart(2, '0');
+
+    return `
+      <div class="ep-card rcard" id="ep${i}" style="animation-delay:${i * 0.05}s">
+        <div class="ep-header" onclick="toggle('ep${i}')">
+          <div class="ep-num">${num}</div>
+          <div class="ep-meta">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+              <span class="ep-tag">${(v.tags||[])[0] || 'Peptides'}</span>
+              ${v.channel ? `<span style="font-size:11px;color:var(--ink-light)">${v.channel}</span>` : ''}
+              ${credBadge(v.credibility)}
+            </div>
+            <div class="ep-title">${v.title || 'Untitled'}</div>
+            <div class="ep-desc">${(v.summary||'').slice(0, 100)}...</div>
+          </div>
+          <div class="ep-toggle">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="ep-body">
+          <div class="ep-body-inner">
+            <div class="summary-grid">
+              <div>
+                <div style="margin-bottom:12px">
+                  <img src="${thumbUrl}" style="width:100%;max-width:320px;border-radius:8px;display:block" onerror="this.style.display='none'">
+                </div>
+                <div class="takeaways-label">Key Takeaways</div>
+                <ul class="takeaways">
+                  ${keyPoints.map(p => `<li>${p}</li>`).join('')}
+                  ${keyPoints.length === 0 ? '<li>Summary loading — open in ReelCall for full analysis.</li>' : ''}
+                </ul>
+              </div>
+              <div class="ep-cta-block">
+                <a href="${previewUrl}" class="btn-add">View in ReelCall →</a>
+                <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function toggle(id) {
     const card = document.getElementById(id);
     card.classList.toggle('open');
   }
 
-  // Sticky CTA after scroll
   const sticky = document.getElementById('stickyCta');
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 400) {
-      sticky.classList.add('visible');
-    } else {
-      sticky.classList.remove('visible');
-    }
+    sticky.classList.toggle('visible', window.scrollY > 400);
   });
+
+  loadCollection();
 </script>
 </body>
 </html>
