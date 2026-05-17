@@ -165,7 +165,8 @@
                     <option value="general">General Collection</option>
                     <option value="__new__">+ Add new collection...</option>
                   </select>
-                  <div id="coll-new-box" style="display:none;display:flex;gap:6px;margin-top:6px">
+                  <div id="coll-custom-list" style="display:flex;flex-direction:column;gap:4px;margin-top:6px"></div>
+                  <div id="coll-new-box" style="display:none;gap:6px;margin-top:6px">
                     <input id="coll-new-name" placeholder="Collection name (e.g. Lex Fridman)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1">
                     <button class="btn-ok" onclick="collAddNew()" style="padding:8px 12px;white-space:nowrap">Add</button>
                   </div>
@@ -609,6 +610,32 @@
           COLL_LABEL[slug] = name;
         }
       });
+      renderCollDeleteBtns();
+    }
+
+    function renderCollDeleteBtns() {
+      const saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
+      const container = document.getElementById('coll-custom-list');
+      if (!container) return;
+      if (!saved.length) { container.innerHTML = ''; return; }
+      container.innerHTML = saved.map(({ slug, name }) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--s3);border-radius:6px;border:1px solid var(--b)">
+          <span style="font-size:12px;color:var(--t2)">${name}</span>
+          <button onclick="collDeleteCustom('${slug}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:0 4px;font-family:inherit" title="Delete collection">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function collDeleteCustom(slug) {
+      if (!confirm(\`Delete "\${COLL_LABEL[slug] || slug}" collection? This only removes it from this dropdown — existing videos in the DB are not deleted.\`)) return;
+      let saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
+      saved = saved.filter(c => c.slug !== slug);
+      localStorage.setItem('reelcall_collections', JSON.stringify(saved));
+      delete COLL_LABEL[slug];
+      const sel = document.getElementById('coll-select');
+      Array.from(sel.options).forEach(o => { if (o.value === slug) o.remove(); });
+      renderCollDeleteBtns();
+      collToast('Collection removed from dropdown');
     }
 
     async function collAnalyze() {
