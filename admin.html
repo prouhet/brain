@@ -850,7 +850,11 @@ Answer the question by synthesizing across all relevant videos. Cite video title
         const answer = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
 
         demoResult = { collection, question, answer, videoTitles: videos.map(v => v.title) };
-        document.getElementById('demo-answer-text').textContent = answer;
+        document.getElementById('demo-answer-text').innerHTML = answer
+          .replace(/## (.*?)(?:\n|$)/g, '<p style="font-size:12px;font-weight:700;color:#DDE4F5;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em">$1</p>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n\n/g, '<br><br>')
+          .replace(/\n/g, '<br>');
         document.getElementById('demo-result').style.display = 'block';
         document.getElementById('demo-save-msg').style.display = 'none';
 
