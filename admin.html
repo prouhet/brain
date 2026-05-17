@@ -237,6 +237,36 @@
               <div id="coll-video-list">
                 <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Loading...</div>
               </div>
+
+              <!-- Research Mode Demo Builder -->
+              <div style="margin-top:24px;border-top:1px solid var(--b);padding-top:20px">
+                <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:12px">Research Mode Demo</p>
+                <p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">Ask a question across all videos in a collection. The answer becomes the demo block on the public page.</p>
+                <div style="display:flex;gap:8px;margin-bottom:10px">
+                  <select id="demo-coll-select" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit;width:180px">
+                    <option value="huberman-lab">Huberman Lab</option>
+                    <option value="peptides">Peptides</option>
+                    <option value="glp1">GLP-1</option>
+                    <option value="longevity">Longevity</option>
+                    <option value="fitness">Fitness</option>
+                    <option value="general">General</option>
+                  </select>
+                  <input id="demo-question" placeholder="Ask a question across this collection..." style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1">
+                  <button class="btn-acc" onclick="runDemoQuery()" id="demo-run-btn" style="padding:8px 14px;white-space:nowrap;font-weight:600">Ask</button>
+                </div>
+                <div id="demo-loading" style="display:none;color:var(--t2);font-size:12px;padding:8px 0">Running Research Mode across collection...</div>
+                <div id="demo-result" style="display:none">
+                  <div style="background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:14px;margin-bottom:10px">
+                    <p style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Answer</p>
+                    <p id="demo-answer-text" style="font-size:13px;color:#DDE4F5;line-height:1.7;white-space:pre-wrap"></p>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button class="btn-ok" onclick="saveDemoToDb()" style="font-weight:600">Set as Demo on Page</button>
+                    <button class="btn-g" onclick="clearDemo()" style="font-size:12px">Clear</button>
+                  </div>
+                  <p id="demo-save-msg" style="font-size:11px;color:var(--ok);margin-top:6px;display:none">✓ Saved — refresh the collection page to see it</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -756,6 +786,104 @@
       if (!confirm(`Delete "${title}" from collection?`)) return;
       try { await sbReq(`youtube_videos?id=eq.${id}`, { method: 'DELETE' }); collToast('Deleted'); collLoad(); }
       catch(e) { collToast('Error: ' + e.message); }
+    }
+
+    // ── Research Mode Demo Builder ─────────────────────────────────────────────
+    let demoResult = null;
+
+    async function runDemoQuery() {
+      const collection = document.getElementById('demo-coll-select').value;
+      const question = document.getElementById('demo-question').value.trim();
+      if (!question) return;
+
+      document.getElementById('demo-run-btn').disabled = true;
+      document.getElementById('demo-loading').style.display = 'block';
+      document.getElementById('demo-result').style.display = 'none';
+
+      try {
+        // Load all videos in this collection
+        const videos = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,key_points&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${collection}&order=date_added.asc`);
+
+        if (!videos?.length) {
+          collToast('No videos in this collection yet');
+          return;
+        }
+
+        // Build context from all videos
+        const ctx = videos.map((v, i) =>
+          `[${i+1}] "${v.title}" — ${v.channel || 'Unknown'}\nSummary: ${v.summary || ''}\nKey Points: ${(v.key_points || []).join('; ')}`
+        ).join('\n\n---\n\n');
+
+        // Ask Claude
+        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1500,
+            system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos in a collection.
+
+${ctx}
+
+Answer the question by synthesizing across all relevant videos. Cite video titles in brackets. Be specific and direct. Use bold for key conclusions. Format with clear sections separated by blank lines.`,
+            messages: [{ role: 'user', content: question }]
+          })
+        });
+
+        const data = await resp.json();
+        const answer = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+
+        demoResult = { collection, question, answer, videoTitles: videos.map(v => v.title) };
+        document.getElementById('demo-answer-text').textContent = answer;
+        document.getElementById('demo-result').style.display = 'block';
+        document.getElementById('demo-save-msg').style.display = 'none';
+
+      } catch(e) {
+        collToast('Error: ' + e.message);
+      } finally {
+        document.getElementById('demo-loading').style.display = 'none';
+        document.getElementById('demo-run-btn').disabled = false;
+      }
+    }
+
+    async function saveDemoToDb() {
+      if (!demoResult) return;
+      try {
+        // Save to collection_demos table (upsert by collection)
+        const existing = await sbReq(`collection_demos?collection_tag=eq.${demoResult.collection}&limit=1`).catch(() => null);
+        
+        const record = {
+          collection_tag: demoResult.collection,
+          question: demoResult.question,
+          answer: demoResult.answer,
+          updated_at: new Date().toISOString()
+        };
+
+        if (existing?.length) {
+          await sbReq(`collection_demos?collection_tag=eq.${demoResult.collection}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify(record)
+          });
+        } else {
+          await sbReq('collection_demos', {
+            method: 'POST',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify(record)
+          });
+        }
+
+        document.getElementById('demo-save-msg').style.display = 'block';
+        collToast('✓ Demo saved to ' + (COLL_LABEL[demoResult.collection] || demoResult.collection));
+      } catch(e) {
+        collToast('Save error: ' + e.message);
+      }
+    }
+
+    function clearDemo() {
+      demoResult = null;
+      document.getElementById('demo-result').style.display = 'none';
+      document.getElementById('demo-question').value = '';
     }
 
     // ── Bulk Re-analyze ────────────────────────────────────────────────────────
