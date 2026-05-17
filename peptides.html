@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Peptides Explained — Expert Summaries from Top Voices in Health & Longevity | ReelCall</title>
-  <meta name="description" content="BPC-157, GLP-1, TB-500, CJC-1295 — skip hours of content. Get science-backed peptide summaries from Huberman, Dr. Seeds, Thomas DeLauer, Dave Asprey, Peter Attia, and more.">
-  <meta name="keywords" content="peptides explained, BPC-157 summary, GLP-1 benefits, TB-500 peptide, CJC-1295 ipamorelin, peptide protocols, Dr William Seeds peptides, Huberman peptides, Thomas DeLauer peptides, Dave Asprey BPC-157, longevity peptides, peptide stacks">
+  <meta name="description" content="BPC-157, GLP-1, TB-500, CJC-1295 — skip hours of content. Get science-backed peptide summaries from top experts in longevity and performance.">
+  <meta name="keywords" content="peptides explained, BPC-157 summary, GLP-1 benefits, TB-500 peptide, CJC-1295 ipamorelin, peptide protocols, peptide stacks, longevity peptides">
   <meta property="og:title" content="Peptides Explained — Top Expert Summaries in One Place">
-  <meta property="og:description" content="10+ hours of peptide content distilled to key takeaways. BPC-157, GLP-1, growth hormone peptides, the Wolverine Stack and more — from the leading voices in longevity.">
+  <meta property="og:description" content="Hours of peptide content distilled to key takeaways. BPC-157, GLP-1, growth hormone peptides, the Wolverine Stack and more.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
+  <style>
     :root {
       --ink: #111111;
       --ink-mid: #444444;
@@ -548,6 +548,18 @@
     footer a { color: #6a635e; text-decoration: none; }
     footer a:hover { color: #aaa; }
   </style>
+  <style>
+    .ep-card { opacity: 0; animation: fadeIn .3s ease forwards; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }
+    .loading-state { text-align:center; padding:48px 20px; color:var(--ink-light); }
+    .loading-spin { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 16px; }
+    @keyframes spin { to { transform:rotate(360deg) } }
+    .empty-state { text-align:center; padding:48px 20px; color:var(--ink-light); font-size:14px; }
+    .cred-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-left:8px; vertical-align:middle; }
+    .cred-high { background:rgba(5,150,105,.1); color:#059669; border:1px solid rgba(5,150,105,.2); }
+    .cred-medium { background:rgba(180,83,9,.1); color:#b45309; border:1px solid rgba(180,83,9,.2); }
+    .cred-low { background:rgba(220,38,38,.1); color:#dc2626; border:1px solid rgba(220,38,38,.2); }
+  </style>
 </head>
 <body>
 
@@ -560,392 +572,37 @@
   <img src="reelcall-logo.png" alt="ReelCall" style="height:240px;width:auto;margin:0 auto 32px;display:block;">
   <div class="hero-kicker">ReelCall · Peptides Explained</div>
   <h1>Everything You Need to Know<br>About <em>Peptides.</em></h1>
-  <p class="hero-sub">BPC-157. GLP-1. TB-500. CJC-1295. The Wolverine Stack. Hours of expert content — distilled to what actually matters. No filler. No injections required to understand it.</p>
-  <p class="hero-gap">Peptide searches hit <strong>10.1 million in January 2026</strong> and are growing 300% year-over-year. ReelCall lets you talk to any of these videos — or ask one question across all of them at once.</p>
-  <div class="hero-meta">
-    <div class="hero-stat"><strong>10</strong> episodes</div>
-    <div class="divider-dot">·</div>
-    <div class="hero-stat"><strong>6</strong> experts</div>
+  <p class="hero-sub">BPC-157. GLP-1. TB-500. CJC-1295. Hours of expert content — distilled to what actually matters. No filler. No injections required to understand it.</p>
+  <p class="hero-gap" id="heroGap">Loading collection...</p>
+  <div class="hero-meta" id="heroMeta" style="visibility:hidden">
+    <div class="hero-stat"><strong id="statCount">—</strong> episodes</div>
     <div class="divider-dot">·</div>
     <div class="hero-stat"><strong>5 min</strong> per summary</div>
   </div>
 </section>
 
 <section class="episodes-section">
-  <div class="section-label">Expert Collection</div>
-
-  <!-- EP 1: Dr. Seeds on Muscle Peptides -->
-  <div class="ep-card" id="ep1">
-    <div class="ep-header" onclick="toggle('ep1')">
-      <div class="ep-num">01</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Growth Hormone · Dr. William Seeds</div>
-        <div class="ep-title">Peptide Masterclass for Building Muscle</div>
-        <div class="ep-desc">The world's leading peptide scientist breaks down what actually works — and why</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Peptides don't add hormones — they make your cells smarter and more efficient at producing growth hormone themselves. This is fundamentally different from HGH injections.</li>
-              <li>CJC-1295 + Ipamorelin is the foundational growth hormone stack: CJC signals the pituitary while Ipamorelin inhibits somatostatin, releasing GH within 20–30 minutes. Timing and diet are critical — certain foods blunt the response.</li>
-              <li>The 11 "pillar peptides" make up almost every clinical protocol. Understanding these builds a framework for everything else — without them, peptide stacking is guesswork.</li>
-              <li>Peptide therapy can improve testosterone and GH production by enhancing mitochondrial function and DNA transcription — it restores the cellular machinery, not just the output.</li>
-              <li>SubQ vs. IM administration is not interchangeable — pharmacokinetics differ significantly. Combining peptides with oil-based medications in the same syringe is a growing and dangerous misuse.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=804mwP1mx8w&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
+  <div class="section-label">Collection</div>
+  <div id="episodeList">
+    <div class="loading-state">
+      <div class="loading-spin"></div>
+      <p>Loading episodes...</p>
     </div>
   </div>
-
-  <!-- EP 2: Huberman BPC-157 -->
-  <div class="ep-card" id="ep2">
-    <div class="ep-header" onclick="toggle('ep2')">
-      <div class="ep-num">02</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Repair & Recovery · Andrew Huberman</div>
-        <div class="ep-title">BPC-157 for Injury Healing & Tissue Repair</div>
-        <div class="ep-desc">How a gastric peptide became the most talked-about recovery compound in biohacking</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>BPC-157 (Body Protective Compound-157) is a 15-amino-acid synthetic peptide derived from a protein naturally found in human gastric juice. Its repair properties come from promoting angiogenesis — new blood vessel growth — in damaged tissue.</li>
-              <li>Huberman used BPC-157 after a lumbar spine injury, crediting it alongside physical therapy for accelerated recovery. The compound appears to reduce inflammation while simultaneously promoting tissue regeneration.</li>
-              <li>The mechanism centers on the VEGFR2-Akt-eNOS signaling axis — it upregulates vascular growth factors and stabilizes tissue barriers, which explains why effects appear across tendons, ligaments, gut, and nerve tissue.</li>
-              <li>BPC-157 has notable route flexibility: subcutaneous injection near target tissue for localized effects, or oral/systemic use for gut-related applications. The peptide is stable in gastric juice, unlike most.</li>
-              <li>Critical caveat: virtually all research is in animal models. Human clinical trials are limited. The credibility question is real — but so is the widespread anecdotal use among athletes and biohackers.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=93-fGLnV8rM&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 3: Thomas DeLauer Wolverine Stack -->
-  <div class="ep-card" id="ep3">
-    <div class="ep-header" onclick="toggle('ep3')">
-      <div class="ep-num">03</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Injury Recovery · Thomas DeLauer</div>
-        <div class="ep-title">The BPC-157 & TB-500 Wolverine Stack</div>
-        <div class="ep-desc">Why combining these two healing peptides is greater than the sum of their parts</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>BPC-157 and TB-500 work through entirely different mechanisms — making their combination synergistic rather than redundant. BPC-157 drives angiogenesis via VEGFR2; TB-500 works through G-actin sequestration and actin polymerization dynamics.</li>
-              <li>TB-500 (synthetic Thymosin Beta-4) promotes cell migration and differentiation — meaning it recruits the cells to the injury site that BPC-157 then helps establish with new vasculature. Together: faster, more complete repair.</li>
-              <li>The "Wolverine Stack" name reflects the regenerative effect observed — particularly notable in tendons, ligaments, and cartilage where blood supply is naturally limited and healing is slow.</li>
-              <li>Protocol typically: BPC-157 at 200–500mcg subcutaneous daily, TB-500 at 2–5mg twice weekly. Both are WADA-prohibited and BPC-157 is now FDA Category 2 (restricted from compounding as of 2024).</li>
-              <li>The combination reduces delayed onset muscle soreness through temperature mechanisms not fully understood — making it attractive for both injury recovery and performance maintenance.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=OfcexE9s4yw&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 4: Peter Attia GLP-1 -->
-  <div class="ep-card" id="ep4">
-    <div class="ep-header" onclick="toggle('ep4')">
-      <div class="ep-num">04</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Metabolic Health · Peter Attia MD</div>
-        <div class="ep-title">GLP-1 Agonists — The Future of Treating Obesity?</div>
-        <div class="ep-desc">A clinician's honest assessment of Ozempic, Wegovy, and what the data actually shows</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>GLP-1 is a peptide naturally produced by your gut. GLP-1 agonist drugs (Ozempic, Wegovy, Mounjaro) are essentially exogenous versions that restore the gut-brain-pancreas signaling loop — making the body "talk to itself" again about hunger and satiety.</li>
-              <li>Semaglutide trials showed remarkable results for weight loss and metabolic parameters, but the muscle loss risk is the underappreciated threat. Attia's consistent message: protein intake and resistance training are non-negotiable while on GLP-1s.</li>
-              <li>GLP-1s reduce systemic inflammation, improve insulin sensitivity, normalize glucose, improve blood pressure and lipid profiles — suggesting true metabolic recalibration rather than a single-pathway weight loss effect.</li>
-              <li>The nausea side effect (lasting ~8 weeks for most patients) is the mechanism working — it blunts appetite at the neurological level. Most patients tolerate it because the results justify it.</li>
-              <li>92% of physicians surveyed either use or recommend GLP-1s to patients. The clinical consensus has moved decisively — the remaining question is long-term use, cycling, and who should not take them.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=VhbpSc6pKRQ&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 5: Thomas DeLauer Fat Loss Peptide -->
-  <div class="ep-card" id="ep5">
-    <div class="ep-header" onclick="toggle('ep5')">
-      <div class="ep-num">05</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Fat Loss · Thomas DeLauer</div>
-        <div class="ep-title">A Fat Loss Peptide More Powerful Than GLP-1</div>
-        <div class="ep-desc">The emerging compound giving GLP-1 drugs a run for their money — without the nausea</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Not all fat loss peptides work through the same pathway as GLP-1s. Emerging compounds target brown fat activation, AMPK signaling, and mitochondrial biogenesis — offering fat loss through metabolic efficiency rather than appetite suppression alone.</li>
-              <li>The muscle preservation advantage is key: some peptide approaches allow fat loss without the muscle wasting seen in GLP-1 monotherapy — especially important for athletes and those over 40 with declining muscle mass.</li>
-              <li>CJC-1295 + Ipamorelin synergy with fat loss: by pulsing growth hormone naturally, this stack promotes lipolysis (fat breakdown) particularly during fasting windows — timing matters enormously.</li>
-              <li>The gray market problem is real: purity, dosing, and storage of peptides purchased online are all questionable. At least 20% of unapproved peptides tested were found to be mislabeled. Pharmacy-grade compounding is the only reliable source.</li>
-              <li>Stacking philosophy: the most effective fat loss protocols combine a metabolic peptide with a recovery peptide and a GH secretagogue — not just one compound. Understanding the interaction between them is the skill.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=dP6qhuR45UA&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 6: Dave Asprey BPC-157 -->
-  <div class="ep-card" id="ep6">
-    <div class="ep-header" onclick="toggle('ep6')">
-      <div class="ep-num">06</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Biohacking · Dave Asprey</div>
-        <div class="ep-title">BPC-157 Benefits — Rogan, Greenfield & Asprey on the Healing Peptide</div>
-        <div class="ep-desc">Three of biohacking's biggest names compare notes on BPC-157 experience and protocols</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Dave Asprey frames BPC-157 as the foundational healing compound — the one peptide he'd use if forced to choose only one. The gut-origin of the compound aligns with his broader cellular health philosophy: fix the gut first.</li>
-              <li>Joe Rogan's experience with BPC-157 for joint injuries sparked mainstream interest in the compound. His candid reporting of results — alongside Ben Greenfield's athletic-performance angle — brought the peptide out of practitioner-only circles.</li>
-              <li>Ben Greenfield adds the performance dimension: BPC-157 isn't just for injury recovery — it appears to blunt the inflammatory response from training overload, allowing higher volume without the recovery cost.</li>
-              <li>Oral vs. injectable debate: Asprey prefers oral for systemic/gut applications, injectable near the injury site for localized musculoskeletal repair. The peptide's gastric juice stability makes oral dosing uniquely viable compared to most peptides.</li>
-              <li>All three acknowledge the regulatory gray zone — the compound existed in a legal limbo that has since tightened (FDA Category 2 in 2024). Getting it through a licensed compounding pharmacy with physician oversight is now the recommended path.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=mFVllH9NV4w&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 7: Dr. Seeds GLP-1 Beyond Weight Loss -->
-  <div class="ep-card" id="ep7">
-    <div class="ep-header" onclick="toggle('ep7')">
-      <div class="ep-num">07</div>
-      <div class="ep-meta">
-        <div class="ep-tag">GLP-1 · Dr. William Seeds</div>
-        <div class="ep-title">GLP-1 Peptides Beyond Weight Loss — The Cellular Science</div>
-        <div class="ep-desc">Why Ozempic is just the beginning — the real power of GLP-1 on cancer, neurodegeneration, and inflammation</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>The weight loss hype around GLP-1 drugs has obscured their far more significant cellular applications. Dr. Seeds argues the real story is their effect on cellular senescence, inflammation, and metabolic signaling across virtually every organ system.</li>
-              <li>GLP-1 receptor agonists can effectively address heart disease, certain cancers, neurodegenerative diseases, autoimmune disorders, and arthritis — by working on the underlying inflammatory and metabolic mechanisms, not just appetite.</li>
-              <li>The "quantum" framing Seeds uses: GLP-1s restore the body's ability to communicate at the cellular level — it's not just exogenous hormone replacement, it's resetting intercellular signaling networks that have degraded with age or metabolic dysfunction.</li>
-              <li>Combining GLP-1s with supportive peptides (like Ipamorelin for muscle preservation, or BPC-157 for gut protection) addresses the known weaknesses of GLP-1 monotherapy — particularly muscle loss and GI stress.</li>
-              <li>Seeds' clinical position: GLP-1s are a breakthrough in longevity medicine, not just a weight loss drug. The physicians who understand this will define the next era of preventive care.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=804mwP1mx8w&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 8: Science of Peptides BPC-157 TB-500 -->
-  <div class="ep-card" id="ep8">
-    <div class="ep-header" onclick="toggle('ep8')">
-      <div class="ep-num">08</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Science Deep Dive · Surgeon Review</div>
-        <div class="ep-title">Peptide Injections — Does the Science Actually Hold Up?</div>
-        <div class="ep-desc">A surgeon's honest look at what the research does — and doesn't — support on BPC-157 and TB-500</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>The honest answer on peptides: mechanistic plausibility is high, human clinical data is almost nonexistent. Most research is in rats. The theoretical science makes sense — the human evidence is not there yet.</li>
-              <li>BPC-157 promotes new blood vessel formation, which accelerates tissue repair. The same mechanism that heals could theoretically accelerate growth of precancerous cells — a real concern that promoters consistently underemphasize.</li>
-              <li>TB-500's actin-regulating mechanism is biologically sound and well-understood in cell biology. The translation to clinical wound healing and tissue repair in humans has early support but needs large-scale trials.</li>
-              <li>The gray market contamination problem: unregulated peptides have unknown purity, dosing, and sterility. The risk isn't just effectiveness — it's infection, mislabeling, and unknown interactions.</li>
-              <li>The surgeon's verdict: promising compounds worth watching, not worth self-experimenting with outside a clinical relationship. The gap between biohacker hype and clinical evidence remains wide.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=rOGRiEtMKqw&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 9: Dave Asprey Peptide Stacks with Jay Campbell -->
-  <div class="ep-card" id="ep9">
-    <div class="ep-header" onclick="toggle('ep9')">
-      <div class="ep-num">09</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Advanced Protocols · Dave Asprey & Jay Campbell</div>
-        <div class="ep-title">Advanced Peptide Stacks — Mitochondrial, Growth Hormone & GLP-1</div>
-        <div class="ep-desc">What happens when biohacking veterans stack peptides with precision — and what they've learned from getting it wrong</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>Mitochondrial peptides (MOTS-c, Elamipretide/SS-31) represent the next frontier — targeting energy production at the cellular level rather than hormonal or structural repair. They show promise for aging, metabolic disease, and endurance.</li>
-              <li>Growth hormone peptides (Tesamorelin, Ipamorelin, CJC-1295) work well but MK-677 — often positioned as a convenient oral alternative — comes with appetite dysregulation and water retention tradeoffs that make it less clean for most protocols.</li>
-              <li>Klotho peptide: emerging data suggests it protects endothelial function and kidney health at small doses. At higher doses, kidney risk increases. Asprey and Campbell emphasize micro-dosing precision over aggressive stacking.</li>
-              <li>GLP-1 + muscle preservation stack: for anyone on a GLP-1 drug, adding a GH secretagogue (like Ipamorelin) and ensuring high protein intake addresses the primary failure mode — muscle wasting in a caloric deficit.</li>
-              <li>The meta-lesson: peptide stacking is a skill that requires understanding pharmacokinetics, receptor sensitivity, and timing. The biohacker who treats it like supplement stacking will get suboptimal results or harm.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=4igc2UpFr7Q&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EP 10: Complete Guide BPC-157 TB-500 Protocols -->
-  <div class="ep-card" id="ep10">
-    <div class="ep-header" onclick="toggle('ep10')">
-      <div class="ep-num">10</div>
-      <div class="ep-meta">
-        <div class="ep-tag">Complete Protocol Guide</div>
-        <div class="ep-title">The Ultimate Guide to Peptides — BPC-157 & TB-500 Complete Protocols</div>
-        <div class="ep-desc">Everything you need to understand before starting — dosing, cycling, stacking, and what to avoid</div>
-      </div>
-      <div class="ep-toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="ep-body">
-      <div class="ep-body-inner">
-        <div class="summary-grid">
-          <div>
-            <div class="takeaways-label">Key Takeaways</div>
-            <ul class="takeaways">
-              <li>BPC-157 protocol essentials: 200–500mcg subcutaneous, once daily, injected near the target tissue for localized injury. For systemic or gut applications, oral dosing at lower amounts (around 250mcg) is viable given its gastric stability.</li>
-              <li>TB-500 protocol: 2–5mg subcutaneous, twice weekly in the acute phase; drop to once weekly for maintenance. Unlike BPC-157, TB-500 works better at distance from the injury site — systemic administration is preferred.</li>
-              <li>Cycling matters: continuous use beyond 8–12 weeks risks receptor downregulation. A 4-week off cycle restores sensitivity. Most experienced users run 8 weeks on, 4 weeks off.</li>
-              <li>The Wolverine Stack combined protocol: run both simultaneously for the acute phase (4–6 weeks), then drop to BPC-157 maintenance only. The synergistic phase is where the most dramatic results occur.</li>
-              <li>What to never do: mix peptides with oil-based compounds in the same syringe, skip reconstitution with bacteriostatic water, store improperly (refrigerate, protect from light), or source from gray market research chemical sites.</li>
-            </ul>
-          </div>
-          <div class="ep-cta-block">
-            <a href="https://reelcall.app/reel.html?vid=-2PWehnVsyo&preview=true&collection=peptides" class="btn-add">View in ReelCall →</a>
-            <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </section>
 
 <!-- Cross-query demo -->
-<section class="episodes-section" style="padding-top:0">
+<section class="episodes-section" style="padding-top:0" id="crossquerySection" style="display:none">
   <div class="crossquery-block">
     <div class="crossquery-label">ReelCall · Cross-Query Demo</div>
     <div class="crossquery-q">"What do these experts agree and disagree on when it comes to BPC-157 safety and the science behind it?"</div>
-    <div class="crossquery-sources">
-      <span class="crossquery-source">Ep 02 · Huberman</span>
-      <span class="crossquery-source">Ep 03 · DeLauer</span>
-      <span class="crossquery-source">Ep 06 · Asprey</span>
-      <span class="crossquery-source">Ep 08 · Surgeon Review</span>
-    </div>
-    <div class="crossquery-answer">
-      <strong>Where they agree:</strong> BPC-157 works through angiogenesis — new blood vessel formation — and has remarkable tissue repair properties observed consistently in animal research. All acknowledge the gastric origin, the stability advantage, and the personal/clinical anecdotal results.<br><br>
-      <strong>Where they diverge:</strong> The surgeon's view is the outlier. Huberman, Asprey, and DeLauer all report positive personal use and lean into the compound. The surgeon raises the cancer risk flag directly — the same angiogenic mechanism that heals tissue could accelerate precancerous cell growth. This concern is almost never mentioned in biohacker content.<br><br>
-      <strong>The source quality problem:</strong> All four acknowledge that human clinical data is nearly absent. The biohackers accept this as a reasonable risk given the mechanism and anecdotal track record. The surgeon does not. That's not a scientific disagreement — it's a risk tolerance disagreement.<br><br>
-      <strong>Practical consensus:</strong> Pharmacy-grade compounding with physician oversight is the only defensible path. The gray market is where most of the real risk lives — not in the compound itself.
-    </div>
-    <a href="https://reelcall.app/signup.html" class="crossquery-cta">Ask your own question across all 10 episodes → Free for 60 days</a>
+    <div class="crossquery-sources" id="crossquerySources"></div>
+    <div class="crossquery-answer"><strong>Where they agree:</strong> BPC-157 works through angiogenesis — new blood vessel formation — and has remarkable tissue repair properties in animal research. All acknowledge the gastric origin, the stability advantage, and consistent anecdotal results.<br><br>
+      <strong>Where they diverge:</strong> The physician/surgeon voices raise the cancer risk flag directly — the same angiogenic mechanism that heals tissue could accelerate precancerous cell growth. This concern is almost never mentioned in biohacker content.<br><br>
+      <strong>The source quality problem:</strong> 20% of unregulated peptides tested were found to be mislabeled. The real risk isn't the compound — it's the gray market.<br><br>
+      <strong>Practical consensus:</strong> Pharmacy-grade compounding with physician oversight is the only defensible path.</div>
+    <a href="https://reelcall.app/signup.html" class="crossquery-cta">Ask your own question across all episodes → Free for 60 days</a>
   </div>
-
   <div class="forget-banner">
     <div class="forget-text"><strong>You read this in 5 minutes.</strong> You'll forget 80% by tomorrow. ReelCall lets you save unlimited videos, ask questions across up to 20 at once, and saves every conversation.</div>
     <a href="https://reelcall.app/signup.html" class="forget-cta">Make it permanent →</a>
@@ -971,14 +628,117 @@
 </footer>
 
 <script>
+  const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+  const COLLECTION_TAG = "peptides";
+  const COLLECTION_OWNER = "reelcall_collections";
+
+  async function loadCollection() {
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/youtube_videos?select=id,video_id,title,channel,summary,key_points,tags,credibility,duration,date_added&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${COLLECTION_TAG}&order=date_added.asc`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const videos = await res.json();
+
+      if (!videos?.length) {
+        document.getElementById('episodeList').innerHTML = '<div class="empty-state">No episodes in this collection yet.<br>Add them via the admin panel.</div>';
+        document.getElementById('heroGap').textContent = 'Episodes coming soon — check back shortly.';
+        return;
+      }
+
+      // Update hero stats
+      document.getElementById('statCount').textContent = videos.length;
+      document.getElementById('heroMeta').style.visibility = 'visible';
+      document.getElementById('heroGap').innerHTML = buildHeroGap(videos);
+
+      // Render episodes
+      document.getElementById('episodeList').innerHTML = videos.map((v, i) => buildCard(v, i)).join('');
+
+      // Show crossquery section
+      document.getElementById('crossquerySection').style.display = '';
+      buildCrossquerySources(videos);
+
+    } catch(e) {
+      document.getElementById('episodeList').innerHTML = `<div class="empty-state">Error loading: ${e.message}</div>`;
+    }
+  }
+
+  function buildHeroGap(videos) {
+    const channelNames = [...new Set(videos.map(v => v.channel).filter(Boolean))].slice(0, 3);
+    return `From <strong>${channelNames.join(', ')}</strong> and more — ReelCall lets you talk to one video or ask questions across many at once.`;
+  }
+
+  function buildCrossquerySources(videos) {
+    const el = document.getElementById('crossquerySources');
+    el.innerHTML = videos.slice(0, 5).map(v =>
+      `<span class="crossquery-source">${v.title?.slice(0,40)}${v.title?.length > 40 ? '...' : ''}</span>`
+    ).join('');
+  }
+
+  function credBadge(credibility) {
+    if (!credibility?.score) return '';
+    const cls = credibility.score === 'high' ? 'cred-high' : credibility.score === 'medium' ? 'cred-medium' : 'cred-low';
+    return `<span class="cred-badge ${cls}">${credibility.score}</span>`;
+  }
+
+  function buildCard(v, i) {
+    const keyPoints = (v.key_points || []).slice(0, 5);
+    const previewUrl = `https://reelcall.app/reel.html?vid=${v.video_id}&preview=true&collection=${COLLECTION_TAG}`;
+    const thumbUrl = `https://img.youtube.com/vi/${v.video_id}/mqdefault.jpg`;
+    const num = String(i + 1).padStart(2, '0');
+
+    return `
+      <div class="ep-card rcard" id="ep${i}" style="animation-delay:${i * 0.05}s">
+        <div class="ep-header" onclick="toggle('ep${i}')">
+          <div class="ep-num">${num}</div>
+          <div class="ep-meta">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+              <span class="ep-tag">${(v.tags||[])[0] || 'Peptides'}</span>
+              ${v.channel ? `<span style="font-size:11px;color:var(--ink-light)">${v.channel}</span>` : ''}
+              ${credBadge(v.credibility)}
+            </div>
+            <div class="ep-title">${v.title || 'Untitled'}</div>
+            <div class="ep-desc">${(v.summary||'').slice(0, 100)}...</div>
+          </div>
+          <div class="ep-toggle">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5l5 5 5-5" stroke="#8a7f78" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="ep-body">
+          <div class="ep-body-inner">
+            <div class="summary-grid">
+              <div>
+                <div style="margin-bottom:12px">
+                  <img src="${thumbUrl}" style="width:100%;max-width:320px;border-radius:8px;display:block" onerror="this.style.display='none'">
+                </div>
+                <div class="takeaways-label">Key Takeaways</div>
+                <ul class="takeaways">
+                  ${keyPoints.map(p => `<li>${p}</li>`).join('')}
+                  ${keyPoints.length === 0 ? '<li>Summary loading — open in ReelCall for full analysis.</li>' : ''}
+                </ul>
+              </div>
+              <div class="ep-cta-block">
+                <a href="${previewUrl}" class="btn-add">View in ReelCall →</a>
+                <p class="btn-add-note">Read the full analysis — save it to your own library free</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function toggle(id) {
     const card = document.getElementById(id);
     card.classList.toggle('open');
   }
+
   const sticky = document.getElementById('stickyCta');
   window.addEventListener('scroll', () => {
     sticky.classList.toggle('visible', window.scrollY > 400);
   });
+
+  loadCollection();
 </script>
 </body>
 </html>
