@@ -3215,7 +3215,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           {!used ? (
             <div style={{ display: "flex", gap: 10 }}>
               <input
-                placeholder="e.g. What are the main benefits of BPC-157?"
+                placeholder={video.keyPoints?.[0] ? `e.g. Tell me more about: ${video.keyPoints[0].slice(0, 60)}...` : "Ask anything about this video..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && ask()}
@@ -3237,7 +3237,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                 Add to Library — Ask Unlimited →
               </a>
               <a href="/signup.html" style={{ flexShrink: 0, background: "var(--s2)", color: "var(--t2)", padding: "12px 16px", borderRadius: 8, textDecoration: "none", fontSize: 13, border: "1px solid var(--b)", whiteSpace: "nowrap" }}>
-                🔬 Research Mode — Ask Across All Videos
+                🔬 Research Mode — Ask All Videos at Once
               </a>
             </div>
           )}
@@ -3368,7 +3368,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                 {[
                   ["🔒", "Ask questions — answered from the full transcript"],
                   ["🔒", "★ Star key points worth recalling later"],
-                  ["🔒", "Cross-query this video with your entire library"],
+                  ["🔒", "Ask across your entire library with Research Mode"],
                   ["🔒", "Share with anyone and earn free video credits"],
                 ].map(([icon, text], i) => (
                   <div key={i} className="locked-feature">
