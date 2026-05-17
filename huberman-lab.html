@@ -625,6 +625,12 @@
 </footer>
 
 <script>
+  window.onerror = function(msg, src, line) {
+    document.getElementById('episodeList').innerHTML = '<div class="empty-state" style="color:#cc0000">JS Error: ' + msg + ' (line ' + line + ')</div>';
+    document.getElementById('heroGap').textContent = 'Error loading — please refresh.';
+    return true;
+  };
+
   const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
   const COLLECTION_TAG = "huberman-lab";
@@ -679,7 +685,8 @@
       } else { crossSection.style.display = 'none'; }
 
     } catch(e) {
-      document.getElementById('episodeList').innerHTML = `<div class="empty-state">Error loading: ${e.message}</div>`;
+      document.getElementById('episodeList').innerHTML = `<div class="empty-state" style="color:#cc0000">Error: ${e.message}</div>`;
+      document.getElementById('heroGap').textContent = 'Error loading — please refresh.';
     }
   }
 
