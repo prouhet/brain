@@ -627,7 +627,7 @@
     }
 
     function collDeleteCustom(slug) {
-      if (!confirm(\`Delete "\${COLL_LABEL[slug] || slug}" collection? This only removes it from this dropdown — existing videos in the DB are not deleted.\`)) return;
+      if (!confirm("Delete \"" + (COLL_LABEL[slug] || slug) + "\" collection? This only removes it from this dropdown — videos in the DB are not deleted.")) return;
       let saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
       saved = saved.filter(c => c.slug !== slug);
       localStorage.setItem('reelcall_collections', JSON.stringify(saved));
