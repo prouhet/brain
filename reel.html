@@ -541,7 +541,7 @@
                     <p style={{ fontSize: 11, color: showUpgrade ? "var(--warn)" : "var(--t3)", marginTop: 5 }}>
                       {showUpgrade
                         ? <span>Almost there — share a video to earn more · <a href="/index.html" style={{ color: "var(--acc)", textDecoration: "none" }}>Upgrade $1/mo →</a></span>
-                        : "Share a video to earn +2 videos & +7 days"
+                        : "Share a video to earn +2 more videos"
                       }
                     </p>
                   </div>
@@ -1786,7 +1786,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
     // ─── Did You Know ─────────────────────────────────────────────────────────
     const DID_YOU_KNOW = [
-      "Share any video to earn +2 free videos and +7 days membership — no limit.",
+      "Share any video to earn +2 free videos — no limit on how many you can earn.",
       "Click 'Ask →' next to any key point to instantly ask a question about it.",
       "Paste a channel URL like @ChannelName to browse and bulk import recent videos.",
       "Research Mode lets you ask one question across up to 20 videos simultaneously.",
@@ -1822,7 +1822,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       "Paste & Analyze button reads your clipboard and starts analysis in one click.",
       "Your video library loads fast because transcripts are only fetched when you need them.",
       "The membership bar shows videos used and days remaining — share to extend both.",
-      "Refer someone who signs up from your shared video and earn +15 videos +15 days.",
+      "Refer someone who signs up from your shared video and earn +15 free videos.",
       "First time using channel import? Earn +2 bonus videos as a one-time milestone.",
       "First research-mode earns +2 videos — the system rewards you for exploring.",
       "Ask 5 Q&A questions total and earn +2 bonus videos as a milestone reward.",
@@ -1943,7 +1943,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
         onUpdate({ ...video, shared: newShared, shareCount: newShareCount });
         await sbPatch(video.id, { shared: newShared, share_count: newShareCount });
         if (newShared) {
-          grantReward(`share_${video.id}`, 2, 7);
+          grantReward(`share_${video.id}`, 2, 0);
           sbReq("reel_share_views", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ video_id: video.id, owner: OWNER }) }).catch(() => {});
           sbCacheBust();
           // Trigger share immediately after enabling
@@ -1982,7 +1982,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Tip text="Share this video with anyone — they get a read-only page with the summary, key points, and Q&A. You earn +2 videos and +7 days membership." right={true} />
+          <Tip text="Share this video with anyone — they get a read-only page with the summary, key points, and Q&A. You earn +2 free videos instantly." right={true} />
           <button onClick={toggleShare} className="rbtn-ok" style={{ fontSize: 13, fontWeight: 600 }}>
             {navigator.share ? "📤 Share" : "Share"}
           </button>
@@ -3095,7 +3095,7 @@ Answer questions accurately and specifically based on the content above.`,
         {
           icon: "📤",
           title: "Share & earn rewards",
-          body: "Tap Share on any video — your phone's share sheet opens. Send via iMessage, WhatsApp, anywhere. Every share earns you +2 videos and +7 days membership.",
+          body: "Tap Share on any video — your phone's share sheet opens. Send via iMessage, WhatsApp, anywhere. Every share earns you +2 free videos.",
           tip: "💡 Recipients can read and ask questions without an account"
         },
         {
