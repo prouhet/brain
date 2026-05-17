@@ -698,9 +698,11 @@
     const previewUrl = `https://reelcall.app/reel.html?vid=${v.video_id}&preview=true&collection=${COLLECTION_TAG}`;
     const num = String(i + 1).padStart(2, '0');
 
-    // Tease: one sentence from summary only
+    // Tease: ~180 chars, cut at word boundary
     const fullSummary = v.summary || '';
-    const firstSentence = fullSummary.split(/\.\s+/)[0] + (fullSummary.includes('. ') ? '.' : '');
+    const firstSentence = fullSummary.length > 180
+      ? fullSummary.slice(0, 180).replace(/\s+\S*$/, '') + '...'
+      : fullSummary;
 
     return `
       <div class="ep-card rcard" id="ep${i}" style="animation-delay:${i * 0.05}s">
