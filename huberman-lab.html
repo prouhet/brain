@@ -630,6 +630,16 @@
   const COLLECTION_TAG = "huberman-lab";
   const COLLECTION_OWNER = "reelcall_collections";
 
+  function mdToHtml(text) {
+    return text
+      .replace(/## (.*?)(?:\n|$)/g, '<h3 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);margin:18px 0 8px">$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n\n/g, '</p><p style="margin-bottom:10px">')
+      .replace(/\n/g, '<br>')
+      .replace(/^/, '<p style="margin-bottom:10px">')
+      .replace(/$/, '</p>');
+  }
+
   async function loadCollection() {
     try {
       const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
@@ -661,7 +671,7 @@
           if (demos?.[0]) {
             const demo = demos[0];
             document.getElementById('demoQuestion').textContent = '"' + demo.question + '"';
-            document.getElementById('demoAnswer').innerHTML = demo.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+            document.getElementById('demoAnswer').innerHTML = mdToHtml(demo.answer);
             buildCrossquerySources(videos);
             crossSection.style.display = '';
           } else { crossSection.style.display = 'none'; }
