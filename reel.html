@@ -1527,6 +1527,7 @@ Return ONLY valid JSON (no markdown fences):
             setStepStatus("analyze", "active");
             await new Promise(r => setTimeout(r, 800)); // brief pause to show tips
             parsed = cachedAnalysis;
+            parsed._duration = cachedAnalysis.duration || null;
             parsed._transcript = transcript;
             setStepStatus("analyze", "done");
             setStepStatus("save", "done");
@@ -1601,6 +1602,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
           }
 
           if (typeof txData !== "undefined" && txData?.warning) parsed.whatsNew = `⚠️ ${txData.warning}`;
+          parsed._duration = dur || null;
           parsed._transcript = transcript;
 
           setStepStatus("analyze", "done");
@@ -1619,7 +1621,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       async function save() {
         if (!result || !videoId) return;
-        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: result._transcript || null, duration: txData?.duration || cachedAnalysis?.duration || null, dateAdded: new Date().toISOString() };
+        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: result._transcript || null, duration: result._duration || null, dateAdded: new Date().toISOString() };
         const rows = await sbInsert(toDb(video));
         onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
       }
