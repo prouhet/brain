@@ -97,7 +97,7 @@
     const PREVIEW_VID = params.get("vid");
     const COLLECTION = params.get("collection");
     const COLLECTION_LABELS = { "huberman-lab": "Huberman Lab", "peptides": "Peptides Collection" };
-    const COLLECTION_URLS  = { "huberman-lab": "/huberman-lab.html", "peptides": "/peptides.html" };
+    const COLLECTION_URLS  = { "huberman-lab": "/know/huberman-lab.html", "peptides": "/know/peptides.html" };
     const userParam = (params.get("user") || "").toLowerCase();
     const sbAuth = supabase.createClient(SB_URL, SB_KEY);
 
