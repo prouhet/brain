@@ -138,6 +138,11 @@
     <div id="msg-account"></div>
   </div>
 
+  <div id="reset-banner" style="display:none;background:linear-gradient(135deg,#3B6EF5,#6B3BF5);color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;width:100%;max-width:440px;text-align:center">
+    <p style="font-size:15px;font-weight:700;margin-bottom:4px">Set your new password</p>
+    <p style="font-size:13px;opacity:.9">Enter and confirm your new password below</p>
+  </div>
+
   <!-- Home Screen Install Card -->
 
   <div id="msg-loading" class="user-badge">Loading your settings...</div>
@@ -152,6 +157,8 @@
     let currentProfile = null;
 
     async function init() {
+      const isReset = new URLSearchParams(window.location.search).get("reset") === "1";
+
       const { data: { user } } = await sb.auth.getUser();
       if (!user) { window.location.href = "/signup.html"; return; }
       currentUser = user;
@@ -166,6 +173,13 @@
       document.getElementById("card-username").style.display = "block";
       document.getElementById("card-password").style.display = "block";
       document.getElementById("card-signout").style.display = "block";
+
+      if (isReset) {
+        // Show reset banner and scroll straight to password card
+        document.getElementById("reset-banner").style.display = "block";
+        document.getElementById("card-password").scrollIntoView({ behavior: "smooth" });
+        document.getElementById("new-pass").focus();
+      }
     }
 
     function togglePw(id, btn) {
