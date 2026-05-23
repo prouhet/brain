@@ -8,8 +8,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{min-height:100vh;background:#07090F;color:#DDE4F5;font-family:'Figtree',system-ui,sans-serif;font-size:14px}
-    :root{--acc:#4B8BF5;--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070}
+    html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Figtree',system-ui,sans-serif;font-size:14px;transition:background .2s,color .2s}
+    :root{--acc:#4B8BF5;--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070;--bg:#07090F;--text:#DDE4F5;--card-bg:#0D1220}
+    .light-mode{--s1:#FFFFFF;--s2:#F4F6FA;--s3:#E8ECF4;--b:#D2DAEA;--t2:#4A5B78;--t3:#8B97AE;--bg:#F0F2F8;--text:#0F1729;--card-bg:#FFFFFF;--warn:#B45309;--warn-lo:rgba(180,83,9,.08);--warn-mid:rgba(180,83,9,.2);--red:#DC2626;--red-lo:rgba(220,38,38,.08);--red-mid:rgba(220,38,38,.2);--ok:#059669;--ok-lo:rgba(5,150,105,.08);--ok-mid:rgba(5,150,105,.2)}
+    .theme-toggle{position:fixed;top:14px;right:20px;z-index:9999;background:var(--s2);border:1px solid var(--b);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--t2);font-family:inherit;transition:all .15s}
+    .theme-toggle:hover{border-color:var(--acc);color:var(--acc)}
     .wrap{max-width:1100px;margin:0 auto;padding:28px 20px}
     h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#fff;margin-bottom:4px}
     .sub{font-size:13px;color:var(--t2);margin-bottom:28px}
@@ -17,7 +20,7 @@
     .stat{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px}
     .stat-n{font-size:28px;font-weight:700;color:#fff;font-family:'Syne',sans-serif}
     .stat-l{font-size:12px;color:var(--t2);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
-    .card{background:var(--s1);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin-bottom:20px}
+    .card{background:var(--card-bg);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin-bottom:20px}
     .card-head{padding:14px 20px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
     .card-head h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t2)}
     table{width:100%;border-collapse:collapse}
@@ -65,9 +68,18 @@
     .filter-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
     #coll-toast{position:fixed;bottom:24px;right:24px;background:var(--ok-lo);border:1px solid var(--ok-mid);color:var(--ok);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999}
     #coll-toast.show{opacity:1}
+    .video-row[draggable]{transition:opacity .15s}
+    .video-row.drag-over{border:2px dashed var(--acc)!important;background:var(--acc-lo)!important}
+    .light-mode .video-row{background:var(--s2)!important}
+    .light-mode .card{background:var(--card-bg)!important}
+    .light-mode table td,.light-mode table th{color:var(--text)}
+    .light-mode .mono{color:var(--t2)}
+    .light-mode .badge{background:var(--s3);border-color:var(--b)}
+    .light-mode input,.light-mode select,.light-mode textarea{color:var(--text)}
   </style>
 </head>
 <body>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
   <div id="gate" class="gate" style="display:none">
     <h2>Access Denied</h2>
     <p>This page is only accessible to Dave or Doreen.</p>
@@ -249,7 +261,10 @@
                 <!-- Header with live page link -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
                   <p style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em">Manage Collection</p>
-                  <a id="coll-live-link" href="#" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none;background:var(--acc-lo);border:1px solid var(--acc-mid);border-radius:4px;padding:3px 10px">View Live Page ↗</a>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <a id="coll-live-link" href="#" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none;background:var(--acc-lo);border:1px solid var(--acc-mid);border-radius:4px;padding:3px 10px">View Live Page ↗</a>
+                    <button onclick="deleteCollection()" style="font-size:11px;padding:3px 10px;background:var(--red-lo);border:1px solid var(--red-mid);color:var(--red);border-radius:4px;cursor:pointer;font-family:inherit">🗑 Delete Collection</button>
+                  </div>
                 </div>
 
                 <!-- Business Profile -->
@@ -290,7 +305,7 @@
                   <div id="demo-loading-inline" style="display:none;font-size:11px;color:var(--t2)">Running across collection...</div>
                   <div id="demo-result-inline" style="display:none">
                     <div style="background:var(--s3);border-radius:6px;padding:10px;margin-bottom:8px;max-height:160px;overflow-y:auto">
-                      <p id="demo-answer-inline" style="font-size:12px;color:#DDE4F5;line-height:1.6;white-space:pre-wrap"></p>
+                      <p id="demo-answer-inline" style="font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap"></p>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center">
                       <button class="btn-ok" onclick="saveDemoInline()" style="font-size:11px;padding:5px 12px;font-weight:600">✓ Set as Live Demo</button>
@@ -308,46 +323,11 @@
             </div>
           </div>
 
-          <!-- Research Mode Demo Builder — collapsible at bottom of Collections card -->
-          <div style="border-top:1px solid var(--b)">
-            <div onclick="toggleDemoPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer">
-              <div>
-                <p style="font-size:12px;font-weight:700;color:var(--t2)">✦ Research Mode Demo Builder</p>
-                <p style="font-size:11px;color:var(--t3);margin-top:2px">Set the live demo Q&A block shown on huberman-lab.html, peptides.html etc.</p>
-              </div>
-              <span id="demo-chevron" style="color:var(--t3);font-size:12px;transition:transform .2s">▼</span>
-            </div>
-            <div id="demo-panel" style="display:none;padding:0 20px 20px;flex-direction:column;gap:12px">
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <select id="demo-coll-select" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit;width:160px">
-                  <option value="huberman-lab">Huberman Lab</option>
-                  <option value="peptides">Peptides Explained</option>
-                  <option value="glp1">GLP-1 Explained</option>
-                  <option value="longevity">Longevity & Anti-Aging</option>
-                  <option value="fitness">Fitness & Performance</option>
-                  <option value="general">General Collection</option>
-                </select>
-                <input id="demo-question" placeholder="Ask a question across all videos in this collection..." style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1;min-width:180px">
-                <button class="btn-acc" onclick="runDemoQuery()" id="demo-run-btn" style="padding:8px 16px;font-weight:600;white-space:nowrap">▶ Run</button>
-              </div>
-              <div id="demo-loading" style="display:none;color:var(--t2);font-size:12px">Running Research Mode across collection...</div>
-              <div id="demo-result" style="display:none;flex-direction:column;gap:10px">
-                <div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:14px">
-                  <p style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Answer Preview</p>
-                  <p id="demo-answer-text" style="font-size:12px;color:#DDE4F5;line-height:1.7;white-space:pre-wrap;max-height:220px;overflow-y:auto"></p>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                  <button class="btn-ok" onclick="saveDemoToDb()" style="font-weight:600">✓ Set as Demo on Page</button>
-                  <button class="btn-g" onclick="clearDemo()" style="font-size:12px">Clear</button>
-                  <p id="demo-save-msg" style="font-size:11px;color:var(--ok);display:none;margin:0">✓ Saved — refresh the public page to see it</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
 
-      <!-- BULK RE-ANALYZE TAB -->
+      <!-- BULK-- BULK RE-ANALYZE TAB -->
       <div id="pane-bulk" style="display:none">
         <div class="card">
           <div class="card-head"><h2>🔍 Bulk Re-analyze Videos</h2></div>
@@ -684,7 +664,7 @@
               ${v.credibility?.score ? `<span style="font-size:10px;color:${credColor}">${v.credibility.score}</span>` : ''}
               <span style="font-size:10px;color:var(--t3);margin-left:auto">#${i+1}</span>
             </div>
-            <p style="font-size:12px;font-weight:600;color:#DDE4F5;line-height:1.35;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title || 'Untitled'}</p>
+            <p style="font-size:12px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title || 'Untitled'}</p>
             <p style="font-size:11px;color:var(--t2);margin-bottom:3px">${v.channel || ''}</p>
             <p style="font-size:11px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">${v.summary || ''}</p>
           </div>
@@ -698,6 +678,7 @@
           </div>
         </div>`;
       }).join('');
+      if (collFilter_active !== 'all') setTimeout(initDrag, 50);
     }
 
     function collSelectChange(sel) {
@@ -945,6 +926,62 @@
       document.getElementById('demo-inline-msg').style.display = 'none';
     }
 
+    async function deleteCollection() {
+      if (!currentCollection) return;
+      const label = COLL_LABEL[currentCollection] || currentCollection;
+
+      // Count videos first
+      try {
+        const videos = await sbReq(`youtube_videos?select=id&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${currentCollection}`);
+        const count = videos?.length || 0;
+
+        const confirmed = confirm(
+          `Delete "${label}" collection?
+
+` +
+          `This will permanently remove ${count} video${count !== 1 ? 's' : ''} from this collection.
+
+` +
+          `The collection page (${currentCollection}.html) will stop showing content.
+
+` +
+          `This cannot be undone.`
+        );
+        if (!confirmed) return;
+
+        // Delete all videos in collection
+        await sbReq(`youtube_videos?owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${currentCollection}`, { method: 'DELETE' });
+
+        // Delete demo if exists
+        await sbReq(`collection_demos?collection_tag=eq.${currentCollection}`, { method: 'DELETE' }).catch(() => {});
+
+        // Delete profile if exists
+        await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}`, { method: 'DELETE' }).catch(() => {});
+
+        // Remove from dropdown
+        const sel = document.getElementById('coll-select');
+        Array.from(sel.options).forEach(o => { if (o.value === currentCollection) o.remove(); });
+
+        // Remove from localStorage custom collections
+        let saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
+        saved = saved.filter(c => c.slug !== currentCollection);
+        localStorage.setItem('reelcall_collections', JSON.stringify(saved));
+        delete COLL_LABEL[currentCollection];
+
+        collToast(`✓ "${label}" collection deleted`);
+        currentCollection = null;
+
+        // Reset to All view
+        document.getElementById('coll-manager').style.display = 'none';
+        const allBtn = document.querySelector('.filter-btn');
+        if (allBtn) { collFilter('all', allBtn); }
+        else { await collLoad(); }
+
+      } catch(e) {
+        collToast('Error deleting collection: ' + e.message);
+      }
+    }
+
     async function saveProfile() {
       if (!currentCollection) return;
       const record = {
@@ -1119,7 +1156,7 @@ Answer the question by synthesizing across all relevant videos. Cite video title
 
         demoResult = { collection, question, answer, videoTitles: videos.map(v => v.title) };
         document.getElementById('demo-answer-text').innerHTML = answer
-          .replace(/## (.*?)(?:\n|$)/g, '<p style="font-size:12px;font-weight:700;color:#DDE4F5;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em">$1</p>')
+          .replace(/## (.*?)(?:\n|$)/g, '<p style="font-size:12px;font-weight:700;color:var(--text);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em">$1</p>')
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
           .replace(/\n\n/g, '<br><br>')
           .replace(/\n/g, '<br>');
@@ -1220,6 +1257,88 @@ Answer the question by synthesizing across all relevant videos. Cite video title
       document.getElementById("bulk-bar-fill").style.width = pct + "%";
       document.getElementById("bulk-pct").textContent = `${done}/${total} (${pct}%)`;
     }
+
+    // ── Theme toggle ──────────────────────────────────────────────────────────
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('light-mode');
+      localStorage.setItem('admin-theme', isLight ? 'light' : 'dark');
+      document.getElementById('themeBtn').textContent = isLight ? '🌙 Dark' : '☀ Light';
+    }
+    // Apply saved theme on load
+    if (localStorage.getItem('admin-theme') === 'light') {
+      document.body.classList.add('light-mode');
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('themeBtn');
+        if (btn) btn.textContent = '🌙 Dark';
+      });
+    }
+
+    // ── Drag-and-drop reordering ──────────────────────────────────────────────
+    let dragSrc = null;
+
+    function initDrag() {
+      document.querySelectorAll('.video-row').forEach(row => {
+        row.setAttribute('draggable', 'true');
+        row.style.cursor = 'grab';
+        row.addEventListener('dragstart', e => {
+          dragSrc = row;
+          e.dataTransfer.effectAllowed = 'move';
+          row.style.opacity = '.4';
+        });
+        row.addEventListener('dragend', () => {
+          row.style.opacity = '1';
+          document.querySelectorAll('.video-row').forEach(r => r.classList.remove('drag-over'));
+        });
+        row.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          document.querySelectorAll('.video-row').forEach(r => r.classList.remove('drag-over'));
+          row.classList.add('drag-over');
+        });
+        row.addEventListener('drop', async e => {
+          e.preventDefault();
+          if (dragSrc === row) return;
+          row.classList.remove('drag-over');
+
+          // Get IDs from row ids (vrow-{id})
+          const srcId = dragSrc.id.replace('vrow-', '');
+          const tgtId = row.id.replace('vrow-', '');
+
+          // Get current sorted order
+          const rows = [...document.querySelectorAll('.video-row')];
+          const srcIdx = rows.indexOf(dragSrc);
+          const tgtIdx = rows.indexOf(row);
+
+          // Reorder in DOM immediately for snappy feel
+          if (srcIdx < tgtIdx) {
+            row.after(dragSrc);
+          } else {
+            row.before(dragSrc);
+          }
+
+          // Save new order to DB
+          const newOrder = [...document.querySelectorAll('.video-row')].map((r, i) => ({
+            id: r.id.replace('vrow-', ''),
+            sort_order: i
+          }));
+
+          // Update local state
+          newOrder.forEach(({id, sort_order}) => {
+            const v = collVideos.find(x => x.id === id);
+            if (v) v.sort_order = sort_order;
+          });
+
+          // Batch save
+          try {
+            await Promise.all(newOrder.map(({id, sort_order}) =>
+              sbReq(`youtube_videos?id=eq.${id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ sort_order }) })
+            ));
+            collToast('Order saved ✓');
+          } catch(e) { collToast('Save error: ' + e.message); }
+        });
+      });
+    }
+
   </script>
 </body>
 </html>
