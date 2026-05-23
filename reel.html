@@ -462,17 +462,27 @@
       const isChannelUrl = urlInput.trim().match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || urlInput.trim().startsWith("@");
       function handleAnalyze() { const u = urlInput.trim(); if (!u) return; if (isChannelUrl) { setShowChannelModal(true); } else { onAddNew(u); } }
 
-      // Filter
+      // Filter — always searches ALL videos regardless of sort
+      const isSearching = whoSearch.trim() || topicSearch.trim();
+
       const filtered = videos.filter((v) => {
         const who = whoSearch.toLowerCase().trim();
         const topic = topicSearch.toLowerCase().trim();
-        const searchText = [v.title, v.channel, v.summary, ...(v.keyPoints || []), ...(v.quotes || [])].join(" ").toLowerCase();
+        // Search across all meaningful text fields
+        const searchText = [
+          v.title, v.channel, v.summary,
+          ...(v.keyPoints || []),
+          ...(v.quotes || []),
+          ...(v.tags || []),
+          ...(v.actionSuggestions || []),
+          v.whatsNew || ""
+        ].join(" ").toLowerCase();
         if (who && !searchText.includes(who)) return false;
         if (topic && !searchText.includes(topic)) return false;
         return true;
       });
 
-      // Sort with exclusions
+      // Sort
       const sorted = [...filtered].sort((a, b) => {
         if (sort === "recent") return new Date(b.dateAdded) - new Date(a.dateAdded);
         if (sort === "oldest") return new Date(a.dateAdded) - new Date(b.dateAdded);
@@ -483,6 +493,8 @@
         if (sort === "recently_opened") return new Date(b.lastOpenedAt || 0) - new Date(a.lastOpenedAt || 0);
         return 0;
       }).filter((v) => {
+        // Only apply sort-based exclusions when NOT searching
+        if (isSearching) return true;
         if (sort === "opened") return (v.openCount || 0) >= 2;
         if (sort === "shared") return (v.shareCount || 0) >= 1;
         if (sort === "recently_opened") return !!v.lastOpenedAt;
@@ -526,7 +538,12 @@
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
                 <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height: 140, width: "auto", maxWidth: 420, display: "block" }} />
               </div>
-              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · your video knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
+              <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>
+                {isSearching
+                  ? <><strong style={{ color: "var(--acc)" }}>{sorted.length}</strong> result{sorted.length !== 1 ? "s" : ""} of {videos.length} videos · <span style={{ cursor: "pointer", color: "var(--acc)", textDecoration: "underline" }} onClick={() => { setWhoSearch(""); setTopicSearch(""); }}>clear search</span></>
+                  : <>{videos.length} video{videos.length !== 1 ? "s" : ""} · your video knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></>
+                }
+              </p>
               {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
                 const pct = Math.min(100, Math.round((MEMBERSHIP.videosUsed / MEMBERSHIP.videosCapacity) * 100));
                 const daysPct = Math.min(100, Math.round(((MEMBERSHIP.daysLeft < 0 ? 0 : MEMBERSHIP.daysLeft) / 60) * 100)); // starts full at 60 days, drains to 0
