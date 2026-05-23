@@ -229,9 +229,10 @@
               </div>
             </div>
 
-            <!-- Right: Video list -->
+            <!-- Right: Video list + Collection Manager -->
             <div class="coll-main">
-              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+              <!-- Filter bar -->
+              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                 <button class="filter-btn active" onclick="collFilter('all',this)">All</button>
                 <button class="filter-btn" onclick="collFilter('huberman-lab',this)">Huberman Lab</button>
                 <button class="filter-btn" onclick="collFilter('peptides',this)">Peptides</button>
@@ -241,6 +242,66 @@
                 <button class="filter-btn" onclick="collFilter('general',this)">General</button>
                 <button class="btn-g" onclick="collLoad()" style="margin-left:auto;padding:4px 10px;font-size:11px">↺ Refresh</button>
               </div>
+
+              <!-- Collection Manager Panel (shows when filtered to a specific collection) -->
+              <div id="coll-manager" style="display:none;margin-bottom:16px">
+
+                <!-- Header with live page link -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <p style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em">Manage Collection</p>
+                  <a id="coll-live-link" href="#" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none;background:var(--acc-lo);border:1px solid var(--acc-mid);border-radius:4px;padding:3px 10px">View Live Page ↗</a>
+                </div>
+
+                <!-- Business Profile -->
+                <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Business Profile</p>
+                    <button class="btn-ok" onclick="saveProfile()" style="font-size:11px;padding:4px 10px">Save Profile</button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    <div>
+                      <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Business Name</label>
+                      <input id="prof-name" placeholder="e.g. Huberman Lab" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    </div>
+                    <div>
+                      <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Website URL</label>
+                      <input id="prof-url" placeholder="https://example.com" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    </div>
+                  </div>
+                  <div style="margin-bottom:8px">
+                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Short Bio (shown on collection page)</label>
+                    <textarea id="prof-bio" placeholder="Brief description of this collection or creator..." rows="2" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%;resize:none;font-family:inherit"></textarea>
+                  </div>
+                  <div>
+                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Logo URL (optional)</label>
+                    <input id="prof-logo" placeholder="https://..." style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                  </div>
+                  <p id="prof-save-msg" style="font-size:11px;color:var(--ok);margin-top:6px;display:none">✓ Profile saved</p>
+                </div>
+
+                <!-- Research Mode Demo -->
+                <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
+                  <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">✦ Research Mode Demo</p>
+                  <div id="demo-current-inline" style="padding:8px 10px;background:var(--s3);border-radius:6px;margin-bottom:8px;min-height:32px;font-size:11px;color:var(--t3)">Loading...</div>
+                  <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <input id="demo-question-inline" placeholder="Ask a question across all videos in this collection..." style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;flex:1">
+                    <button class="btn-acc" onclick="runDemoInline()" id="demo-run-inline-btn" style="padding:6px 12px;font-weight:600;white-space:nowrap;font-size:12px">▶ Run</button>
+                  </div>
+                  <div id="demo-loading-inline" style="display:none;font-size:11px;color:var(--t2)">Running across collection...</div>
+                  <div id="demo-result-inline" style="display:none">
+                    <div style="background:var(--s3);border-radius:6px;padding:10px;margin-bottom:8px;max-height:160px;overflow-y:auto">
+                      <p id="demo-answer-inline" style="font-size:12px;color:#DDE4F5;line-height:1.6;white-space:pre-wrap"></p>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                      <button class="btn-ok" onclick="saveDemoInline()" style="font-size:11px;padding:5px 12px;font-weight:600">✓ Set as Live Demo</button>
+                      <button class="btn-g" onclick="clearDemoInline()" style="font-size:11px;padding:5px 10px">Clear</button>
+                      <p id="demo-inline-msg" style="font-size:11px;color:var(--ok);display:none;margin:0">✓ Saved</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Video list -->
               <div id="coll-video-list">
                 <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Loading...</div>
               </div>
@@ -576,7 +637,7 @@
 
     async function collLoad() {
       try {
-        const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added&owner=eq.${COLLECTION_OWNER}&order=date_added.desc`).catch(e => { throw new Error('Could not load videos: ' + e.message); });
+        const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added,sort_order&owner=eq.${COLLECTION_OWNER}&order=sort_order.asc,date_added.asc`).catch(e => { throw new Error('Could not load videos: ' + e.message); });
         collVideos = rows || [];
         collRenderList();
         document.getElementById('coll-stat-total').textContent = collVideos.length;
@@ -598,27 +659,45 @@
     function collRenderList() {
       const filtered = collFilter_active === 'all' ? collVideos : collVideos.filter(v => v.collection_tag === collFilter_active);
       const el = document.getElementById('coll-video-list');
-      if (!filtered.length) { el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>`; return; }
+      const manager = document.getElementById('coll-manager');
+
+      // Show/hide collection manager panel
+      if (collFilter_active !== 'all') {
+        manager.style.display = 'block';
+        loadCollectionManager(collFilter_active);
+      } else {
+        manager.style.display = 'none';
+      }
+
+      if (!filtered.length) { el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>'; return; }
       const COLL_CLASS = { "huberman-lab": "coll-huberman", "peptides": "coll-peptides", "general": "coll-general" };
-      el.innerHTML = filtered.map(v => `
-        <div class="video-row">
+      const sorted = [...filtered].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+      el.innerHTML = sorted.map((v, i) => {
+        const title = (v.title || 'Untitled').replace(/'/g, "\'");
+        const credColor = v.credibility?.score === 'high' ? 'var(--ok)' : v.credibility?.score === 'low' ? 'var(--red)' : 'var(--warn)';
+        return `<div class="video-row" id="vrow-${v.id}">
           <img src="${thumb(v.video_id)}" onerror="this.style.display='none'">
-          <div>
-            <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;gap:6px;margin-bottom:4px;align-items:center;flex-wrap:wrap">
               <span class="coll-pill ${COLL_CLASS[v.collection_tag] || 'coll-general'}">${COLL_LABEL[v.collection_tag] || v.collection_tag || 'General'}</span>
-              ${v.credibility?.score ? `<span style="font-size:10px;color:var(--t3)">credibility: ${v.credibility.score}</span>` : ''}
+              ${v.credibility?.score ? `<span style="font-size:10px;color:${credColor}">${v.credibility.score}</span>` : ''}
+              <span style="font-size:10px;color:var(--t3);margin-left:auto">#${i+1}</span>
             </div>
-            <p style="font-size:12px;font-weight:600;color:#DDE4F5;line-height:1.35;margin-bottom:3px">${v.title || 'Untitled'}</p>
-            <p style="font-size:11px;color:var(--t2);margin-bottom:4px">${v.channel || ''}</p>
-            <p style="font-size:11px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${v.summary || ''}</p>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${(v.tags||[]).map(t => `<span style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:20px;padding:1px 7px;font-size:10px">${t}</span>`).join('')}</div>
+            <p style="font-size:12px;font-weight:600;color:#DDE4F5;line-height:1.35;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title || 'Untitled'}</p>
+            <p style="font-size:11px;color:var(--t2);margin-bottom:3px">${v.channel || ''}</p>
+            <p style="font-size:11px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">${v.summary || ''}</p>
           </div>
-          <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">
+            ${collFilter_active !== 'all' ? `<div style="display:flex;gap:3px">
+              <button onclick="moveVideo('${v.id}',${i},-1)" ${i===0?'disabled':''} style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;font-family:inherit;${i===0?'opacity:.3':''}">↑</button>
+              <button onclick="moveVideo('${v.id}',${i},1)" ${i===sorted.length-1?'disabled':''} style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;font-family:inherit;${i===sorted.length-1?'opacity:.3':''}">↓</button>
+            </div>` : ''}
             <a href="https://reelcall.app/reel.html?vid=${v.video_id}&preview=true&collection=${v.collection_tag||'general'}" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none;white-space:nowrap">Preview ↗</a>
-            <button class="btn-red" onclick="collDelete('${v.id}','${(v.title||'').replace(/'/g,"\\'")}') " style="padding:3px 7px;font-size:10px">Delete</button>
+            <button class="btn-red" onclick="collDelete('${v.id}','${title}')" style="padding:3px 7px;font-size:10px">Delete</button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     function collSelectChange(sel) {
@@ -806,6 +885,164 @@
       if (!confirm(`Delete "${title}" from collection?`)) return;
       try { await sbReq(`youtube_videos?id=eq.${id}`, { method: 'DELETE' }); collToast('Deleted'); collLoad(); }
       catch(e) { collToast('Error: ' + e.message); }
+    }
+
+    // ── Collection Manager ────────────────────────────────────────────────────────
+    const PAGE_URLS = {
+      'huberman-lab': 'https://reelcall.app/know/huberman-lab.html',
+      'peptides': 'https://reelcall.app/know/peptides.html',
+      'glp1': 'https://reelcall.app/know/glp1.html',
+      'longevity': 'https://reelcall.app/know/longevity.html',
+      'fitness': 'https://reelcall.app/know/fitness.html',
+      'general': 'https://reelcall.app/know/general.html',
+    };
+
+    let currentCollection = null;
+    let currentDemoResult = null;
+
+    async function loadCollectionManager(tag) {
+      currentCollection = tag;
+
+      // Set live page link
+      const liveLink = document.getElementById('coll-live-link');
+      const pageUrl = PAGE_URLS[tag] || `https://reelcall.app/know/${tag}.html`;
+      liveLink.href = pageUrl;
+      liveLink.textContent = `View ${COLL_LABEL[tag] || tag} Page ↗`;
+
+      // Load business profile
+      try {
+        const rows = await sbReq(`collection_metadata?collection_tag=eq.${tag}&limit=1`).catch(() => null);
+        if (rows?.[0]) {
+          document.getElementById('prof-name').value = rows[0].name || '';
+          document.getElementById('prof-url').value = rows[0].website_url || '';
+          document.getElementById('prof-bio').value = rows[0].bio || '';
+          document.getElementById('prof-logo').value = rows[0].logo_url || '';
+        } else {
+          document.getElementById('prof-name').value = COLL_LABEL[tag] || '';
+          document.getElementById('prof-url').value = '';
+          document.getElementById('prof-bio').value = '';
+          document.getElementById('prof-logo').value = '';
+        }
+        document.getElementById('prof-save-msg').style.display = 'none';
+      } catch(e) { /* table may not exist yet */ }
+
+      // Load demo
+      try {
+        const demos = await sbReq(`collection_demos?collection_tag=eq.${tag}&limit=1`).catch(() => null);
+        const demoBox = document.getElementById('demo-current-inline');
+        if (demos?.[0]) {
+          demoBox.innerHTML = '<span style="color:var(--acc);font-style:italic">"' + demos[0].question + '"</span>' +
+            '<span style="color:var(--t3);margin-left:8px">· Updated ' + new Date(demos[0].updated_at).toLocaleDateString() + '</span>';
+          document.getElementById('demo-question-inline').value = demos[0].question;
+        } else {
+          demoBox.textContent = 'No demo set yet.';
+          document.getElementById('demo-question-inline').value = '';
+        }
+      } catch(e) { document.getElementById('demo-current-inline').textContent = 'Could not load demo.'; }
+
+      // Reset demo result
+      document.getElementById('demo-result-inline').style.display = 'none';
+      document.getElementById('demo-inline-msg').style.display = 'none';
+    }
+
+    async function saveProfile() {
+      if (!currentCollection) return;
+      const record = {
+        collection_tag: currentCollection,
+        name: document.getElementById('prof-name').value.trim(),
+        website_url: document.getElementById('prof-url').value.trim(),
+        bio: document.getElementById('prof-bio').value.trim(),
+        logo_url: document.getElementById('prof-logo').value.trim(),
+        updated_at: new Date().toISOString()
+      };
+      try {
+        const existing = await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}&limit=1`).catch(() => null);
+        if (existing?.length) {
+          await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
+        } else {
+          await sbReq('collection_metadata', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
+        }
+        document.getElementById('prof-save-msg').style.display = 'block';
+        collToast('✓ Profile saved for ' + (COLL_LABEL[currentCollection] || currentCollection));
+        setTimeout(() => { document.getElementById('prof-save-msg').style.display = 'none'; }, 3000);
+      } catch(e) { collToast('Error: ' + e.message); }
+    }
+
+    async function moveVideo(id, currentIdx, direction) {
+      const filtered = collVideos.filter(v => v.collection_tag === collFilter_active)
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      const newIdx = currentIdx + direction;
+      if (newIdx < 0 || newIdx >= filtered.length) return;
+
+      // Swap sort_order values
+      const a = filtered[currentIdx];
+      const b = filtered[newIdx];
+      const aOrder = currentIdx;
+      const bOrder = newIdx;
+
+      try {
+        await Promise.all([
+          sbReq(`youtube_videos?id=eq.${a.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ sort_order: bOrder }) }),
+          sbReq(`youtube_videos?id=eq.${b.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ sort_order: aOrder }) })
+        ]);
+        // Update local state
+        collVideos = collVideos.map(v => {
+          if (v.id === a.id) return { ...v, sort_order: bOrder };
+          if (v.id === b.id) return { ...v, sort_order: aOrder };
+          return v;
+        });
+        collRenderList();
+      } catch(e) { collToast('Error moving video: ' + e.message); }
+    }
+
+    async function runDemoInline() {
+      if (!currentCollection) return;
+      const question = document.getElementById('demo-question-inline').value.trim();
+      if (!question) return;
+      document.getElementById('demo-run-inline-btn').disabled = true;
+      document.getElementById('demo-loading-inline').style.display = 'block';
+      document.getElementById('demo-result-inline').style.display = 'none';
+      try {
+        const videos = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,key_points&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${currentCollection}&order=sort_order.asc,date_added.asc`);
+        if (!videos?.length) { collToast('No videos in this collection'); return; }
+        const ctx = videos.map((v, i) =>
+          `[${i+1}] "${v.title}" — ${v.channel || 'Unknown'}\nSummary: ${v.summary || ''}\nKey Points: ${(v.key_points || []).join('; ')}`
+        ).join('\n\n---\n\n');
+        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` },
+          body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500,
+            system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos.\n\n${ctx}\n\nAnswer directly, cite video titles in brackets, use bold for key conclusions, format with clear sections.`,
+            messages: [{ role: 'user', content: question }] })
+        });
+        const data = await resp.json();
+        const answer = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+        currentDemoResult = { collection: currentCollection, question, answer };
+        document.getElementById('demo-answer-inline').textContent = answer;
+        document.getElementById('demo-result-inline').style.display = 'block';
+      } catch(e) { collToast('Error: ' + e.message); }
+      finally { document.getElementById('demo-loading-inline').style.display = 'none'; document.getElementById('demo-run-inline-btn').disabled = false; }
+    }
+
+    async function saveDemoInline() {
+      if (!currentDemoResult) return;
+      try {
+        const record = { collection_tag: currentDemoResult.collection, question: currentDemoResult.question, answer: currentDemoResult.answer, updated_at: new Date().toISOString() };
+        const existing = await sbReq(`collection_demos?collection_tag=eq.${currentDemoResult.collection}&limit=1`).catch(() => null);
+        if (existing?.length) {
+          await sbReq(`collection_demos?collection_tag=eq.${currentDemoResult.collection}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
+        } else {
+          await sbReq('collection_demos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
+        }
+        document.getElementById('demo-inline-msg').style.display = 'block';
+        document.getElementById('demo-current-inline').innerHTML = '<span style="color:var(--acc);font-style:italic">"' + currentDemoResult.question + '"</span><span style="color:var(--t3);margin-left:8px">· Just updated</span>';
+        collToast('✓ Demo saved for ' + (COLL_LABEL[currentDemoResult.collection] || currentDemoResult.collection));
+      } catch(e) { collToast('Save error: ' + e.message); }
+    }
+
+    function clearDemoInline() {
+      currentDemoResult = null;
+      document.getElementById('demo-result-inline').style.display = 'none';
+      document.getElementById('demo-question-inline').value = '';
     }
 
     // ── Research Mode Demo Builder ─────────────────────────────────────────────
