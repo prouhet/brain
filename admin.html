@@ -539,7 +539,7 @@
         const views = await sb.from("reel_share_views").select("*").order("viewed_at", { ascending: false }).limit(200);
         const shareData = views.data || [];
         const videoIds = [...new Set(shareData.map(v => v.video_id))];
-        const videos = videoIds.length ? (await sb.from("youtube_videos").select("id,title,owner").in("id", videoIds)).data || [] : [];
+        const videos = videoIds.length ? (await sb.from("youtube_videos").select("id,video_id,title,owner").in("id", videoIds)).data || [] : [];
         const videoMap = Object.fromEntries(videos.map(v => [v.id, v]));
         const byVideo = {};
         shareData.forEach(v => {
@@ -550,11 +550,13 @@
         });
         document.getElementById("shares-tbody").innerHTML = Object.entries(byVideo).sort((a,b) => b[1].views - a[1].views).map(([vid, d]) => {
           const vInfo = videoMap[vid];
-          return `<tr><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${vInfo?.title || vid}</td><td><span class="badge">${d.owner}</span></td><td>${d.views}</td><td>${d.signups.length > 0 ? d.signups.map(s => `<span class="badge badge-ok">${s}</span>`).join(" ") : "<span style='color:var(--t3)'>0</span>"}</td><td style="font-size:11px;color:var(--t3)">${d.lastViewed ? new Date(d.lastViewed).toLocaleDateString() : ""}</td></tr>`;
+          const shareUrl = vInfo?.video_id ? `https://reelcall.app/reel.html?share=${vid}` : null;
+          return `<tr><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${shareUrl ? `<a href="${shareUrl}" target="_blank" style="color:var(--acc);text-decoration:none" title="View summary">${vInfo?.title || vid} ↗</a>` : (vInfo?.title || vid)}</td><td><span class="badge">${d.owner}</span></td><td>${d.views}</td><td>${d.signups.length > 0 ? d.signups.map(s => `<span class="badge badge-ok">${s}</span>`).join(" ") : "<span style='color:var(--t3)'>0</span>"}</td><td style="font-size:11px;color:var(--t3)">${d.lastViewed ? new Date(d.lastViewed).toLocaleDateString() : ""}</td></tr>`;
         }).join("") || "<tr><td colspan='5' style='color:var(--t3);text-align:center;padding:20px'>No shares yet</td></tr>";
         document.getElementById("views-tbody").innerHTML = shareData.slice(0, 50).map(v => {
           const vInfo = videoMap[v.video_id];
-          return `<tr><td style="font-size:11px;color:var(--t3)">${new Date(v.viewed_at).toLocaleString()}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${vInfo?.title || v.video_id}</td><td><span class="badge">${v.owner}</span></td><td>${v.signed_up_as ? `<span class="badge badge-ok">${v.signed_up_as}</span>` : "<span style='color:var(--t3)'>—</span>"}</td></tr>`;
+          const vShareUrl = vInfo?.video_id ? `https://reelcall.app/reel.html?share=${v.video_id}` : null;
+          return `<tr><td style="font-size:11px;color:var(--t3)">${new Date(v.viewed_at).toLocaleString()}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${vShareUrl ? `<a href="${vShareUrl}" target="_blank" style="color:var(--acc);text-decoration:none">${vInfo?.title || v.video_id} ↗</a>` : (vInfo?.title || v.video_id)}</td><td><span class="badge">${v.owner}</span></td><td>${v.signed_up_as ? `<span class="badge badge-ok">${v.signed_up_as}</span>` : "<span style='color:var(--t3)'>—</span>"}</td></tr>`;
         }).join("") || "<tr><td colspan='4' style='color:var(--t3);text-align:center;padding:20px'>No views yet</td></tr>";
         document.getElementById("shares-loading").style.display = "none";
         document.getElementById("shares-content").style.display = "block";
@@ -812,6 +814,27 @@
       demoPanelOpen = !demoPanelOpen;
       document.getElementById('demo-panel').style.display = demoPanelOpen ? 'flex' : 'none';
       document.getElementById('demo-chevron').style.transform = demoPanelOpen ? 'rotate(180deg)' : '';
+      if (demoPanelOpen) loadCurrentDemo();
+    }
+
+    async function loadCurrentDemo() {
+      const collection = document.getElementById('demo-coll-select').value;
+      try {
+        const rows = await sbReq(`collection_demos?collection_tag=eq.${collection}&limit=1`).catch(() => null);
+        const currentEl = document.getElementById('demo-current');
+        if (rows?.[0]) {
+          currentEl.innerHTML = '<p style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Currently Live</p>' +
+            '<p style="font-size:12px;color:var(--acc);margin-bottom:4px;font-style:italic">"' + rows[0].question + '"</p>' +
+            '<p style="font-size:11px;color:var(--t3)">Updated ' + new Date(rows[0].updated_at).toLocaleDateString() + '</p>';
+          // Pre-fill question input
+          document.getElementById('demo-question').value = rows[0].question;
+        } else {
+          currentEl.innerHTML = '<p style="font-size:11px;color:var(--t3)">No demo set yet for this collection.</p>';
+          document.getElementById('demo-question').value = '';
+        }
+      } catch(e) {
+        document.getElementById('demo-current').innerHTML = '<p style="font-size:11px;color:var(--t3)">Could not load current demo.</p>';
+      }
     }
     let demoResult = null;
 
