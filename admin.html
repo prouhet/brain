@@ -222,6 +222,10 @@
                   <div style="font-size:20px;font-weight:700;color:var(--ok);font-family:'Syne',sans-serif" id="coll-stat-pep">—</div>
                   <div style="font-size:10px;color:var(--t2);margin-top:2px">Peptides</div>
                 </div>
+                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)">
+                  <div style="font-size:20px;font-weight:700;color:var(--acc);font-family:'Syne',sans-serif" id="coll-stat-other">—</div>
+                  <div style="font-size:10px;color:var(--t2);margin-top:2px">Other</div>
+                </div>
               </div>
             </div>
 
@@ -231,6 +235,9 @@
                 <button class="filter-btn active" onclick="collFilter('all',this)">All</button>
                 <button class="filter-btn" onclick="collFilter('huberman-lab',this)">Huberman Lab</button>
                 <button class="filter-btn" onclick="collFilter('peptides',this)">Peptides</button>
+                <button class="filter-btn" onclick="collFilter('glp1',this)">GLP-1</button>
+                <button class="filter-btn" onclick="collFilter('longevity',this)">Longevity</button>
+                <button class="filter-btn" onclick="collFilter('fitness',this)">Fitness</button>
                 <button class="filter-btn" onclick="collFilter('general',this)">General</button>
                 <button class="btn-g" onclick="collLoad()" style="margin-left:auto;padding:4px 10px;font-size:11px">↺ Refresh</button>
               </div>
@@ -253,11 +260,11 @@
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <select id="demo-coll-select" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit;width:160px">
                   <option value="huberman-lab">Huberman Lab</option>
-                  <option value="peptides">Peptides</option>
-                  <option value="glp1">GLP-1</option>
-                  <option value="longevity">Longevity</option>
-                  <option value="fitness">Fitness</option>
-                  <option value="general">General</option>
+                  <option value="peptides">Peptides Explained</option>
+                  <option value="glp1">GLP-1 Explained</option>
+                  <option value="longevity">Longevity & Anti-Aging</option>
+                  <option value="fitness">Fitness & Performance</option>
+                  <option value="general">General Collection</option>
                 </select>
                 <input id="demo-question" placeholder="Ask a question across all videos in this collection..." style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1;min-width:180px">
                 <button class="btn-acc" onclick="runDemoQuery()" id="demo-run-btn" style="padding:8px 16px;font-weight:600;white-space:nowrap">▶ Run</button>
@@ -557,7 +564,7 @@
 
     // ── Collections ───────────────────────────────────────────────────────────
     let collVideos = [], collFilter_active = 'all', collCurrentResult = null;
-    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides", "glp1": "GLP-1", "longevity": "Longevity", "fitness": "Fitness", "general": "General" };
+    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides Explained", "glp1": "GLP-1 Explained", "longevity": "Longevity & Anti-Aging", "fitness": "Fitness & Performance", "general": "General Collection" };
 
     function collToast(msg) {
       const el = document.getElementById('coll-toast');
@@ -573,6 +580,7 @@
         document.getElementById('coll-stat-total').textContent = collVideos.length;
         document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
         document.getElementById('coll-stat-pep').textContent = collVideos.filter(v => v.collection_tag === 'peptides').length;
+        document.getElementById('coll-stat-other').textContent = collVideos.filter(v => v.collection_tag !== 'huberman-lab' && v.collection_tag !== 'peptides').length;
       } catch(e) {
         document.getElementById('coll-video-list').innerHTML = `<p style="color:var(--red);font-size:13px">Error: ${e.message}</p>`;
       }
