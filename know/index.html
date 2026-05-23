@@ -849,7 +849,7 @@
   }
 
   function buildCollectionCard(tag, videos, meta) {
-    const pageUrl = PAGE_URLS[tag] || `/know/${tag}.html`;
+    const pageUrl = meta?.page_url || PAGE_URLS[tag] || `/know/${tag}.html`;
     const label = meta?.name || COLL_LABEL[tag] || tag;
     const desc = meta?.bio || COLL_DESC[tag] || `${videos.length} videos in this collection.`;
     const count = videos.length;
