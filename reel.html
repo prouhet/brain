@@ -425,6 +425,8 @@
     function LibraryView({ videos, onSelect, onDelete, onAddNew, onResearchMode, onPaste, onChannelImport, onUpsertVideo, dark, onToggleDark }) {
       const [whoSearch, setWhoSearch] = useState("");
       const [topicSearch, setTopicSearch] = useState("");
+      const [smartResults, setSmartResults] = useState(null); // null = not active, [] = no results, [ids] = filtered
+      const [smartLoading, setSmartLoading] = useState(false);
       const [sort, setSort] = useState("recent");
       const [viewMode, setViewMode] = useState(() => localStorage.getItem("reel-view") || "grid");
       const [urlInput, setUrlInput] = useState("");
@@ -457,18 +459,19 @@
       }, [tab]);
 
       // Reset page on filter/sort change
-      useEffect(() => { setPage(1); }, [whoSearch, topicSearch, sort]);
+      useEffect(() => { setPage(1); setSmartResults(null); }, [whoSearch, topicSearch, sort]);
 
       const isChannelUrl = urlInput.trim().match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || urlInput.trim().startsWith("@");
       function handleAnalyze() { const u = urlInput.trim(); if (!u) return; if (isChannelUrl) { setShowChannelModal(true); } else { onAddNew(u); } }
 
       // Filter — always searches ALL videos regardless of sort
-      const isSearching = whoSearch.trim() || topicSearch.trim();
+      const isSearching = whoSearch.trim() || topicSearch.trim() || smartResults !== null;
 
       const filtered = videos.filter((v) => {
+        // Smart Find overrides regular search
+        if (smartResults !== null) return smartResults.includes(v.id);
         const who = whoSearch.toLowerCase().trim();
         const topic = topicSearch.toLowerCase().trim();
-        // Search across all meaningful text fields
         const searchText = [
           v.title, v.channel, v.summary,
           ...(v.keyPoints || []),
@@ -639,31 +642,33 @@
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
                 <button
                   onClick={async () => {
-                    if (!isPrivileged) return;
-                    const q = whoSearch.trim() || topicSearch.trim();
-                    if (!q) return;
-                    // AI fuzzy search
-                    const videoList = videos.map((v, i) => `${i+1}. "${v.title}" — ${v.channel} — ${(v.summary||"").slice(0,100)}`).join("\n");
-                    const data = await callClaude({
-                      system: "You are helping find YouTube videos in a your video knowledge base. Given a search query and a list of videos, return ONLY a JSON array of the top 5 most relevant video numbers like: [3, 7, 12, 1, 5]. No other text.",
-                      messages: [{ role: "user", content: `Search query: "${q}"\n\nVideos:\n${videoList}` }],
-                      maxTokens: 100,
-                    });
+                    if (!isPrivileged && !MEMBERSHIP?.isPaid) return;
+                    // Clear smart results if already active
+                    if (smartResults !== null) { setSmartResults(null); return; }
+                    const q = (whoSearch.trim() || topicSearch.trim());
+                    if (!q) { alert("Type something in the search boxes first, then click Smart Find."); return; }
+                    setSmartLoading(true);
                     try {
+                      const videoList = videos.map((v, i) => `${i+1}. "${v.title}" — ${v.channel} — ${(v.summary||"").slice(0,120)}`).join("\n");
+                      const data = await callClaude({
+                        system: "You are helping find YouTube videos in a personal knowledge base. Given a search query and a list of videos, return ONLY a JSON array of the most relevant video numbers (up to 20) like: [3, 7, 12, 1, 5]. No other text. Be generous — include anything that could be relevant.",
+                        messages: [{ role: "user", content: `Search query: "${q}"\n\nVideos:\n${videoList}` }],
+                        maxTokens: 200,
+                      });
                       const indices = JSON.parse(getText(data).match(/\[[\d,\s]+\]/)?.[0] || "[]");
-                      const found = indices.map(i => videos[i-1]).filter(Boolean);
-                      if (found.length) {
-                        const next = new Set();
-                        found.forEach(v => next.add(v.id));
-                        setSelected(next);
-                      }
-                    } catch {}
+                      const foundIds = indices.map(i => videos[i-1]?.id).filter(Boolean);
+                      setSmartResults(foundIds);
+                    } catch(e) {
+                      alert("Smart Find failed — try again.");
+                    } finally {
+                      setSmartLoading(false);
+                    }
                   }}
-                  title={isPrivileged ? "Smart Find — describe what you remember, AI selects matching videos" : "Smart Find — paid feature"}
-                  style={{ padding: "9px 16px", borderRadius: 8, background: isPrivileged ? "var(--acc-lo)" : "var(--s2)", border: `1px solid ${isPrivileged ? "var(--acc-mid)" : "var(--b)"}`, color: isPrivileged ? "var(--acc)" : "var(--t3)", cursor: isPrivileged ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", opacity: isPrivileged ? 1 : 0.5 }}>
-                  ✦ Smart Find {isPrivileged ? "" : "🔒"}
+                  title={(isPrivileged || MEMBERSHIP?.isPaid) ? "Smart Find — describe what you remember, AI selects matching videos" : "Smart Find — upgrade to unlock"}
+                  style={{ padding: "9px 16px", borderRadius: 8, background: smartResults !== null ? "var(--acc)" : (isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc-lo)" : "var(--s2)", border: `1px solid ${(isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc-mid)" : "var(--b)"}`, color: smartResults !== null ? "#fff" : (isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc)" : "var(--t3)", cursor: (isPrivileged || MEMBERSHIP?.isPaid) ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", opacity: (isPrivileged || MEMBERSHIP?.isPaid) ? 1 : 0.5 }}>
+                  {smartLoading ? <Spinner size={13} /> : smartResults !== null ? `✦ ${smartResults.length} Smart Results ✕` : <>✦ Smart Find {(isPrivileged || MEMBERSHIP?.isPaid) ? "" : "🔒"}</>}
                 </button>
-                <Tip text={isPrivileged ? "Type what you remember in the search boxes above, then click Smart Find — AI will select the most relevant videos automatically." : "Smart Find uses AI to find videos based on fuzzy descriptions like 'that crude oil QQQ video' or 'the anxiety protocol one'. Available on paid plans."} right={true} />
+                <Tip text={(isPrivileged || MEMBERSHIP?.isPaid) ? "Type what you remember in the search boxes above, then click Smart Find — AI will select the most relevant videos automatically." : "Smart Find uses AI to find videos based on fuzzy descriptions like 'that crude oil QQQ video' or 'the anxiety protocol one'. Available on paid plans."} right={true} />
               </div>
             </div>
 
