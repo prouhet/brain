@@ -284,8 +284,8 @@
                     </div>
                   </div>
                   <div style="margin-bottom:8px">
-                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Collection Page URL <span style="color:var(--acc)">(e.g. /know/huberman-lab.html)</span></label>
-                    <input id="prof-page-url" placeholder="/know/huberman-lab.html" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Page Filename <span style="color:var(--acc)">(just the filename, e.g. huberman-lab.html)</span></label>
+                    <input id="prof-page-url" placeholder="huberman-lab.html" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
                   </div>
                   <div style="margin-bottom:8px">
                     <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Short Bio (shown on collection page)</label>
@@ -1029,7 +1029,7 @@
         website_url: document.getElementById('prof-url').value.trim(),
         bio: document.getElementById('prof-bio').value.trim(),
         logo_url: document.getElementById('prof-logo').value.trim(),
-        page_url: pageUrl || `/know/${currentCollection}.html`,
+        page_url: pageUrl ? (pageUrl.startsWith('/') ? pageUrl : `/know/${pageUrl}`) : `/know/${currentCollection}.html`,
         updated_at: new Date().toISOString()
       };
       // Update live page link immediately
