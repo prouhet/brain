@@ -10,14 +10,14 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --acc: #3B6EF5; --ok: #22C98A; --red: #EF4444; --warn: #F5A623;
+      --acc: #E5001C; --ok: #22C98A; --red: #EF4444; --warn: #F5A623;
       --bg: #F7F8FC; --card: #FFFFFF; --border: rgba(0,0,0,.08);
       --ink: #0A0C10; --t2: #5A6478; --t3: #9BA3B5;
       --s2: rgba(0,0,0,.04);
     }
     html, body { min-height: 100vh; font-family: 'Figtree', sans-serif; font-size: 15px; background: var(--bg); color: var(--ink); }
     body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; position: relative; }
-    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,110,245,.06) 0%, transparent 70%); pointer-events: none; }
+    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(229,0,28,.06) 0%, transparent 70%); pointer-events: none; }
 
     .brand { text-align: center; margin-bottom: 28px; }
     .brand a { text-decoration: none; }
@@ -27,7 +27,7 @@
     .tagline a { color: var(--acc); text-decoration: none; }
     .tagline a:hover { text-decoration: underline; }
 
-    .trial-badge { background: rgba(59,110,245,.08); border: 1px solid rgba(59,110,245,.18); border-radius: 12px; padding: 14px 20px; margin-bottom: 24px; text-align: center; width: 100%; max-width: 400px; }
+    .trial-badge { background: rgba(229,0,28,.08); border: 1px solid rgba(229,0,28,.18); border-radius: 12px; padding: 14px 20px; margin-bottom: 24px; text-align: center; width: 100%; max-width: 400px; }
     .trial-badge strong { display: block; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--acc); margin-bottom: 4px; }
     .trial-badge span { font-size: 13px; color: var(--t2); }
 
@@ -39,11 +39,11 @@
 
     label { display: block; font-size: 12px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; margin-top: 16px; }
     input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--ink); border-radius: 8px; padding: 11px 14px; font-size: 14px; outline: none; font-family: 'Figtree', sans-serif; transition: border-color .15s; }
-    input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(59,110,245,.1); }
+    input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(229,0,28,.1); }
     input::placeholder { color: var(--t3); }
 
     .btn { width: 100%; margin-top: 20px; padding: 13px; background: var(--acc); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn:hover:not(:disabled) { background: #2D5CE8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,110,245,.3); }
+    .btn:hover:not(:disabled) { background: #C4001A; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(229,0,28,.3); }
     .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
     .msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
@@ -64,7 +64,7 @@
 </head>
 <body>
   <div class="brand">
-    <a href="/index.html"><img src="/reelcall-logo-big.png" alt="ReelCall" style="height:120px;width:auto;max-width:240px;display:block;margin:0 auto"></a>
+    <a href="/index.html"><img src="/reelcall-logo-big.png" alt="ReelCall" style="height:120px;width:auto;max-width:380px;display:block;margin:0 auto"></a>
     <p class="tagline">Remember what you watch &middot; <a href="/index.html">Learn more &rarr;</a></p>
   </div>
 
