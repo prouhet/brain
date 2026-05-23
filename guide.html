@@ -9,11 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --acc: #3B6EF5; --ok: #22C98A; --warn: #F5A623; --red: #EF4444;
+      --acc: #E5001C; --ok: #22C98A; --warn: #F5A623; --red: #EF4444;
       --bg: #F7F8FC; --card: #FFFFFF; --border: rgba(0,0,0,.08);
       --ink: #0A0C10; --t2: #4A5568; --t3: #9BA3B5;
-      --s2: rgba(59,110,245,.06); --s3: rgba(0,0,0,.04);
-      --acc-lo: rgba(59,110,245,.08); --acc-mid: rgba(59,110,245,.2);
+      --s2: rgba(229,0,28,.06); --s3: rgba(0,0,0,.04);
+      --acc-lo: rgba(229,0,28,.08); --acc-mid: rgba(229,0,28,.2);
       --ok-lo: rgba(34,201,138,.08); --ok-mid: rgba(34,201,138,.2);
       --warn-lo: rgba(245,166,35,.08);
     }
@@ -30,7 +30,7 @@
     .nav-link { font-size: 12px; font-weight: 600; color: var(--t2); text-decoration: none; padding: 5px 10px; border-radius: 6px; transition: all .15s; white-space: nowrap; }
     .nav-link:hover { background: var(--acc-lo); color: var(--acc); }
     .nav-cta { background: var(--acc); color: #fff !important; border-radius: 8px; padding: 6px 14px !important; }
-    .nav-cta:hover { background: #2D5CE8 !important; }
+    .nav-cta:hover { background: #C4001A !important; }
 
     /* HERO */
     .hero { max-width: 900px; margin: 0 auto; padding: 60px 24px 40px; text-align: center; }
@@ -39,7 +39,7 @@
     .hero p { font-size: 17px; color: var(--t2); max-width: 560px; margin: 0 auto 32px; line-height: 1.7; }
     .toc { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     .toc-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--t2); text-decoration: none; transition: all .15s; display: flex; align-items: center; gap: 8px; }
-    .toc-item:hover { border-color: var(--acc); color: var(--acc); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,110,245,.12); }
+    .toc-item:hover { border-color: var(--acc); color: var(--acc); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(229,0,28,.12); }
 
     /* SECTIONS */
     .section { max-width: 900px; margin: 0 auto; padding: 48px 24px 0; }
@@ -133,7 +133,7 @@
 
 <nav>
   <div class="nav-inner">
-    <a href="/reel.html" class="logo"><img src="/reelcall-logo.png" alt="ReelCall" style="height:36px;width:auto;display:block"></a>
+    <a href="/reel.html" class="logo"><img src="/reelcall-logo.png" alt="ReelCall" style="height:48px;width:auto;display:block"></a>
     <div class="nav-links">
       <a href="#add" class="nav-link">Adding Videos</a>
       <a href="#find" class="nav-link">Finding Videos</a>
@@ -145,12 +145,12 @@
 </nav>
 
 <!-- NEW USER WELCOME BANNER -->
-<div id="welcome-banner" style="display:none;background:linear-gradient(135deg,#3B6EF5,#6B3BF5);color:#fff;padding:24px;text-align:center">
+<div id="welcome-banner" style="display:none;background:linear-gradient(135deg,#E5001C,#6B3BF5);color:#fff;padding:24px;text-align:center">
   <div style="max-width:600px;margin:0 auto">
     <div style="font-size:36px;margin-bottom:12px">👋</div>
     <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px">Welcome to ReelCall!</h2>
     <p style="font-size:14px;opacity:.9;line-height:1.6;margin-bottom:20px">Read through this quick guide — it'll take 2 minutes and make the app 10x more useful. Then tap the button below to open your library.</p>
-    <button onclick="goToApp()" style="background:#fff;color:#3B6EF5;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Figtree',sans-serif">
+    <button onclick="goToApp()" style="background:#fff;color:#E5001C;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Figtree',sans-serif">
       Start My Library →
     </button>
   </div>
@@ -638,7 +638,7 @@
     const footer = document.querySelector("footer");
     const btn = document.createElement("div");
     btn.style.cssText = "text-align:center;padding:32px 24px 0";
-    btn.innerHTML = `<button onclick="goToApp()" style="background:#3B6EF5;color:#fff;border:none;border-radius:12px;padding:14px 36px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Figtree',sans-serif;box-shadow:0 4px 20px rgba(59,110,245,.3)">Open My Library →</button><p style="font-size:12px;color:#9BA3B5;margin-top:10px">You can always come back to this guide from the library</p>`;
+    btn.innerHTML = `<button onclick="goToApp()" style="background:#E5001C;color:#fff;border:none;border-radius:12px;padding:14px 36px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Figtree',sans-serif;box-shadow:0 4px 20px rgba(229,0,28,.3)">Open My Library →</button><p style="font-size:12px;color:#9BA3B5;margin-top:10px">You can always come back to this guide from the library</p>`;
     footer.before(btn);
   }
 </script>
