@@ -929,60 +929,88 @@
     async function deleteCollection() {
       if (!currentCollection) return;
       const label = COLL_LABEL[currentCollection] || currentCollection;
+      const tag = currentCollection;
 
       // Count videos first
+      let count = 0;
       try {
-        const videos = await sbReq(`youtube_videos?select=id&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${currentCollection}`);
-        const count = videos?.length || 0;
+        const videos = await sbReq(`youtube_videos?select=id&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${tag}`);
+        count = videos?.length || 0;
+      } catch(e) {}
 
-        const confirmed = confirm(
-          `Delete "${label}" collection?
-
-` +
-          `This will permanently remove ${count} video${count !== 1 ? 's' : ''} from this collection.
+      const confirmed = confirm(
+        `Delete "${label}" collection?
 
 ` +
-          `The collection page (${currentCollection}.html) will stop showing content.
+        `This will permanently remove ${count} video${count !== 1 ? 's' : ''} from this collection.
 
 ` +
-          `This cannot be undone.`
-        );
-        if (!confirmed) return;
+        `This cannot be undone.`
+      );
+      if (!confirmed) return;
 
-        // Delete all videos in collection
-        await sbReq(`youtube_videos?owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${currentCollection}`, { method: 'DELETE' });
+      try {
+        // Delete videos — must use raw fetch with DELETE header
+        await fetch(`${SB_URL}/rest/v1/youtube_videos?owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${tag}`, {
+          method: 'DELETE',
+          headers: { ...SBH }
+        });
 
-        // Delete demo if exists
-        await sbReq(`collection_demos?collection_tag=eq.${currentCollection}`, { method: 'DELETE' }).catch(() => {});
+        // Delete demo
+        await fetch(`${SB_URL}/rest/v1/collection_demos?collection_tag=eq.${tag}`, {
+          method: 'DELETE', headers: { ...SBH }
+        }).catch(() => {});
 
-        // Delete profile if exists
-        await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}`, { method: 'DELETE' }).catch(() => {});
+        // Delete metadata
+        await fetch(`${SB_URL}/rest/v1/collection_metadata?collection_tag=eq.${tag}`, {
+          method: 'DELETE', headers: { ...SBH }
+        }).catch(() => {});
 
-        // Remove from dropdown
-        const sel = document.getElementById('coll-select');
-        Array.from(sel.options).forEach(o => { if (o.value === currentCollection) o.remove(); });
+        // Remove from BOTH dropdowns (add form + demo builder)
+        ['coll-select', 'demo-coll-select'].forEach(selId => {
+          const sel = document.getElementById(selId);
+          if (!sel) return;
+          Array.from(sel.options).forEach(o => { if (o.value === tag) o.remove(); });
+        });
 
-        // Remove from localStorage custom collections
+        // Remove from filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          if (btn.getAttribute('onclick')?.includes(`'${tag}'`)) btn.remove();
+        });
+
+        // Remove from localStorage
         let saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
-        saved = saved.filter(c => c.slug !== currentCollection);
+        saved = saved.filter(c => c.slug !== tag);
         localStorage.setItem('reelcall_collections', JSON.stringify(saved));
-        delete COLL_LABEL[currentCollection];
+        delete COLL_LABEL[tag];
 
-        collToast(`✓ "${label}" collection deleted`);
+        // Reset collVideos
+        collVideos = collVideos.filter(v => v.collection_tag !== tag);
         currentCollection = null;
 
-        // Reset to All view
+        // Hide manager, go back to All
         document.getElementById('coll-manager').style.display = 'none';
-        const allBtn = document.querySelector('.filter-btn');
-        if (allBtn) { collFilter('all', allBtn); }
-        else { await collLoad(); }
+        const allBtn = document.querySelector('.filter-btn.active') || document.querySelector('.filter-btn');
+        if (allBtn) {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          allBtn.classList.add('active');
+          collFilter_active = 'all';
+          collRenderList();
+        }
+
+        // Update stats
+        document.getElementById('coll-stat-total').textContent = collVideos.length;
+        document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
+        document.getElementById('coll-stat-pep').textContent = collVideos.filter(v => v.collection_tag === 'peptides').length;
+
+        collToast(`✓ "${label}" deleted — ${count} video${count !== 1 ? 's' : ''} removed`);
 
       } catch(e) {
-        collToast('Error deleting collection: ' + e.message);
+        collToast('Delete failed: ' + e.message);
       }
     }
 
-    async function saveProfile() {
+        async function saveProfile() {
       if (!currentCollection) return;
       const record = {
         collection_tag: currentCollection,
