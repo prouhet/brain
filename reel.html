@@ -574,7 +574,10 @@
               })()}
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {videos.length >= 2 && <button className="rbtn-g" onClick={onResearchMode} style={{ whiteSpace: "nowrap" }}>✦ Research Mode</button>}
+              {videos.length >= 2
+                ? <button className="rbtn-g" onClick={onResearchMode} style={{ whiteSpace: "nowrap" }}>🔬 Research Mode</button>
+                : <span style={{ fontSize: 11, color: "var(--t3)" }}>Add 1 more video to unlock Research Mode</span>
+              }
               <button onClick={onToggleDark} style={{ padding: "7px 11px", borderRadius: 8, background: "transparent", border: "1px solid var(--b)", color: "var(--t2)", cursor: "pointer", fontSize: 15 }}>{dark ? "☀" : "🌙"}</button>
             </div>
           </div>
