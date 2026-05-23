@@ -14,8 +14,8 @@
   <style>
     html, body { margin: 0; padding: 0; min-height: 100vh; background: #F8F9FC; }
     #root { min-height: 100vh; }
-    .reel{--bg:#F8F9FC;--s1:#FFFFFF;--s2:#EEF2F8;--s3:#E4EAF4;--b:#D2DAEA;--b2:#C0CCDE;--acc:#2563EB;--acc-lo:rgba(37,99,235,.08);--acc-mid:rgba(37,99,235,.22);--ok:#059669;--ok-lo:rgba(5,150,105,.08);--ok-mid:rgba(5,150,105,.22);--warn:#B45309;--warn-lo:rgba(180,83,9,.08);--warn-mid:rgba(180,83,9,.22);--red:#DC2626;--red-lo:rgba(220,38,38,.08);--red-mid:rgba(220,38,38,.22);--text:#0F1729;--t2:#4A5B78;--t3:#8B97AE;--yt:#CC0000;font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--text);min-height:100vh}
-    .reel.dark{--bg:#07090F;--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--b2:#263550;--acc:#4B8BF5;--acc-lo:rgba(75,139,245,.12);--acc-mid:rgba(75,139,245,.28);--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--text:#DDE4F5;--t2:#7B8FAD;--t3:#3D5070;--yt:#FF4444}
+    .reel{--bg:#F8F9FC;--s1:#FFFFFF;--s2:#EEF2F8;--s3:#E4EAF4;--b:#D2DAEA;--b2:#C0CCDE;--acc:#E5001C;--acc-lo:rgba(37,99,235,.08);--acc-mid:rgba(37,99,235,.22);--ok:#059669;--ok-lo:rgba(5,150,105,.08);--ok-mid:rgba(5,150,105,.22);--warn:#B45309;--warn-lo:rgba(180,83,9,.08);--warn-mid:rgba(180,83,9,.22);--red:#DC2626;--red-lo:rgba(220,38,38,.08);--red-mid:rgba(220,38,38,.22);--text:#0F1729;--t2:#4A5B78;--t3:#8B97AE;--yt:#CC0000;font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:1.6;background:var(--bg);color:var(--text);min-height:100vh}
+    .reel.dark{--bg:#07090F;--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--b2:#263550;--acc:#E5001C;--acc-lo:rgba(229,0,28,.12);--acc-mid:rgba(229,0,28,.28);--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--text:#DDE4F5;--t2:#7B8FAD;--t3:#3D5070;--yt:#FF4444}
     .reel *{box-sizing:border-box;margin:0;padding:0}
     .reel h1,.reel h2,.reel h3,.reel h4{font-family:'Syne',sans-serif}
     .reel input,.reel textarea{font-family:'Figtree',system-ui,sans-serif;background:var(--s2);border:1px solid var(--b);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;outline:none;width:100%;transition:border-color .15s}
@@ -29,7 +29,7 @@
     .rbtn-ok{background:var(--ok-lo);color:var(--ok);padding:8px 16px;border:1px solid var(--ok-mid)}.rbtn-ok:hover{background:rgba(52,211,153,.18)}.rbtn-ok:disabled{opacity:.5;cursor:not-allowed}
     .rbtn-w{background:var(--warn-lo);color:var(--warn);padding:8px 14px;border:1px solid var(--warn-mid)}.rbtn-w:hover{background:rgba(251,176,64,.2)}
     .rbtn-d{background:var(--red-lo);color:var(--red);padding:8px 14px;border:1px solid var(--red-mid)}.rbtn-d:hover{background:rgba(240,112,112,.18)}
-    .rbtn-a{background:var(--acc-lo);color:var(--acc);padding:8px 14px;border:1px solid var(--acc-mid)}.rbtn-a:hover{background:rgba(75,139,245,.2)}
+    .rbtn-a{background:var(--acc-lo);color:var(--acc);padding:8px 14px;border:1px solid var(--acc-mid)}.rbtn-a:hover{background:rgba(229,0,28,.2)}
     .rcard{background:var(--s1);border:1px solid var(--b);border-radius:12px}
     .rtag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap;cursor:default;background:var(--s3);color:var(--t2);border:1px solid var(--b)}
     .rtag.clk{cursor:pointer}.rtag.clk:hover{opacity:.8}
@@ -64,8 +64,8 @@
     .preview-bar a.back-link{color:#93c5fd;text-decoration:none;font-size:13px;white-space:nowrap;font-weight:500}
     .preview-bar a.back-link:hover{color:#fff}
     .preview-offer-text{font-size:11px;color:#94a3b8;text-align:center;line-height:1.4}
-    .preview-cta-btn{background:#2563EB;color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;border:none;cursor:pointer;font-family:'Figtree',system-ui,sans-serif;letter-spacing:.02em}
-    .preview-cta-btn:hover{background:#1d4ed8;color:#fff}
+    .preview-cta-btn{background:#E5001C;color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;border:none;cursor:pointer;font-family:'Figtree',system-ui,sans-serif;letter-spacing:.02em}
+    .preview-cta-btn:hover{background:#C4001A;color:#fff}
     .locked-feature{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--b)}
     .locked-feature:last-child{border-bottom:none}
   </style>
@@ -524,7 +524,7 @@
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
-                <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height: 120, width: "auto", maxWidth: 300, display: "block" }} />
+                <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height: 140, width: "auto", maxWidth: 420, display: "block" }} />
               </div>
               <p style={{ fontSize: 13, color: "var(--t2)", marginTop: 2 }}>{videos.length} video{videos.length !== 1 ? "s" : ""} · your video knowledge base · <a href="/guide.html" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 500 }}>Guide ↗</a></p>
               {MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid && (() => {
@@ -3308,7 +3308,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           <div className="preview-bar">
             {collection
               ? <a href={collectionUrl} className="back-link">← {collectionLabel}</a>
-              : <img src="/reelcall-logo.png" alt="ReelCall" style={{ height:44, width:"auto", filter:"brightness(0) invert(1)", opacity:0.9 }} />
+              : <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:56, width:"auto", filter:"brightness(0) invert(1)", opacity:0.95 }} />
             }
             <span className="preview-offer-text">
               Free {freeDays} days · {freeVideos} videos
@@ -3525,7 +3525,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
 
       if (authState === "checking" || (!loaded && authState === "ok")) return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: dark ? "#07090F" : "#F8F9FC", color: dark ? "#4A5D7A" : "#8B97AE", fontFamily: "system-ui", gap: 12 }}>
-          <div style={{ width: 20, height: 20, border: `2px solid ${dark ? "#1E2D48" : "#D2DAEA"}`, borderTopColor: dark ? "#4B8BF5" : "#2563EB", borderRadius: "50%", animation: "rspin .7s linear infinite" }} />
+          <div style={{ width: 20, height: 20, border: `2px solid ${dark ? "#1E2D48" : "#D2DAEA"}`, borderTopColor: dark ? "#E5001C" : "#E5001C", borderRadius: "50%", animation: "rspin .7s linear infinite" }} />
           Loading...
         </div>
       );
@@ -3533,11 +3533,11 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       if (authState === "noauth" || authState === "noprofile") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 100, width: "auto", maxWidth: 320, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+              <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height: 140, width: "auto", maxWidth: 420, filter: "brightness(0) invert(1)", opacity: 0.95 }} />
             </div>
           <p style={{ color: "#7B8FAD", fontSize: 15, maxWidth: 340, lineHeight: 1.6 }}>Sign in to access your YouTube knowledge base.</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-            <a href="/signup.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Sign In / Sign Up</a>
+            <a href="/signup.html" style={{ background: "#E5001C", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>Sign In / Sign Up</a>
             <a href="/index.html" style={{ background: "transparent", color: "#7B8FAD", padding: "12px 20px", borderRadius: 10, textDecoration: "none", fontWeight: 500, fontSize: 14, border: "1px solid #1E2D48" }}>Learn More</a>
           </div>
         </div>
@@ -3546,17 +3546,17 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       if (authState === "expired") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 100, width: "auto", maxWidth: 320, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+              <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height: 140, width: "auto", maxWidth: 420, filter: "brightness(0) invert(1)", opacity: 0.95 }} />
             </div>
           <p style={{ color: "#FBB040", fontSize: 15, maxWidth: 320 }}>Your 60-day trial has ended. Contact us to lock in $1/month.</p>
-          <a href="/index.html" style={{ background: "#4B8BF5", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>See Plans</a>
+          <a href="/index.html" style={{ background: "#E5001C", color: "#fff", padding: "12px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: 15 }}>See Plans</a>
         </div>
       );
 
       if (authState === "inactive") return (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#07090F", flexDirection: "column", gap: 16, padding: 20, textAlign: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <img src="/reelcall-logo.png" alt="ReelCall" style={{ height: 100, width: "auto", maxWidth: 320, filter: "brightness(0) invert(1)", opacity: 0.9 }} />
+              <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height: 140, width: "auto", maxWidth: 420, filter: "brightness(0) invert(1)", opacity: 0.95 }} />
             </div>
           <p style={{ color: "#F07070", fontSize: 15 }}>Your account has been deactivated. Contact us for help.</p>
         </div>
