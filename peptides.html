@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peptides Explained — Expert Summaries from Top Voices in Health & Longevity | ReelCall</title>
+  <title>Stop Rewatching. Start Knowing. | Peptides Explained | ReelCall</title>
   <meta name="description" content="BPC-157, GLP-1, TB-500, CJC-1295 — skip hours of content. Get science-backed peptide summaries from top experts in longevity and performance.">
   <meta name="keywords" content="peptides explained, BPC-157 summary, GLP-1 benefits, TB-500 peptide, CJC-1295 ipamorelin, peptide protocols, peptide stacks, longevity peptides">
   <meta property="og:title" content="Peptides Explained — Top Expert Summaries in One Place">
@@ -569,9 +569,9 @@
 </header>
 
 <section class="hero">
-  <img src="reelcall-logo.png" alt="ReelCall" style="height:240px;width:auto;margin:0 auto 32px;display:block;">
+  <img src="reelcall-logo.png" alt="ReelCall" style="height:180px;width:auto;margin:0 auto 24px;display:block;">
   <div class="hero-kicker">ReelCall · Peptides Explained</div>
-  <h1>Everything You Need to Know<br>About <em>Peptides.</em></h1>
+  <h1>Stop Rewatching.<br><em>Start Knowing.</em><br>About <em id="heroAbout"></em></h1>
   <p class="hero-sub">BPC-157. GLP-1. TB-500. CJC-1295. Hours of expert content — distilled to what actually matters. No filler. No injections required to understand it.</p>
   <p class="hero-gap" id="heroGap">Loading collection...</p>
   <div class="hero-meta" id="heroMeta" style="visibility:hidden">
@@ -607,7 +607,7 @@
 </section>
 
 <section class="bottom-section">
-  <img src="reelcall-logo.png" alt="ReelCall" style="height:240px;width:auto;margin:0 auto 32px;display:block;">
+  <img src="reelcall-logo.png" alt="ReelCall" style="height:180px;width:auto;margin:0 auto 24px;display:block;">
   <h2>Turn any video into<br>your <em>personal knowledge base.</em></h2>
   <p style="font-size:17px;line-height:1.7;max-width:520px;margin:0 auto 28px">Skip the hours. Get the insight. ReelCall analyzes any video and lets you ask it anything — or ask across 20 videos at once.</p>
   <a href="https://reelcall.app/signup.html" class="btn-large">Start Free — Lock In $1/mo Forever</a>
@@ -668,6 +668,17 @@
 
       // Update hero stats
       document.getElementById('statCount').textContent = videos.length;
+      // Set dynamic collection label in H1
+      const collLabel = videos[0]?.collection_tag
+        ? videos[0].collection_tag.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : COLLECTION_TAG;
+      const aboutEl = document.getElementById('heroAbout');
+      if (aboutEl) {
+        // Build proper label from collection tag
+        const labelMap = { 'huberman-lab': 'Huberman Lab', 'peptides': 'Peptides Explained', 'glp1': 'GLP-1', 'longevity': 'Longevity', 'fitness': 'Fitness', 'general': 'General' };
+        const label = labelMap[COLLECTION_TAG] || collLabel;
+        aboutEl.textContent = label + '.';
+      }
       document.getElementById('heroMeta').style.visibility = 'visible';
       document.getElementById('heroGap').textContent = `${videos.length} episodes from leading voices — summaries free, full analysis in ReelCall.`;
 
