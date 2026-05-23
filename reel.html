@@ -585,7 +585,7 @@
           {/* URL Input */}
           <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
             <input
-              placeholder="Paste a YouTube video or channel URL..."
+              placeholder="Paste any video URL — YouTube, Rumble, Vimeo, X, and 1,800+ more..."
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (isChannelUrl ? setShowChannelModal(true) : handleAnalyze())}
@@ -595,7 +595,7 @@
                 setTimeout(() => {
                   const isChannel = pasted.match(/youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\//) || pasted.startsWith("@");
                   if (isChannel) setShowChannelModal(true);
-                  else if (pasted.includes("youtube") || pasted.includes("youtu.be")) onAddNew(pasted);
+                  else if (pasted.startsWith("http://") || pasted.startsWith("https://") || pasted.includes("youtu.be")) onAddNew(pasted);
                 }, 50);
               }}
             />
@@ -1410,38 +1410,48 @@ Return ONLY valid JSON (no markdown fences):
       const [steps, setSteps] = useState([]);
       const [elapsed, setElapsed] = useState(0);
       const timerRef = useRef(null);
-      const videoId = extractVid(url);
+      const videoId = extractVid(url); // null for non-YouTube sites
+      const videoKey = videoId || encodeURIComponent(url); // unique key for DB lookup
 
       useEffect(() => {
         (async () => {
         setMeta(null); setResult(null); setStep("idle"); setErrMsg(""); setSteps([]); setElapsed(0);
-        if (!videoId) return;
+        if (!url || !url.startsWith("http")) return;
         // Check local state first (fast)
-        const existing = existingVideos.find((v) => v.videoId === videoId);
+        const existing = existingVideos.find((v) => v.videoId === videoId || v.url === url);
         if (existing) {
           setErrMsg(`This video is already in your library: "${existing.title}"`);
           setStep("error");
           return;
         }
-        // Also check DB to catch race conditions or duplicates
+        // Also check DB
         try {
-          const dbCheck = await sbReq(`youtube_videos?select=id,title&owner=eq.${OWNER}&video_id=eq.${videoId}&limit=1`);
+          const dbCheck = videoId
+            ? await sbReq(`youtube_videos?select=id,title&owner=eq.${OWNER}&video_id=eq.${videoId}&limit=1`)
+            : await sbReq(`youtube_videos?select=id,title&owner=eq.${OWNER}&url=eq.${encodeURIComponent(url)}&limit=1`);
           if (dbCheck?.length) {
             setErrMsg(`This video is already in your library: "${dbCheck[0].title}"`);
             setStep("error");
             return;
           }
         } catch {}
-        fetchOEmbed(url).then((d) => {
-          const ch = d?.author_name || "";
-          setMeta({ title: d?.title || "", channel: ch, videoId });
-          if (ch.toLowerCase() === "youtube movies") {
-            setErrMsg("YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy all, then use 📋 Paste Transcript.");
-            setStep("error");
-          } else if (prefillUrl) setTimeout(() => analyze(), 300);
-        });
+        // For YouTube, fetch oEmbed metadata; for other sites NUC returns title/channel
+        if (videoId) {
+          fetchOEmbed(url).then((d) => {
+            const ch = d?.author_name || "";
+            setMeta({ title: d?.title || "", channel: ch, videoId });
+            if (ch.toLowerCase() === "youtube movies") {
+              setErrMsg("YouTube Movies content requires a rental or purchase — captions can't be fetched automatically. Open on YouTube, click ··· → Open transcript, copy all, then use 📋 Paste Transcript.");
+              setStep("error");
+            } else if (prefillUrl) setTimeout(() => analyze(), 300);
+          });
+        } else {
+          // Non-YouTube — set placeholder meta, NUC will return real title/channel
+          setMeta({ title: "", channel: "", videoId: null });
+          if (prefillUrl) setTimeout(() => analyze(), 300);
+        }
         })();
-      }, [videoId]);
+      }, [url]);
 
       function startTimer() {
         const start = Date.now();
@@ -1450,8 +1460,9 @@ Return ONLY valid JSON (no markdown fences):
       function stopTimer() { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } }
 
       function initSteps() {
+        const isYT = !!videoId;
         setSteps([
-          { id: "transcript", label: "Fetching transcript", hint: "Pulling caption track from YouTube", status: "pending" },
+          { id: "transcript", label: "Fetching transcript", hint: isYT ? "Pulling caption track from YouTube" : "Fetching transcript via yt-dlp", status: "pending" },
           { id: "analyze", label: "Analyzing content", hint: "Claude summarizes & extracts key points", status: "pending" },
           { id: "save", label: "Ready to save", hint: "", status: "pending" },
         ]);
@@ -1462,7 +1473,7 @@ Return ONLY valid JSON (no markdown fences):
       }
 
       async function analyze() {
-        if (!videoId) return;
+        if (!url || !url.startsWith("http")) return;
         setStep("analyzing"); setErrMsg("");
         initSteps();
         startTimer();
@@ -1499,11 +1510,11 @@ Return ONLY valid JSON (no markdown fences):
           } catch { /* cache miss */ }
 
           if (!transcript) {
-            // Not cached — fetch from NUC via yt-dlp
+            // Not cached — fetch from NUC via yt-dlp (works for YouTube AND 1800+ other sites)
             const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
-              body: JSON.stringify({ videoId }),
+              body: JSON.stringify(videoId ? { videoId } : { url }),
             });
             txData = await txRes.json();
 
