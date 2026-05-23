@@ -284,6 +284,10 @@
                     </div>
                   </div>
                   <div style="margin-bottom:8px">
+                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Collection Page URL <span style="color:var(--acc)">(e.g. /know/huberman-lab.html)</span></label>
+                    <input id="prof-page-url" placeholder="/know/huberman-lab.html" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                  </div>
+                  <div style="margin-bottom:8px">
                     <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Short Bio (shown on collection page)</label>
                     <textarea id="prof-bio" placeholder="Brief description of this collection or creator..." rows="2" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%;resize:none;font-family:inherit"></textarea>
                   </div>
@@ -884,10 +888,9 @@
     async function loadCollectionManager(tag) {
       currentCollection = tag;
 
-      // Set live page link
+      // Set live page link — will be updated from DB if page_url saved
       const liveLink = document.getElementById('coll-live-link');
-      const pageUrl = PAGE_URLS[tag] || `https://reelcall.app/know/${tag}.html`;
-      liveLink.href = pageUrl;
+      liveLink.href = PAGE_URLS[tag] || `https://reelcall.app/know/${tag}.html`;
       liveLink.textContent = `View ${COLL_LABEL[tag] || tag} Page ↗`;
 
       // Load business profile
@@ -898,11 +901,18 @@
           document.getElementById('prof-url').value = rows[0].website_url || '';
           document.getElementById('prof-bio').value = rows[0].bio || '';
           document.getElementById('prof-logo').value = rows[0].logo_url || '';
+          document.getElementById('prof-page-url').value = rows[0].page_url || '';
+          // Update live page link from DB
+          if (rows[0].page_url) {
+            const liveLink = document.getElementById('coll-live-link');
+            liveLink.href = rows[0].page_url;
+          }
         } else {
           document.getElementById('prof-name').value = COLL_LABEL[tag] || '';
           document.getElementById('prof-url').value = '';
           document.getElementById('prof-bio').value = '';
           document.getElementById('prof-logo').value = '';
+          document.getElementById('prof-page-url').value = `/know/${tag}.html`;
         }
         document.getElementById('prof-save-msg').style.display = 'none';
       } catch(e) { /* table may not exist yet */ }
@@ -1012,14 +1022,21 @@
 
         async function saveProfile() {
       if (!currentCollection) return;
+      const pageUrl = document.getElementById('prof-page-url').value.trim();
       const record = {
         collection_tag: currentCollection,
         name: document.getElementById('prof-name').value.trim(),
         website_url: document.getElementById('prof-url').value.trim(),
         bio: document.getElementById('prof-bio').value.trim(),
         logo_url: document.getElementById('prof-logo').value.trim(),
+        page_url: pageUrl || `/know/${currentCollection}.html`,
         updated_at: new Date().toISOString()
       };
+      // Update live page link immediately
+      if (pageUrl) {
+        const liveLink = document.getElementById('coll-live-link');
+        liveLink.href = pageUrl;
+      }
       try {
         const existing = await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}&limit=1`).catch(() => null);
         if (existing?.length) {
