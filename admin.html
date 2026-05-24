@@ -245,13 +245,8 @@
             <div class="coll-main">
               <!-- Filter bar -->
               <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-                <button class="filter-btn active" onclick="collFilter('all',this)">All</button>
-                <button class="filter-btn" onclick="collFilter('huberman-lab',this)">Huberman Lab</button>
-                <button class="filter-btn" onclick="collFilter('peptides',this)">Peptides</button>
-                <button class="filter-btn" onclick="collFilter('glp1',this)">GLP-1</button>
-                <button class="filter-btn" onclick="collFilter('longevity',this)">Longevity</button>
-                <button class="filter-btn" onclick="collFilter('fitness',this)">Fitness</button>
-                <button class="filter-btn" onclick="collFilter('general',this)">General</button>
+                <button class="filter-btn active" onclick="collFilter('all',this)" id="fbtn-all">All</button>
+                <div id="filter-btn-list" style="display:contents"></div>
                 <button class="btn-g" onclick="collLoad()" style="margin-left:auto;padding:4px 10px;font-size:11px">↺ Refresh</button>
               </div>
 
@@ -739,6 +734,14 @@
       try {
         const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added,sort_order&owner=eq.${COLLECTION_OWNER}&order=sort_order.asc,date_added.asc`).catch(e => { throw new Error('Could not load videos: ' + e.message); });
         collVideos = rows || [];
+
+        // Build filter buttons dynamically from unique collection tags
+        const tags = [...new Set(collVideos.map(v => v.collection_tag).filter(Boolean))];
+        const fbtnList = document.getElementById('filter-btn-list');
+        fbtnList.innerHTML = tags.map(tag =>
+          `<button class="filter-btn" onclick="collFilter('${tag}',this)" id="fbtn-${tag}">${COLL_LABEL[tag] || tag}</button>`
+        ).join('');
+
         collRenderList();
         document.getElementById('coll-stat-total').textContent = collVideos.length;
         document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
