@@ -3422,7 +3422,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
 
           setStep("analyze", "done");
           setProcPct(100);
-
+          setErr(""); // clear any previous error
           setVideo({
             videoId,
             url: `https://www.youtube.com/watch?v=${videoId}`,
@@ -3448,6 +3448,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         try {
           const rows = await sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility,no_share&video_id=eq.${videoId}&owner=eq.reelcall_collections&limit=1`);
           if (rows?.length && rows[0].summary) {
+            setErr("");
             setVideo(fromDb(rows[0]));
             return;
           }
