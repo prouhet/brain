@@ -69,7 +69,7 @@
   </div>
 
   <div class="trial-badge">
-    <strong>100 Free Videos to Start</strong>
+    <strong>30 Free Videos to Start</strong>
     <span>Share to earn more &middot; Then just $1/month, locked forever</span>
   </div>
 
@@ -89,7 +89,7 @@
         <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password" style="width:100%;padding-right:44px;box-sizing:border-box">
         <button type="button" onclick="togglePw('su-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t2);font-size:16px;padding:4px">👁</button>
       </div>
-      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 100 Videos Free</button>
+      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 30 Videos Free</button>
       <div id="msg-signup"></div>
     </div>
 
@@ -156,7 +156,7 @@
       const btn = document.getElementById(id);
       btn.disabled = loading;
       if (id === "btn-signup") {
-        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free &mdash; 100 Videos Free';
+        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free &mdash; 30 Videos Free';
       } else {
         btn.innerHTML = loading ? '<div class="spin"></div>' : 'Sign In';
       }
@@ -183,7 +183,7 @@
         const qaExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
         const referredBy = sessionStorage.getItem("reelcall_referred_by") || null;
         const referredVideo = sessionStorage.getItem("reelcall_referred_video") || null;
-        await sb.from("reel_users").insert({ id: data.user.id, email, owner, trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt, active: true, videos_capacity: 100, referred_by: referredBy });
+        await sb.from("reel_users").insert({ id: data.user.id, email, owner, trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt, active: true, videos_capacity: 30, referred_by: referredBy });
         // Credit referrer if exists
         if (referredBy) {
           try {
