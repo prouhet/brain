@@ -3442,16 +3442,18 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       }
 
       useEffect(() => {
-        sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility&video_id=eq.${videoId}&shared=eq.true&limit=1`)
-          .then((rows) => {
-            if (!rows?.length || !rows[0].summary) {
-              // Not in DB or no summary yet — auto-fetch and analyze
-              fetchAndAnalyze();
-            } else {
-              setVideo(fromDb(rows[0]));
-            }
-          })
-          .catch(() => fetchAndAnalyze());
+        (async () => {
+        // Give DB a moment if NUC just saved (timing issue on redirect)
+        await new Promise(r => setTimeout(r, 800));
+        // Query without shared filter — collection videos may not be shared=true
+        const rows = await sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility,no_share&video_id=eq.${videoId}&owner=eq.reelcall_collections&limit=1`).catch(() => null);
+        if (rows?.length && rows[0].summary) {
+          setVideo(fromDb(rows[0]));
+        } else {
+          // Not in DB yet or no summary — auto-fetch and analyze
+          fetchAndAnalyze();
+        }
+        })();
         sbReq("offer_config?select=*&limit=1")
           .then((rows) => { if (rows?.[0]) setOffer(rows[0]); })
           .catch(() => {});
