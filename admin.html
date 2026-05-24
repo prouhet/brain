@@ -75,7 +75,7 @@
     .light-mode table td,.light-mode table th{color:var(--text)}
     .light-mode .mono{color:var(--t2)}
     .light-mode .badge{background:var(--s3);border-color:var(--b)}
-    .light-mode input,.light-mode select,.light-mode textarea{color:var(--text)}
+    .light-mode input,.light-mode select,.light-mode textarea{color:#0F1729!important;background:#E8ECF4!important}
   </style>
 </head>
 <body>
@@ -220,37 +220,28 @@
                 </div>
               </div>
 
-              <!-- Mini stats -->
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:auto">
-                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)">
-                  <div style="font-size:20px;font-weight:700;color:#fff;font-family:'Syne',sans-serif" id="coll-stat-total">—</div>
-                  <div style="font-size:10px;color:var(--t2);margin-top:2px">Total</div>
-                </div>
-                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)">
-                  <div style="font-size:20px;font-weight:700;color:#FBB040;font-family:'Syne',sans-serif" id="coll-stat-hub">—</div>
-                  <div style="font-size:10px;color:var(--t2);margin-top:2px">Huberman</div>
-                </div>
-                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)">
-                  <div style="font-size:20px;font-weight:700;color:var(--ok);font-family:'Syne',sans-serif" id="coll-stat-pep">—</div>
-                  <div style="font-size:10px;color:var(--t2);margin-top:2px">Peptides</div>
-                </div>
-                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)">
-                  <div style="font-size:20px;font-weight:700;color:var(--acc);font-family:'Syne',sans-serif" id="coll-stat-other">—</div>
-                  <div style="font-size:10px;color:var(--t2);margin-top:2px">Other</div>
-                </div>
+              <!-- Collection filter dropdown -->
+              <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--b)">
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);display:block;margin-bottom:6px">Filter by Collection</label>
+                <select id="coll-filter-dropdown" onchange="collFilterFromDropdown(this.value)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:9px 12px;font-size:13px;outline:none;width:100%;font-family:inherit;cursor:pointer">
+                  <option value="all">All Collections</option>
+                </select>
+                <p id="coll-filter-count" style="font-size:11px;color:var(--t3);margin-top:6px;text-align:center"></p>
               </div>
             </div>
 
             <!-- Right: Video list + Collection Manager -->
             <div class="coll-main">
-              <!-- Filter bar -->
-              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-                <button class="filter-btn active" onclick="collFilter('all',this)" id="fbtn-all">All</button>
-                <div id="filter-btn-list" style="display:contents"></div>
-                <button class="btn-g" onclick="collLoad()" style="margin-left:auto;padding:4px 10px;font-size:11px">↺ Refresh</button>
+              <!-- Top bar -->
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <p id="coll-view-label" style="font-size:13px;font-weight:600;color:var(--text)">All Collections</p>
+                <div style="display:flex;gap:8px">
+                  <button id="manage-toggle-btn" onclick="toggleManagePanel()" style="display:none;font-size:12px;background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">⚙ Manage</button>
+                  <button class="btn-g" onclick="collLoad()" style="padding:4px 10px;font-size:11px">↺ Refresh</button>
+                </div>
               </div>
 
-              <!-- Collection Manager Panel (shows when filtered to a specific collection) -->
+              <!-- Collection Manager Panel (collapsible, shows when collection selected) -->
               <div id="coll-manager" style="display:none;margin-bottom:16px">
 
                 <!-- Header with live page link -->
@@ -288,7 +279,7 @@
                         <span style="font-size:11px;color:var(--t3);white-space:nowrap">reelcall.app/</span>
                         <input id="prof-prefix" placeholder="rsotc" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
                       </div>
-                      <p style="font-size:10px;color:var(--t3);margin-top:3px">Randy types reelcall.app/rsotc/[videoid] in his posts</p>
+                      <p style="font-size:10px;color:var(--t3);margin-top:3px">Randy types go.reelcall.app/rsotc/[videoid] in his posts</p>
                     </div>
                     <div>
                       <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Member Price <span style="color:var(--t3);font-weight:400">($/mo)</span></label>
@@ -329,18 +320,6 @@
                     </div>
 
                     <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-require-token" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div style="flex:1">
-                        <label for="prof-require-token" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Require a secret code in the link</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Randy's links look like: reelcall.app/reel.html?vid=xxx&token=rsotc — anyone without the code can't view the summary. Stops casual link sharing outside his membership.</p>
-                        <div id="token-input-wrapper" style="display:none;margin-top:8px">
-                          <input id="prof-token" placeholder="Secret code (e.g. rsotc)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:180px">
-                          <p style="font-size:10px;color:var(--t3);margin-top:4px">Keep this simple — Randy types it into every link he creates</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
                       <input type="checkbox" id="prof-no-share" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
                       <div>
                         <label for="prof-no-share" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Hide the Share button on summary pages</label>
@@ -358,34 +337,6 @@
                   </div>
 
                   <!-- Marketing -->
-                  <p style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Marketing & Growth</p>
-                  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-email-capture" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div>
-                        <label for="prof-email-capture" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Ask visitors for their email to see the summary</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Before showing the full summary, ask "Enter your email to read the full analysis." Builds ReelCall's marketing list. Randy's members who enter become ReelCall prospects.</p>
-                      </div>
-                    </div>
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-async" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div>
-                        <label for="prof-async" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Allow links before the summary is ready</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Randy can post the ReelCall link at the same time he posts his video — the page shows "Summary being prepared, check back in a few minutes" and updates automatically every 2 minutes. No waiting before posting.</p>
-                      </div>
-                    </div>
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-pagination" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div>
-                        <label for="prof-pagination" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Paginate the collection page (good for 10+ videos)</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Instead of showing all videos at once, show 10 per page with Next/Previous buttons. Randy will have many videos — this keeps the page fast and easy to navigate.</p>
-                      </div>
-                    </div>
-                  </div>
-
                   <p id="prof-save-msg" style="font-size:11px;color:var(--ok);margin-top:2px;display:none">✓ All settings saved</p>
                 </div>
 
@@ -735,18 +686,17 @@
         const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added,sort_order&owner=eq.${COLLECTION_OWNER}&order=sort_order.asc,date_added.asc`).catch(e => { throw new Error('Could not load videos: ' + e.message); });
         collVideos = rows || [];
 
-        // Build filter buttons dynamically from unique collection tags
+        // Populate the collection filter dropdown
         const tags = [...new Set(collVideos.map(v => v.collection_tag).filter(Boolean))];
-        const fbtnList = document.getElementById('filter-btn-list');
-        fbtnList.innerHTML = tags.map(tag =>
-          `<button class="filter-btn" onclick="collFilter('${tag}',this)" id="fbtn-${tag}">${COLL_LABEL[tag] || tag}</button>`
-        ).join('');
+        const dropdown = document.getElementById('coll-filter-dropdown');
+        const currentVal = dropdown.value;
+        dropdown.innerHTML = '<option value="all">All Collections</option>' +
+          tags.map(tag => `<option value="${tag}">${COLL_LABEL[tag] || tag}</option>`).join('');
+        // Restore selection if still valid
+        if (currentVal && tags.includes(currentVal)) dropdown.value = currentVal;
 
         collRenderList();
-        document.getElementById('coll-stat-total').textContent = collVideos.length;
-        document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
-        document.getElementById('coll-stat-pep').textContent = collVideos.filter(v => v.collection_tag === 'peptides').length;
-        document.getElementById('coll-stat-other').textContent = collVideos.filter(v => v.collection_tag !== 'huberman-lab' && v.collection_tag !== 'peptides').length;
+        document.getElementById('coll-filter-count').textContent = collVideos.length + ' videos across ' + tags.length + ' collections';
       } catch(e) {
         document.getElementById('coll-video-list').innerHTML = `<p style="color:var(--red);font-size:13px">Error: ${e.message}</p>`;
       }
@@ -755,8 +705,33 @@
     function collFilter(f, btn) {
       collFilter_active = f;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      if (btn) btn.classList.add('active');
       collRenderList();
+    }
+
+    function collFilterFromDropdown(val) {
+      collFilter_active = val;
+      const label = document.getElementById('coll-view-label');
+      const manageBtn = document.getElementById('manage-toggle-btn');
+      if (val === 'all') {
+        label.textContent = 'All Collections';
+        manageBtn.style.display = 'none';
+        document.getElementById('coll-manager').style.display = 'none';
+      } else {
+        label.textContent = COLL_LABEL[val] || val;
+        manageBtn.style.display = 'inline-block';
+      }
+      collRenderList();
+    }
+
+    let managePanelOpen = false;
+    function toggleManagePanel() {
+      managePanelOpen = !managePanelOpen;
+      const manager = document.getElementById('coll-manager');
+      const btn = document.getElementById('manage-toggle-btn');
+      manager.style.display = managePanelOpen ? 'block' : 'none';
+      btn.textContent = managePanelOpen ? '✕ Close' : '⚙ Manage';
+      if (managePanelOpen && currentCollection) loadCollectionManager(currentCollection);
     }
 
     function collRenderList() {
@@ -764,12 +739,18 @@
       const el = document.getElementById('coll-video-list');
       const manager = document.getElementById('coll-manager');
 
-      // Show/hide collection manager panel
+      // Manager shown via toggle button - just update current collection
       if (collFilter_active !== 'all') {
-        manager.style.display = 'block';
-        loadCollectionManager(collFilter_active);
+        currentCollection = collFilter_active;
+        if (managePanelOpen) {
+          manager.style.display = 'block';
+          loadCollectionManager(collFilter_active);
+        }
       } else {
         manager.style.display = 'none';
+        managePanelOpen = false;
+        const btn = document.getElementById('manage-toggle-btn');
+        if (btn) btn.textContent = '⚙ Manage';
       }
 
       if (!filtered.length) { el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>'; return; }
@@ -1128,15 +1109,15 @@
         collVideos = collVideos.filter(v => v.collection_tag !== tag);
         currentCollection = null;
 
-        // Hide manager, go back to All
+        // Reset to All view
         document.getElementById('coll-manager').style.display = 'none';
-        const allBtn = document.querySelector('.filter-btn.active') || document.querySelector('.filter-btn');
-        if (allBtn) {
-          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-          allBtn.classList.add('active');
-          collFilter_active = 'all';
-          collRenderList();
-        }
+        managePanelOpen = false;
+        collFilter_active = 'all';
+        const dd = document.getElementById('coll-filter-dropdown');
+        if (dd) dd.value = 'all';
+        document.getElementById('coll-view-label').textContent = 'All Collections';
+        document.getElementById('manage-toggle-btn').style.display = 'none';
+        collRenderList();
 
         // Update stats
         document.getElementById('coll-stat-total').textContent = collVideos.length;
@@ -1164,13 +1145,8 @@
         logo_url: document.getElementById('prof-logo').value.trim(),
         page_url: pageUrl ? (pageUrl.startsWith('/') ? pageUrl : `/know/${pageUrl}`) : `/know/${currentCollection}.html`,
         is_public: document.getElementById('prof-public').checked,
-        require_token: document.getElementById('prof-require-token').checked,
-        access_token: document.getElementById('prof-token').value.trim(),
         no_share: document.getElementById('prof-no-share').checked,
         show_branding: document.getElementById('prof-show-branding').checked,
-        email_capture: document.getElementById('prof-email-capture').checked,
-        async_preview: document.getElementById('prof-async').checked,
-        paginate: document.getElementById('prof-pagination').checked,
         updated_at: new Date().toISOString()
       };
       // Update live page link immediately
@@ -1526,11 +1502,7 @@ Answer the question by synthesizing across all relevant videos. Cite video title
       }
     });
 
-    document.addEventListener('change', function(e) {
-      if (e.target.id === 'prof-require-token') {
-        document.getElementById('token-input-wrapper').style.display = e.target.checked ? 'block' : 'none';
-      }
-    });
+    
 
     // ── Theme toggle ──────────────────────────────────────────────────────────
     function toggleTheme() {
