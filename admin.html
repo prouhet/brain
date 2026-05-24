@@ -269,33 +269,129 @@
 
                 <!-- Business Profile -->
                 <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                    <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Business Profile</p>
-                    <button class="btn-ok" onclick="saveProfile()" style="font-size:11px;padding:4px 10px">Save Profile</button>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                    <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Collection Settings</p>
+                    <button class="btn-ok" onclick="saveProfile()" style="font-size:11px;padding:4px 10px">Save All Settings</button>
                   </div>
+
+                  <!-- Basic Info -->
+                  <p style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Basic Info</p>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
                     <div>
-                      <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Business Name</label>
-                      <input id="prof-name" placeholder="e.g. Huberman Lab" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Collection Name</label>
+                      <input id="prof-name" placeholder="e.g. Right Side of the Chart" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
                     </div>
                     <div>
-                      <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Website URL</label>
-                      <input id="prof-url" placeholder="https://example.com" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Their Website</label>
+                      <input id="prof-url" placeholder="https://rsotc.com" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+                    <div>
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">URL Prefix <span style="color:var(--t3);font-weight:400">(e.g. rsotc)</span></label>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <span style="font-size:11px;color:var(--t3);white-space:nowrap">reelcall.app/</span>
+                        <input id="prof-prefix" placeholder="rsotc" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                      </div>
+                      <p style="font-size:10px;color:var(--t3);margin-top:3px">Randy types reelcall.app/rsotc/[videoid] in his posts</p>
+                    </div>
+                    <div>
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Member Price <span style="color:var(--t3);font-weight:400">($/mo)</span></label>
+                      <input id="prof-rate" type="number" placeholder="10" min="0" step="1" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                      <p style="font-size:10px;color:var(--t3);margin-top:3px">What their members pay to unlock full ReelCall</p>
+                    </div>
+                    <div>
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Partner Revenue Split <span style="color:var(--t3);font-weight:400">(%)</span></label>
+                      <input id="prof-split" type="number" placeholder="20" min="0" max="100" step="5" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                      <p style="font-size:10px;color:var(--t3);margin-top:3px">% of member signups that goes back to partner</p>
                     </div>
                   </div>
                   <div style="margin-bottom:8px">
-                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Page Filename <span style="color:var(--acc)">(just the filename, e.g. huberman-lab.html)</span></label>
-                    <input id="prof-page-url" placeholder="huberman-lab.html" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Short Description <span style="color:var(--t3);font-weight:400">(shows on the collection page and index)</span></label>
+                    <textarea id="prof-bio" placeholder="Brief description of this collection..." rows="2" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%;resize:none;font-family:inherit"></textarea>
                   </div>
-                  <div style="margin-bottom:8px">
-                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Short Bio (shown on collection page)</label>
-                    <textarea id="prof-bio" placeholder="Brief description of this collection or creator..." rows="2" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%;resize:none;font-family:inherit"></textarea>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+                    <div>
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Logo URL <span style="color:var(--t3);font-weight:400">(optional)</span></label>
+                      <input id="prof-logo" placeholder="https://..." style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    </div>
+                    <div>
+                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Page Filename <span style="color:var(--t3);font-weight:400">(e.g. randy-finney.html)</span></label>
+                      <input id="prof-page-url" placeholder="randy-finney.html" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+                    </div>
                   </div>
-                  <div>
-                    <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:3px">Logo URL (optional)</label>
-                    <input id="prof-logo" placeholder="https://..." style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
+
+                  <!-- Access & Privacy -->
+                  <p style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Access & Privacy</p>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-public" checked style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div>
+                        <label for="prof-public" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">List on the public /know/ index page</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Turn OFF to keep this collection private. The page still works — it just won't appear in the public directory. Good for paid communities like Randy's.</p>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-require-token" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div style="flex:1">
+                        <label for="prof-require-token" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Require a secret code in the link</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Randy's links look like: reelcall.app/reel.html?vid=xxx&token=rsotc — anyone without the code can't view the summary. Stops casual link sharing outside his membership.</p>
+                        <div id="token-input-wrapper" style="display:none;margin-top:8px">
+                          <input id="prof-token" placeholder="Secret code (e.g. rsotc)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:180px">
+                          <p style="font-size:10px;color:var(--t3);margin-top:4px">Keep this simple — Randy types it into every link he creates</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-no-share" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div>
+                        <label for="prof-no-share" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Hide the Share button on summary pages</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Members can read and ask questions but can't generate a shareable link. Good for paid content that shouldn't leave the membership.</p>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-show-branding" checked style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div>
+                        <label for="prof-show-branding" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Show their logo and name on summary pages</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">The summary page shows "Right Side of the Chart" branding so it feels like Randy's product, not ReelCall's. Members see a familiar brand.</p>
+                      </div>
+                    </div>
                   </div>
-                  <p id="prof-save-msg" style="font-size:11px;color:var(--ok);margin-top:6px;display:none">✓ Profile saved</p>
+
+                  <!-- Marketing -->
+                  <p style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Marketing & Growth</p>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-email-capture" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div>
+                        <label for="prof-email-capture" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Ask visitors for their email to see the summary</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Before showing the full summary, ask "Enter your email to read the full analysis." Builds ReelCall's marketing list. Randy's members who enter become ReelCall prospects.</p>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-async" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div>
+                        <label for="prof-async" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Allow links before the summary is ready</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Randy can post the ReelCall link at the same time he posts his video — the page shows "Summary being prepared, check back in a few minutes" and updates automatically every 2 minutes. No waiting before posting.</p>
+                      </div>
+                    </div>
+
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
+                      <input type="checkbox" id="prof-pagination" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
+                      <div>
+                        <label for="prof-pagination" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Paginate the collection page (good for 10+ videos)</label>
+                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Instead of showing all videos at once, show 10 per page with Next/Previous buttons. Randy will have many videos — this keeps the page fast and easy to navigate.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p id="prof-save-msg" style="font-size:11px;color:var(--ok);margin-top:2px;display:none">✓ All settings saved</p>
                 </div>
 
                 <!-- Research Mode Demo -->
@@ -901,6 +997,10 @@
           document.getElementById('prof-url').value = rows[0].website_url || '';
           document.getElementById('prof-bio').value = rows[0].bio || '';
           document.getElementById('prof-logo').value = rows[0].logo_url || '';
+          document.getElementById('prof-prefix').value = rows[0].url_prefix || '';
+          document.getElementById('prof-rate').value = rows[0].partner_rate || '';
+          document.getElementById('prof-split').value = rows[0].revenue_split || '';
+          document.getElementById('prof-public').checked = rows[0].is_public !== false;
           document.getElementById('prof-page-url').value = rows[0].page_url || '';
           // Update live page link from DB
           if (rows[0].page_url) {
@@ -913,6 +1013,10 @@
           document.getElementById('prof-bio').value = '';
           document.getElementById('prof-logo').value = '';
           document.getElementById('prof-page-url').value = `/know/${tag}.html`;
+          document.getElementById('prof-prefix').value = '';
+          document.getElementById('prof-rate').value = '';
+          document.getElementById('prof-split').value = '';
+          document.getElementById('prof-public').checked = true;
         }
         document.getElementById('prof-save-msg').style.display = 'none';
       } catch(e) { /* table may not exist yet */ }
@@ -1026,10 +1130,21 @@
       const record = {
         collection_tag: currentCollection,
         name: document.getElementById('prof-name').value.trim(),
+        url_prefix: document.getElementById('prof-prefix').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,''),
+        partner_rate: parseFloat(document.getElementById('prof-rate').value) || null,
+        revenue_split: parseFloat(document.getElementById('prof-split').value) || null,
         website_url: document.getElementById('prof-url').value.trim(),
         bio: document.getElementById('prof-bio').value.trim(),
         logo_url: document.getElementById('prof-logo').value.trim(),
         page_url: pageUrl ? (pageUrl.startsWith('/') ? pageUrl : `/know/${pageUrl}`) : `/know/${currentCollection}.html`,
+        is_public: document.getElementById('prof-public').checked,
+        require_token: document.getElementById('prof-require-token').checked,
+        access_token: document.getElementById('prof-token').value.trim(),
+        no_share: document.getElementById('prof-no-share').checked,
+        show_branding: document.getElementById('prof-show-branding').checked,
+        email_capture: document.getElementById('prof-email-capture').checked,
+        async_preview: document.getElementById('prof-async').checked,
+        paginate: document.getElementById('prof-pagination').checked,
         updated_at: new Date().toISOString()
       };
       // Update live page link immediately
@@ -1302,6 +1417,25 @@ Answer the question by synthesizing across all relevant videos. Cite video title
       document.getElementById("bulk-bar-fill").style.width = pct + "%";
       document.getElementById("bulk-pct").textContent = `${done}/${total} (${pct}%)`;
     }
+
+    // ── Token input toggle ───────────────────────────────────────────────────
+    // Live URL preview when prefix changes
+    document.addEventListener('input', function(e) {
+      if (e.target.id === 'prof-prefix') {
+        const prefix = e.target.value.trim();
+        const liveLink = document.getElementById('coll-live-link');
+        if (prefix && currentCollection) {
+          const sampleUrl = `https://reelcall.app/${prefix}/[videoid]`;
+          document.getElementById('prof-prefix').title = sampleUrl;
+        }
+      }
+    });
+
+    document.addEventListener('change', function(e) {
+      if (e.target.id === 'prof-require-token') {
+        document.getElementById('token-input-wrapper').style.display = e.target.checked ? 'block' : 'none';
+      }
+    });
 
     // ── Theme toggle ──────────────────────────────────────────────────────────
     function toggleTheme() {
