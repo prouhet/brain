@@ -3392,10 +3392,10 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           setProcPct(90);
           setProcMsg("Saving...");
 
-          // Save to DB under reelcall_collections
+          // Save to DB — UPSERT so re-runs don't fail on duplicate video_id
           await sbReq("youtube_videos", {
             method: "POST",
-            headers: { Prefer: "return=minimal" },
+            headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
             body: JSON.stringify({
               id: genId(),
               video_id: videoId,
@@ -3444,15 +3444,16 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       useEffect(() => {
         (async () => {
         // Give DB a moment if NUC just saved (timing issue on redirect)
-        await new Promise(r => setTimeout(r, 800));
-        // Query without shared filter — collection videos may not be shared=true
-        const rows = await sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility,no_share&video_id=eq.${videoId}&owner=eq.reelcall_collections&limit=1`).catch(() => null);
-        if (rows?.length && rows[0].summary) {
-          setVideo(fromDb(rows[0]));
-        } else {
-          // Not in DB yet or no summary — auto-fetch and analyze
-          fetchAndAnalyze();
-        }
+        await new Promise(r => setTimeout(r, 1200));
+        try {
+          const rows = await sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility,no_share&video_id=eq.${videoId}&owner=eq.reelcall_collections&limit=1`);
+          if (rows?.length && rows[0].summary) {
+            setVideo(fromDb(rows[0]));
+            return;
+          }
+        } catch(e) {}
+        // Not in DB or no summary — fetch and analyze
+        fetchAndAnalyze();
         })();
         sbReq("offer_config?select=*&limit=1")
           .then((rows) => { if (rows?.[0]) setOffer(rows[0]); })
