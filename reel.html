@@ -282,8 +282,8 @@
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
 
     // ─── Data mapping ─────────────────────────────────────────────────────────
-    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], quotes: r.quotes || [], credibility: r.credibility || null, transcript: r.transcript || null, shared: r.shared || false, duration: r.duration || null, dateAdded: r.date_added, openCount: r.open_count || 0, lastOpenedAt: r.last_opened_at || null, shareCount: r.share_count || 0 });
-    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, quotes: v.quotes || [], credibility: v.credibility || null, transcript: v.transcript || null, shared: v.shared || false, duration: v.duration || null, date_added: v.dateAdded, owner: OWNER });
+    const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], quotes: r.quotes || [], credibility: r.credibility || null, transcript: r.transcript || null, shared: r.shared || false, noShare: r.no_share || false, duration: r.duration || null, dateAdded: r.date_added, openCount: r.open_count || 0, lastOpenedAt: r.last_opened_at || null, shareCount: r.share_count || 0 });
+    const toDb = (v) => ({ id: v.id, video_id: v.videoId, url: v.url, title: v.title, channel: v.channel, summary: v.summary, key_points: v.keyPoints, point_status: v.pointStatus, tags: v.tags, qa: v.qa, whats_new: v.whatsNew, action_suggestions: v.actionSuggestions, quotes: v.quotes || [], credibility: v.credibility || null, transcript: v.transcript || null, shared: v.shared || false, no_share: v.noShare || false, duration: v.duration || null, date_added: v.dateAdded, owner: OWNER });
 
     // ─── Utilities ────────────────────────────────────────────────────────────
     const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -1998,6 +1998,12 @@ Return ONLY valid JSON (no markdown fences, no extra text):
       const [st, setSt] = useState(video.shared ? "shared" : "idle");
       const [copied, setCopied] = useState(false);
 
+      // no_share flag — owner prohibits sharing
+      if (video.noShare) return (
+        <button disabled style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, background: "var(--s3)", color: "var(--t3)", border: "1px solid var(--b)", cursor: "not-allowed", opacity: .6 }}
+          title="The owner of this video has disabled sharing">Sharing disabled</button>
+      );
+
       const shareTitle = (video.title || "").slice(0, 60).replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "-");
       const shareUrl = `https://reelcall.app/reel.html?share=${video.id}&t=${shareTitle}`;
 
@@ -2931,7 +2937,8 @@ Instructions:
           const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
           if (existing?.length) { setSaved(true); setSaving(false); return; }
           // Save using authenticated client so RLS passes
-          const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal };
+          // Preserve no_share flag — if original video disallows sharing, personal copy does too
+          const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: video.noShare || false };
           const { error } = await sbAuth.from("youtube_videos").insert(copy);
           if (error) throw error;
           // Increment videos_added counter
@@ -3314,9 +3321,15 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
     function PreviewVideoView({ videoId, collection }) {
       const [video, setVideo] = useState(null);
       const [err, setErr] = useState("");
+      const [processing, setProcessing] = useState(false);
+      const [procSteps, setProcSteps] = useState([]);
+      const [procMsg, setProcMsg] = useState("");
+      const [procPct, setProcPct] = useState(0);
       const [offer, setOffer] = useState({ free_days: 60, free_video_limit: 30, founding_slots_total: 50, founding_slots_used: 0, founding_price_cents: 100, next_price_cents: 200 });
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
 
+      const NO_SHARE = params.get("no_share") === "true";
+      const [partner, setPartner] = useState(null); // { name, logo_url, show_branding }
       const collectionLabel = COLLECTION_LABELS[collection] || "Collection";
       const collectionUrl   = COLLECTION_URLS[collection]  || "/index.html";
 
@@ -3325,16 +3338,129 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         localStorage.setItem("reel-theme", dark ? "dark" : "light");
       }, [dark]);
 
+      function setStep(id, status) {
+        setProcSteps(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+      }
+
+      async function fetchAndAnalyze() {
+        setProcessing(true);
+        setProcSteps([
+          { id: "transcript", label: "Fetching transcript", status: "active" },
+          { id: "analyze", label: "Analyzing content", status: "pending" },
+        ]);
+        setProcPct(10);
+        setProcMsg("Fetching transcript...");
+
+        try {
+          const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            body: JSON.stringify({ videoId }),
+          });
+          const txData = await txRes.json();
+
+          if (!txData.transcript) {
+            setErr("We're setting up this video — check back in a few minutes, sorry for the inconvenience.");
+            setProcessing(false);
+            return;
+          }
+
+          setStep("transcript", "done");
+          setStep("analyze", "active");
+          setProcPct(55);
+          setProcMsg("Analyzing content...");
+
+          const dur = txData.duration || null;
+          const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
+
+          const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 2000,
+              system: `Analyze this video transcript. Return ONLY valid JSON:\n{\n  "title": "exact video title",\n  "channel": "channel name",\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote"],\n  "tags": ["up to 5 tags"],\n  "actionSuggestions": ["specific action"],\n  "whatsNew": "one contrarian or surprising claim",\n  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }\n}`,
+              messages: [{ role: "user", content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${txData.transcript}` }],
+            }),
+          });
+          const aData = await aRes.json();
+          const text = (aData.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+          const parsed = JSON.parse(text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+
+          if (!parsed?.summary) throw new Error("Analysis failed");
+
+          setProcPct(90);
+          setProcMsg("Saving...");
+
+          // Save to DB under reelcall_collections
+          await sbReq("youtube_videos", {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({
+              id: genId(),
+              video_id: videoId,
+              url: `https://www.youtube.com/watch?v=${videoId}`,
+              title: parsed.title || txData.title || "Untitled",
+              channel: parsed.channel || txData.channel || "",
+              summary: parsed.summary,
+              key_points: parsed.keyPoints || [],
+              point_status: [],
+              tags: parsed.tags || [],
+              quotes: parsed.quotes || [],
+              credibility: parsed.credibility || null,
+              whats_new: parsed.whatsNew || "",
+              action_suggestions: parsed.actionSuggestions || [],
+              transcript: txData.transcript,
+              duration: dur,
+              shared: true,
+              no_share: NO_SHARE,
+              owner: "reelcall_collections",
+              collection_tag: collection || "general",
+              date_added: new Date().toISOString(),
+            }),
+          });
+
+          setStep("analyze", "done");
+          setProcPct(100);
+
+          setVideo({
+            videoId,
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            title: parsed.title || txData.title || "Untitled",
+            channel: parsed.channel || txData.channel || "",
+            summary: parsed.summary,
+            keyPoints: parsed.keyPoints || [],
+            tags: parsed.tags || [],
+            duration: dur,
+          });
+          setProcessing(false);
+
+        } catch(e) {
+          setErr("We're setting up this video — check back in a few minutes, sorry for the inconvenience.");
+          setProcessing(false);
+        }
+      }
+
       useEffect(() => {
         sbReq(`youtube_videos?select=id,video_id,url,title,channel,summary,key_points,tags,duration,date_added,credibility&video_id=eq.${videoId}&shared=eq.true&limit=1`)
           .then((rows) => {
-            if (!rows?.length) setErr("Preview not available yet — check back soon.");
-            else setVideo(fromDb(rows[0]));
+            if (!rows?.length || !rows[0].summary) {
+              // Not in DB or no summary yet — auto-fetch and analyze
+              fetchAndAnalyze();
+            } else {
+              setVideo(fromDb(rows[0]));
+            }
           })
-          .catch((e) => setErr(e.message));
+          .catch(() => fetchAndAnalyze());
         sbReq("offer_config?select=*&limit=1")
           .then((rows) => { if (rows?.[0]) setOffer(rows[0]); })
           .catch(() => {});
+        // Fetch partner branding
+        if (collection) {
+          sbReq(`collection_metadata?select=*&collection_tag=eq.${collection}&limit=1`)
+            .then((rows) => { if (rows?.[0]?.show_branding) setPartner(rows[0]); })
+            .catch(() => {});
+        }
       }, [videoId]);
 
       const slotsLeft     = Math.max(0, offer.founding_slots_total - offer.founding_slots_used);
@@ -3343,15 +3469,48 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       const freeDays      = offer.free_days;
       const freeVideos    = offer.free_video_limit;
 
+      // ── Processing state ──────────────────────────────────────────────────
+      if (processing) return (
+        <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
+          <div style={{ width:"100%", maxWidth:420, padding:32 }}>
+            <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:80, width:"auto", display:"block", margin:"0 auto 24px" }} />
+            <div style={{ background:"var(--s1)", border:"1px solid var(--b)", borderRadius:14, padding:24 }}>
+              <p style={{ fontSize:13, fontWeight:700, color:"var(--t2)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:16 }}>Setting up this video</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
+                {procSteps.map(s => (
+                  <div key={s.id} style={{ display:"flex", gap:10, alignItems:"center" }}>
+                    <div style={{ width:20, height:20, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, border:"1px solid var(--b)",
+                      background: s.status === "done" ? "var(--ok-lo)" : s.status === "active" ? "var(--acc-lo)" : "var(--s3)",
+                      borderColor: s.status === "done" ? "var(--ok-mid)" : s.status === "active" ? "var(--acc-mid)" : "var(--b)",
+                      color: s.status === "done" ? "var(--ok)" : s.status === "active" ? "var(--acc)" : "var(--t3)",
+                    }}>
+                      {s.status === "done" ? "✓" : s.status === "active" ? <Spinner size={10} /> : "·"}
+                    </div>
+                    <p style={{ fontSize:13, color: s.status === "pending" ? "var(--t3)" : "#DDE4F5" }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ height:4, background:"var(--s3)", borderRadius:2, overflow:"hidden", marginBottom:8 }}>
+                <div style={{ height:"100%", background:"var(--acc)", borderRadius:2, width:`${procPct}%`, transition:"width .4s ease" }} />
+              </div>
+              <p style={{ fontSize:11, color:"var(--t3)" }}>{procMsg}</p>
+            </div>
+          </div>
+        </div>
+      );
+
+      // ── Error state ───────────────────────────────────────────────────────
       if (err) return (
         <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
-          <div style={{ textAlign:"center", padding:40 }}>
-            <p style={{ color:"var(--t2)", fontSize:15, marginBottom:16 }}>{err}</p>
+          <div style={{ textAlign:"center", padding:40, maxWidth:400 }}>
+            <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:60, width:"auto", display:"block", margin:"0 auto 20px" }} />
+            <p style={{ color:"var(--t2)", fontSize:15, lineHeight:1.6, marginBottom:20 }}>{err}</p>
             {collection && <a href={collectionUrl} style={{ color:"var(--acc)", fontSize:14 }}>← Back to {collectionLabel}</a>}
           </div>
         </div>
       );
 
+      // ── Loading state ─────────────────────────────────────────────────────
       if (!video) return (
         <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", flexDirection:"column", gap:12, color:"var(--t2)" }}>
           <Spinner size={20} />
@@ -3364,9 +3523,15 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           <button className="theme-btn" onClick={() => setDark(!dark)}>{dark ? "☀" : "🌙"}</button>
 
           <div className="preview-bar">
-            {collection
-              ? <a href={collectionUrl} className="back-link">← {collectionLabel}</a>
-              : <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:56, width:"auto", filter:"brightness(0) invert(1)", opacity:0.95 }} />
+            {partner
+              ? <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  {partner.logo_url && <img src={partner.logo_url} alt={partner.name} style={{ height:36, width:"auto", borderRadius:4 }} />}
+                  <span style={{ fontSize:13, fontWeight:600, color:"var(--text)" }}>{partner.name}</span>
+                  <span style={{ fontSize:11, color:"var(--t3)" }}>· powered by ReelCall</span>
+                </div>
+              : collection
+                ? <a href={collectionUrl} className="back-link">← {collectionLabel}</a>
+                : <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:56, width:"auto", filter:"brightness(0) invert(1)", opacity:0.95 }} />
             }
             <span className="preview-offer-text">
               Free {freeDays} days · {freeVideos} videos
@@ -3375,6 +3540,10 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                 : ` · $${nextPrice}/mo`
               }
             </span>
+            {NO_SHARE
+              ? <button disabled style={{ opacity:.5, padding:"8px 16px", borderRadius:6, fontSize:12, fontWeight:600, background:"var(--s3)", color:"var(--t2)", border:"1px solid var(--b)", cursor:"not-allowed" }}>Sharing not permitted</button>
+              : null
+            }
             <a href="/signup.html" className="preview-cta-btn">Save to My Library →</a>
           </div>
 
