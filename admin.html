@@ -414,6 +414,26 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Collection Users / Partner Access -->
+                <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Partner Access</p>
+                    <a href="/collection-admin.html" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none">Open Partner Portal ↗</a>
+                  </div>
+                  <p style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5">People who can log into the partner portal and see their collection's videos and links. They receive a magic link email — no password needed.</p>
+                  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                    <input id="new-user-email" placeholder="partner@email.com" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;flex:1;min-width:180px">
+                    <select id="new-user-role" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;font-family:inherit;cursor:pointer">
+                      <option value="viewer">Viewer — can see videos and copy links</option>
+                      <option value="manager">Manager — can also add/remove videos</option>
+                    </select>
+                    <button class="btn-ok" onclick="addCollectionUser()" style="font-size:11px;padding:6px 12px;white-space:nowrap">Add User</button>
+                  </div>
+                  <div id="coll-user-list" style="display:flex;flex-direction:column;gap:6px">
+                    <p style="font-size:11px;color:var(--t3)">Select a collection above to see users.</p>
+                  </div>
+                </div>
               </div>
 
               <!-- Video list -->
@@ -1035,6 +1055,9 @@
         }
       } catch(e) { document.getElementById('demo-current-inline').textContent = 'Could not load demo.'; }
 
+      // Load collection users
+      loadCollectionUsers(tag);
+
       // Reset demo result
       document.getElementById('demo-result-inline').style.display = 'none';
       document.getElementById('demo-inline-msg').style.display = 'none';
@@ -1240,6 +1263,75 @@
       currentDemoResult = null;
       document.getElementById('demo-result-inline').style.display = 'none';
       document.getElementById('demo-question-inline').value = '';
+    }
+
+    // ── Collection User Management ───────────────────────────────────────────────
+    async function loadCollectionUsers(tag) {
+      const el = document.getElementById('coll-user-list');
+      if (!el) return;
+      try {
+        const rows = await sbReq(`collection_users?collection_tag=eq.${tag}&order=created_at.asc`).catch(() => null);
+        if (!rows?.length) {
+          el.innerHTML = '<p style="font-size:11px;color:var(--t3)">No users yet — add one above.</p>';
+          return;
+        }
+        el.innerHTML = rows.map(u => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--s3);border-radius:6px;border:1px solid var(--b)">
+            <div>
+              <span style="font-size:12px;color:#DDE4F5;font-weight:500">${u.email}</span>
+              <span style="font-size:10px;color:var(--t3);margin-left:8px">${u.role}</span>
+              ${u.last_login ? `<span style="font-size:10px;color:var(--t3);margin-left:8px">Last login: ${new Date(u.last_login).toLocaleDateString()}</span>` : '<span style="font-size:10px;color:var(--t3);margin-left:8px">Never logged in</span>'}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="badge ${u.active ? 'badge-ok' : 'badge-red'}" style="font-size:10px">${u.active ? 'Active' : 'Inactive'}</span>
+              <button onclick="toggleCollectionUser('${u.id}', ${!u.active})" style="font-size:10px;background:transparent;border:1px solid var(--b);color:var(--t2);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit">${u.active ? 'Deactivate' : 'Activate'}</button>
+              <button onclick="removeCollectionUser('${u.id}', '${u.email}')" style="font-size:10px;background:var(--red-lo);border:1px solid var(--red-mid);color:var(--red);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit">Remove</button>
+            </div>
+          </div>
+        `).join('');
+      } catch(e) {
+        el.innerHTML = `<p style="font-size:11px;color:var(--red)">Error loading users: ${e.message}</p>`;
+      }
+    }
+
+    async function addCollectionUser() {
+      if (!currentCollection) return;
+      const email = document.getElementById('new-user-email').value.trim().toLowerCase();
+      const role = document.getElementById('new-user-role').value;
+      if (!email) return;
+
+      try {
+        await sbReq('collection_users', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ email, collection_tag: currentCollection, role, active: true })
+        });
+        document.getElementById('new-user-email').value = '';
+        collToast(`✓ ${email} added as ${role}`);
+        loadCollectionUsers(currentCollection);
+      } catch(e) {
+        collToast('Error: ' + e.message);
+      }
+    }
+
+    async function toggleCollectionUser(id, active) {
+      try {
+        await sbReq(`collection_users?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ active })
+        });
+        loadCollectionUsers(currentCollection);
+      } catch(e) { collToast('Error: ' + e.message); }
+    }
+
+    async function removeCollectionUser(id, email) {
+      if (!confirm(`Remove ${email} from this collection?`)) return;
+      try {
+        await sbReq(`collection_users?id=eq.${id}`, { method: 'DELETE' });
+        collToast(`✓ ${email} removed`);
+        loadCollectionUsers(currentCollection);
+      } catch(e) { collToast('Error: ' + e.message); }
     }
 
     // ── Research Mode Demo Builder ─────────────────────────────────────────────
