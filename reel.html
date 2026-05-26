@@ -3422,18 +3422,9 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
 
           setStep("analyze", "done");
           setProcPct(100);
-          setErr(""); // clear any previous error
-          setVideo({
-            videoId,
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            title: parsed.title || txData.title || "Untitled",
-            channel: parsed.channel || txData.channel || "",
-            summary: parsed.summary,
-            keyPoints: parsed.keyPoints || [],
-            tags: parsed.tags || [],
-            duration: dur,
-          });
-          setProcessing(false);
+          setProcMsg("Done! Loading...");
+          // Reload so the fresh DB check finds the video cleanly
+          setTimeout(() => window.location.reload(), 800);
 
         } catch(e) {
           setErr("We're setting up this video — check back in a few minutes, sorry for the inconvenience.");
