@@ -3360,7 +3360,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           const txData = await txRes.json();
 
           if (!txData.transcript) {
-            setErr("We're setting up this video — check back in a few minutes, sorry for the inconvenience.");
+            setErr("This video is still publishing — videos can take up to 10 minutes to generate the transcript. Please check back shortly.");
             setProcessing(false);
             return;
           }
@@ -3422,12 +3422,12 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
 
           setStep("analyze", "done");
           setProcPct(100);
-          setProcMsg("Done! Loading...");
-          // Reload so the fresh DB check finds the video cleanly
-          setTimeout(() => window.location.reload(), 800);
+          setProcMsg("Video is ready!");
+          setErr("__ready__"); // special flag to show success state
+          setProcessing(false);
 
         } catch(e) {
-          setErr("We're setting up this video — check back in a few minutes, sorry for the inconvenience.");
+          setErr("This video is still publishing — videos can take up to 10 minutes to generate the transcript. Please check back shortly.");
           setProcessing(false);
         }
       }
@@ -3494,7 +3494,20 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         </div>
       );
 
-      // ── Error state ───────────────────────────────────────────────────────
+      // ── Ready state (processed successfully, needs refresh) ───────────────
+      if (err === "__ready__") return (
+        <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
+          <div style={{ textAlign:"center", padding:40, maxWidth:400 }}>
+            <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:60, width:"auto", display:"block", margin:"0 auto 20px" }} />
+            <div style={{ fontSize:40, marginBottom:16 }}>✅</div>
+            <p style={{ color:"#fff", fontSize:17, fontWeight:700, marginBottom:8 }}>Video is ready!</p>
+            <p style={{ color:"var(--t2)", fontSize:14, lineHeight:1.6, marginBottom:24 }}>Click the refresh button on your browser to view the summary.</p>
+            <button onClick={() => window.location.reload()} style={{ background:"var(--acc)", color:"#fff", border:"none", borderRadius:10, padding:"12px 28px", fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"Figtree,system-ui" }}>↺ Refresh Now</button>
+          </div>
+        </div>
+      );
+
+      // ── Error state (no transcript / real failure) ─────────────────────────
       if (err && !video) return (
         <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
           <div style={{ textAlign:"center", padding:40, maxWidth:400 }}>
