@@ -3504,7 +3504,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       );
 
       // ── Error state ───────────────────────────────────────────────────────
-      if (err) return (
+      if (err && !video) return (
         <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
           <div style={{ textAlign:"center", padding:40, maxWidth:400 }}>
             <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:60, width:"auto", display:"block", margin:"0 auto 20px" }} />
