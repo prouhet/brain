@@ -3392,38 +3392,42 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           setProcPct(90);
           setProcMsg("Saving...");
 
-          // Save to DB — UPSERT so re-runs don't fail on duplicate video_id
-          await sbReq("youtube_videos", {
-            method: "POST",
-            headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-            body: JSON.stringify({
-              id: genId(),
-              video_id: videoId,
-              url: `https://www.youtube.com/watch?v=${videoId}`,
-              title: parsed.title || txData.title || "Untitled",
-              channel: parsed.channel || txData.channel || "",
-              summary: parsed.summary,
-              key_points: parsed.keyPoints || [],
-              point_status: [],
-              tags: parsed.tags || [],
-              quotes: parsed.quotes || [],
-              credibility: parsed.credibility || null,
-              whats_new: parsed.whatsNew || "",
-              action_suggestions: parsed.actionSuggestions || [],
-              transcript: txData.transcript,
-              duration: dur,
-              shared: true,
-              no_share: NO_SHARE,
-              owner: "reelcall_collections",
-              collection_tag: collection || "general",
-              date_added: new Date().toISOString(),
-            }),
-          });
+          // Save to DB — wrapped separately so save errors don't override success message
+          try {
+            await sbReq("youtube_videos", {
+              method: "POST",
+              headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+              body: JSON.stringify({
+                id: genId(),
+                video_id: videoId,
+                url: `https://www.youtube.com/watch?v=${videoId}`,
+                title: parsed.title || txData.title || "Untitled",
+                channel: parsed.channel || txData.channel || "",
+                summary: parsed.summary,
+                key_points: parsed.keyPoints || [],
+                point_status: [],
+                tags: parsed.tags || [],
+                quotes: parsed.quotes || [],
+                credibility: parsed.credibility || null,
+                whats_new: parsed.whatsNew || "",
+                action_suggestions: parsed.actionSuggestions || [],
+                transcript: txData.transcript,
+                duration: dur,
+                shared: true,
+                no_share: NO_SHARE,
+                owner: "reelcall_collections",
+                collection_tag: collection || "general",
+                date_added: new Date().toISOString(),
+              }),
+            });
+          } catch(saveErr) {
+            console.warn("Save error (non-fatal):", saveErr);
+          }
 
           setStep("analyze", "done");
           setProcPct(100);
           setProcMsg("Video is ready!");
-          setErr("__ready__"); // special flag to show success state
+          setErr("__ready__");
           setProcessing(false);
 
         } catch(e) {
