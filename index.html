@@ -125,7 +125,7 @@
     <a href="/signup.html" class="btn-hero btn-hero-p">Start Free &mdash; 30 Videos Free</a>
     <a href="/signup.html" class="btn-hero btn-hero-s">Sign In</a>
   </div>
-  <p class="hero-note"><strong>Free — 30 videos, 60 days.</strong> Then $10/month or save with an annual plan.</p>
+  <p class="hero-note"><strong>Free — 30 videos, 60 days.</strong> Then $10/month or $99/year — founders annual from $79/year.</p>
 </div>
 
 <div class="ticker-wrap">
@@ -266,8 +266,8 @@
 
 <section style="padding-top:0">
   <div class="sec-label reveal" style="text-align:center">Pricing</div>
-  <h2 class="reveal" style="text-align:center">Simple, honest pricing</h2>
-  <p class="sec-sub reveal" style="text-align:center;margin-left:auto;margin-right:auto">Start free. Upgrade when you're ready. Cancel anytime.</p>
+  <h2 class="reveal" style="text-align:center">Your price is <em>locked in forever</em></h2>
+  <p class="sec-sub reveal" style="text-align:center;margin-left:auto;margin-right:auto">Whatever price you sign up at is your renewal price forever — as long as your subscription stays active. We never raise rates on existing customers.</p>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:680px;margin:0 auto 20px" class="reveal">
 
@@ -289,14 +289,15 @@
       <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--acc);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap">BEST VALUE</div>
       <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin-bottom:8px">Annual</p>
       <div class="price"><sup>$</sup><span class="founding-price">79</span><sub>/yr</sub></div>
-      <p style="color:var(--t2);margin:8px 0 4px;font-size:13px">Billed annually · save up to 34%</p>
-      <div class="alert" style="margin:10px 0 14px;font-size:12px">&#128994; Founders — <span class="tier1-remaining">...</span> spots left at $79 · then $99/yr</div>
+      <p style="color:var(--t2);margin:8px 0 4px;font-size:13px">Billed annually · 2 months free</p>
+      <div class="alert" style="margin:10px 0 14px;font-size:12px">&#128994; &#128994; Founders — <span class="tier1-remaining">...</span> of 79 spots left · $79/yr forever</div>
       <ul class="perks" style="margin-bottom:20px">
         <li><span class="perk-check">&#10003;</span> Everything in monthly</li>
         <li><span class="perk-check">&#10003;</span> 2 months free vs monthly</li>
-        <li><span class="perk-check">&#10003;</span> Lock in founders rate</li>
+        <li><span class="perk-check">&#10003;</span> 4 months free vs monthly</li>
       </ul>
-      <a href="/signup.html" class="btn-hero btn-hero-p" style="width:100%;display:block;text-align:center;font-size:13px">Start Free — Lock In $79/yr →</a>
+      <a href="/signup.html" class="btn-hero btn-hero-p" style="width:100%;display:block;text-align:center;font-size:13px">Start Free — Lock in $79/yr Founders →</a>
+      <p style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center">Billed annually · rate locked as long as subscription is active</p>
     </div>
 
   </div>
@@ -357,7 +358,7 @@
       if (remaining <= 10) {
         document.querySelectorAll('.slots-urgency').forEach(el => {
           el.style.display = 'block';
-          el.textContent = `⚡ Only ${remaining} founding spots left — price goes to $${nextPrice}/mo after`;
+          el.textContent = `⚡ Only ${remaining} of 79 founding spots left at $${foundingPrice}/yr — then $${nextPrice}/yr`;
         });
       }
     } catch(e) {}
