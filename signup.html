@@ -69,8 +69,8 @@
   </div>
 
   <div class="trial-badge">
-    <strong>30 Free Videos to Start</strong>
-    <span>Share to earn more &middot; Then just $1/month, locked forever</span>
+    <strong>30 Free Videos · 60 Days</strong>
+    <span>Share to earn more &middot; Then $10/month or $79/year founders annual</span>
   </div>
 
   <div class="card">
@@ -89,7 +89,7 @@
         <input type="password" id="su-pass" placeholder="Min 6 characters" autocomplete="new-password" style="width:100%;padding-right:44px;box-sizing:border-box">
         <button type="button" onclick="togglePw('su-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t2);font-size:16px;padding:4px">👁</button>
       </div>
-      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free &mdash; 30 Videos Free</button>
+      <button class="btn" id="btn-signup" onclick="doSignup()">Start Free — 30 Videos, 60 Days</button>
       <div id="msg-signup"></div>
     </div>
 
@@ -156,7 +156,7 @@
       const btn = document.getElementById(id);
       btn.disabled = loading;
       if (id === "btn-signup") {
-        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free &mdash; 30 Videos Free';
+        btn.innerHTML = loading ? '<div class="spin"></div>' : 'Start Free — 30 Videos, 60 Days';
       } else {
         btn.innerHTML = loading ? '<div class="spin"></div>' : 'Sign In';
       }
@@ -171,6 +171,25 @@
       if (!usernameInput || usernameInput.length < 3) { setMsg("msg-signup", "Please choose a username — at least 3 characters.", "err"); return; }
       if (usernameInput.length > 20) { setMsg("msg-signup", "Username must be 20 characters or less.", "err"); return; }
 
+      // Validate coupon code if entered
+      const couponInput = (document.getElementById("coupon-code")?.value || "").trim().toUpperCase();
+      let couponData = null;
+      if (couponInput) {
+        const { data: coupon, error: cErr } = await sb.from("coupon_codes")
+          .select("*").eq("code", couponInput).eq("active", true).maybeSingle();
+        if (cErr || !coupon) {
+          setMsg("msg-signup", "That coupon code isn't valid — double-check and try again.", "err");
+          setBtnLoading("btn-signup", false); return;
+        }
+        if (coupon.max_uses && coupon.uses_count >= coupon.max_uses) {
+          setMsg("msg-signup", "That coupon code is fully redeemed — no spots left.", "err");
+          setBtnLoading("btn-signup", false); return;
+        }
+        couponData = coupon;
+        const msgEl = document.getElementById("coupon-msg");
+        if (msgEl) msgEl.textContent = `✓ ${coupon.description || "Discount applied"}`;
+      }
+
       setBtnLoading("btn-signup", true);
       try {
         // Check username is available
@@ -183,7 +202,17 @@
         const qaExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
         const referredBy = sessionStorage.getItem("reelcall_referred_by") || null;
         const referredVideo = sessionStorage.getItem("reelcall_referred_video") || null;
-        await sb.from("reel_users").insert({ id: data.user.id, email, owner, trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt, active: true, videos_capacity: 30, referred_by: referredBy });
+        await sb.from("reel_users").insert({
+          id: data.user.id, email, owner,
+          trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt,
+          active: true, videos_capacity: 30,
+          referred_by: referredBy,
+          coupon_used: couponData?.code || null,
+        });
+        // Increment coupon uses
+        if (couponData) {
+          await sb.from("coupon_codes").update({ uses_count: (couponData.uses_count || 0) + 1 }).eq("id", couponData.id);
+        }
         // Credit referrer if exists
         if (referredBy) {
           try {
