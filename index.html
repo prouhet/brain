@@ -3,79 +3,366 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — ReelCall</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>ReelCall — Stop Rewatching. Start Knowing.</title>
+  <meta name="description" content="Stop rewatching. ReelCall gives you AI summaries, key takeaways, and Q&A for any video — in minutes. Free to start, no credit card needed.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Figtree',sans-serif;font-size:15px;line-height:1.7;color:#1a202c;background:#f8f9fc;padding:40px 20px}
-    .wrap{max-width:720px;margin:0 auto;background:#fff;border-radius:16px;padding:48px;box-shadow:0 2px 20px rgba(0,0,0,.06)}
-    h1{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;margin-bottom:8px;color:#0a0c10}
-    .date{color:#9ba3b5;font-size:13px;margin-bottom:40px}
-    h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin:32px 0 10px;color:#0a0c10}
-    p{margin-bottom:14px;color:#4a5568}
-    a{color:#e5001c;text-decoration:none}
-    .back{display:inline-block;margin-bottom:28px;color:#9ba3b5;font-size:14px;text-decoration:none}
-    .back:hover{color:#e5001c}
-    ul{margin:0 0 14px 20px;color:#4a5568}
-    li{margin-bottom:6px}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --acc: #E5001C; --acc2: #6C3BF5; --ok: #22C98A; --warn: #F5A623;
+      --ink: #0A0C10; --ink2: #1C2030; --bg: #F7F8FC; --card: #FFFFFF;
+      --border: rgba(0,0,0,.08); --t2: #5A6478; --t3: #9BA3B5;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Figtree', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; overflow-x: hidden; }
+    a { text-decoration: none; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; background: rgba(247,248,252,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -.5px; }
+    .logo span { color: var(--acc); }
+    .nav-links { display: flex; gap: 8px; }
+    .btn-ghost { padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border); color: var(--t2); font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: inline-block; }
+    .btn-ghost:hover { border-color: var(--acc); color: var(--acc); }
+    .btn-primary { padding: 9px 22px; border-radius: 8px; background: var(--acc); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Figtree', sans-serif; transition: all .15s; display: inline-block; }
+    .btn-primary:hover { background: #C4001A; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(229,0,28,.35); }
+
+    .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120px 24px 80px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(229,0,28,.08) 0%, transparent 70%); pointer-events: none; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: rgba(229,0,28,.1); border: 1px solid rgba(229,0,28,.2); color: var(--acc); font-size: 13px; font-weight: 600; padding: 5px 14px; border-radius: 20px; margin-bottom: 28px; animation: fadeUp .6s ease both; }
+    h1 { font-family: 'Syne', sans-serif; font-size: clamp(40px, 7vw, 76px); font-weight: 800; line-height: 1.05; letter-spacing: -2px; max-width: 820px; margin-bottom: 24px; animation: fadeUp .6s .1s ease both; }
+    h1 em { font-style: normal; background: linear-gradient(135deg, var(--acc), var(--acc2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: clamp(17px, 2.5vw, 21px); color: var(--t2); max-width: 560px; line-height: 1.65; margin-bottom: 40px; animation: fadeUp .6s .2s ease both; }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; animation: fadeUp .6s .3s ease both; }
+    .btn-hero { padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 600; font-family: 'Figtree', sans-serif; cursor: pointer; transition: all .18s; display: inline-block; }
+    .btn-hero-p { background: var(--acc); color: #fff; box-shadow: 0 4px 24px rgba(229,0,28,.3); }
+    .btn-hero-p:hover { background: #C4001A; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(229,0,28,.4); }
+    .btn-hero-s { background: var(--card); color: var(--ink); border: 1px solid var(--border); }
+    .btn-hero-s:hover { border-color: var(--acc); color: var(--acc); }
+    .hero-note { font-size: 13px; color: var(--t3); animation: fadeUp .6s .35s ease both; }
+    .hero-note strong { color: var(--ok); }
+
+    .ticker-wrap { overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--card); padding: 14px 0; }
+    .ticker { display: flex; animation: ticker 28s linear infinite; white-space: nowrap; }
+    .ticker-item { display: inline-flex; align-items: center; gap: 8px; padding: 0 28px; font-size: 14px; font-weight: 500; color: var(--t2); }
+    .ticker-item span { color: var(--acc); }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    section { padding: 90px 24px; max-width: 1100px; margin: 0 auto; }
+    .sec-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--acc); margin-bottom: 16px; }
+    h2 { font-family: 'Syne', sans-serif; font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-bottom: 16px; }
+    h2 em { font-style: normal; color: var(--acc); }
+    .sec-sub { font-size: 18px; color: var(--t2); max-width: 540px; line-height: 1.65; margin-bottom: 48px; }
+
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; }
+    .step:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+    .step-num { font-family: 'Syne', sans-serif; font-size: 64px; font-weight: 800; color: rgba(229,0,28,.07); position: absolute; top: 10px; right: 18px; line-height: 1; }
+    .step-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(229,0,28,.1); display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; }
+    .step h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: 14px; color: var(--t2); line-height: 1.65; }
+
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    .feat { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all .2s; }
+    .feat:hover { border-color: rgba(229,0,28,.3); box-shadow: 0 8px 32px rgba(229,0,28,.08); }
+    .feat-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+    .feat h3 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat p { font-size: 14px; color: var(--t2); line-height: 1.65; }
+
+    .pricing-box { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 52px 48px; max-width: 600px; margin: 0 auto; text-align: center; }
+    .price { font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+    .price sup { font-size: 28px; vertical-align: top; margin-top: 14px; letter-spacing: 0; }
+    .price sub { font-size: 20px; font-weight: 400; color: var(--t2); letter-spacing: 0; }
+    .tier-bar { background: var(--bg); border-radius: 12px; padding: 18px; margin: 24px 0; text-align: left; }
+    .tier-row { display: flex; justify-content: space-between; font-size: 14px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .tier-row:last-child { border-bottom: none; }
+    .tier-row.active { color: var(--acc); font-weight: 600; }
+    .tier-row.active .badge { color: var(--warn); font-weight: 600; }
+    .perks { list-style: none; text-align: left; margin: 0 0 28px; display: flex; flex-direction: column; gap: 10px; }
+    .perks li { font-size: 15px; color: var(--t2); display: flex; gap: 10px; }
+    .perks li::before { content: 'checkmark'; font-family: none; display: none; }
+    .perk-check { color: var(--ok); font-weight: 700; flex-shrink: 0; }
+    .alert { background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.25); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 14px; color: var(--warn); font-weight: 600; }
+
+    .cta-band { background: linear-gradient(135deg, var(--acc) 0%, var(--acc2) 100%); border-radius: 24px; padding: 64px 48px; text-align: center; color: #fff; }
+    .cta-band h2 { color: #fff; margin-bottom: 16px; }
+    .cta-band p { color: rgba(255,255,255,.8); font-size: 18px; max-width: 540px; margin: 0 auto 36px; }
+    .btn-white { padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; font-family: 'Figtree', sans-serif; background: #fff; color: var(--acc); cursor: pointer; transition: all .18s; display: inline-block; }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; max-width: 1100px; margin: 0 auto; }
+    footer p { font-size: 13px; color: var(--t3); }
+    footer a { font-size: 13px; color: var(--t2); }
+    footer a:hover { color: var(--acc); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 640px) {
+      h1 { letter-spacing: -1px; }
+      .pricing-box { padding: 32px 20px; }
+      .cta-band { padding: 40px 24px; }
+      section { padding: 60px 20px; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <a href="/index.html" class="back">← Back to ReelCall</a>
-    <h1>Privacy Policy</h1>
-    <p class="date">Last updated: May 2026</p>
 
-    <h2>1. Information We Collect</h2>
-    <p>When you use ReelCall, we collect:</p>
-    <ul>
-      <li><strong>Account information:</strong> email address, username you choose</li>
-      <li><strong>Usage data:</strong> videos you save, Q&A you ask, features you use</li>
-      <li><strong>Payment information:</strong> processed by Stripe — we never store card numbers</li>
-      <li><strong>Video content:</strong> transcripts and AI analyses of YouTube videos you save</li>
-    </ul>
-
-    <h2>2. How We Use Your Information</h2>
-    <p>We use your information to:</p>
-    <ul>
-      <li>Provide and improve the ReelCall service</li>
-      <li>Process payments and manage your subscription</li>
-      <li>Send account-related emails (no marketing without consent)</li>
-      <li>Analyze usage patterns to improve the product</li>
-    </ul>
-
-    <h2>3. Data Storage</h2>
-    <p>Your data is stored on Supabase (PostgreSQL), hosted on secure cloud infrastructure. Video transcripts and analyses are stored to enable fast retrieval and Q&A. We do not sell your data to third parties.</p>
-
-    <h2>4. AI Processing</h2>
-    <p>Video transcripts and your questions are sent to Anthropic's Claude API for analysis and Q&A. Anthropic's privacy policy applies to this processing. We do not use your content to train AI models.</p>
-
-    <h2>5. Sharing Your Videos</h2>
-    <p>When you share a video via a share link, the summary, key points, and Q&A for that video become publicly accessible to anyone with the link. You control sharing — videos are private by default.</p>
-
-    <h2>6. Cookies</h2>
-    <p>We use minimal cookies for authentication (keeping you signed in) and preference storage (dark/light mode). We do not use advertising cookies.</p>
-
-    <h2>7. Data Retention</h2>
-    <p>Your account and videos are retained as long as your account is active. If you delete your account, your personal data is removed within 30 days. Note: videos you have shared may remain in the system for others who have saved them.</p>
-
-    <h2>8. Your Rights</h2>
-    <p>You have the right to:</p>
-    <ul>
-      <li>Access the data we hold about you</li>
-      <li>Export your videos and Q&A history</li>
-      <li>Delete your account and associated data</li>
-      <li>Opt out of any marketing communications</li>
-    </ul>
-
-    <h2>9. Children's Privacy</h2>
-    <p>ReelCall is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
-
-    <h2>10. Changes to This Policy</h2>
-    <p>We may update this Privacy Policy. We will notify users of significant changes via email or an in-app notice.</p>
-
-    <h2>11. Contact</h2>
-    <p>For privacy questions or data requests, contact us at <a href="mailto:support@reelcall.app">support@reelcall.app</a>.</p>
+<nav>
+  <a href="/index.html"><img src="/reelcall-logo-big.png" alt="ReelCall" style="height:48px;width:auto;display:block"></a>
+  <div class="nav-links">
+    <a href="/signup.html" class="btn-ghost">Sign In</a>
+    <a href="/signup.html" class="btn-primary">Start Free Trial</a>
   </div>
+</nav>
+
+<div class="hero">
+  <img src="/reelcall-logo-big.png" alt="ReelCall" style="height:160px;width:auto;max-width:480px;margin:0 auto 32px;display:block">
+  <h1>Stop Rewatching.<br><em>Start Knowing.</em></h1>
+  <p class="hero-sub">Get instant AI summaries, key points, and answers — for any YouTube video.</p>
+  <div class="hero-ctas">
+    <a href="/signup.html" class="btn-hero btn-hero-p">Start Free &mdash; 30 Videos Free</a>
+    <a href="/signup.html" class="btn-hero btn-hero-s">Sign In</a>
+  </div>
+  <p class="hero-note"><strong>Free — 30 videos, 60 days.</strong> Then $10/month or $99/year — founders annual from $79/year.</p>
+</div>
+
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item"><span>&#9654;</span> Real transcripts, not AI guesses</span>
+    <span class="ticker-item"><span>&#10022;</span> Research Mode</span>
+    <span class="ticker-item"><span>&#128250;</span> Bulk channel import</span>
+    <span class="ticker-item"><span>&#9733;</span> Star key points to recall</span>
+    <span class="ticker-item"><span>&#128279;</span> Share videos with anyone</span>
+    <span class="ticker-item"><span>&#128172;</span> Q&amp;A history saved forever</span>
+    <span class="ticker-item"><span>&#128269;</span> Search across all your videos</span>
+    <span class="ticker-item"><span>&#9889;</span> Instant AI summaries</span>
+    <span class="ticker-item"><span>&#9654;</span> Real transcripts, not AI guesses</span>
+    <span class="ticker-item"><span>&#10022;</span> Research Mode</span>
+    <span class="ticker-item"><span>&#128250;</span> Bulk channel import</span>
+    <span class="ticker-item"><span>&#9733;</span> Star key points to recall</span>
+    <span class="ticker-item"><span>&#128279;</span> Share videos with anyone</span>
+    <span class="ticker-item"><span>&#128172;</span> Q&amp;A history saved forever</span>
+    <span class="ticker-item"><span>&#128269;</span> Search across all your videos</span>
+    <span class="ticker-item"><span>&#9889;</span> Instant AI summaries</span>
+  </div>
+</div>
+
+<section>
+  <div class="sec-label reveal">How it works</div>
+  <h2 class="reveal">Three steps to <em>never forget</em> a video again</h2>
+  <p class="sec-sub reveal">ReelCall does the heavy lifting so you can focus on learning, not note-taking.</p>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">1</div>
+      <div class="step-icon">&#128279;</div>
+      <h3>Paste any YouTube URL</h3>
+      <p>Drop in a video link or a channel URL to browse and bulk import. We fetch the real transcript automatically in seconds.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">2</div>
+      <div class="step-icon">&#10022;</div>
+      <h3>AI analyzes the full video</h3>
+      <p>Claude reads the complete transcript and returns a detailed summary, key points, actionable suggestions, and smart tags.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">3</div>
+      <div class="step-icon">&#128172;</div>
+      <h3>Ask, search, share</h3>
+      <p>Ask questions about any video or use Research Mode across your entire library. Share any video with a link. Your knowledge compounds over time.</p>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="sec-label reveal">Features</div>
+  <h2 class="reveal">Everything your YouTube habit <em>deserves</em></h2>
+  <p class="sec-sub reveal">Built for people who watch to learn, not just to watch.</p>
+  <div class="features">
+    <div class="feat reveal">
+      <span class="feat-icon">&#128221;</span>
+      <h3>Real transcripts, not guesses</h3>
+      <p>We pull the actual captions from YouTube &mdash; not AI hallucinations. If the video has captions, we have the full transcript.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#10022;</span>
+      <h3>Research Mode</h3>
+      <p>Select any combination of videos and ask Claude to synthesize across all of them. Find patterns and connections you'd never notice watching one at a time.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128250;</span>
+      <h3>Channel bulk import</h3>
+      <p>Paste a channel URL, browse recent videos as thumbnails, select which to import, and watch them analyze in sequence.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#9733;</span>
+      <h3>Recall system</h3>
+      <p>Star key points worth remembering. They're highlighted and counted so you always know what's worth revisiting.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128279;</span>
+      <h3>Share any video</h3>
+      <p>One click generates a share link. Recipients see the full summary, key points, and can ask Q&amp;A &mdash; no account required.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128172;</span>
+      <h3>Q&amp;A history saved forever</h3>
+      <p>Every question you ask is saved. Single-video Q&amp;A and Research Mode sessions both live in your history &mdash; searchable and continuable.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#128269;</span>
+      <h3>Full-text search</h3>
+      <p>Search across titles, summaries, channels, tags, and Q&amp;A content. Find anything you've ever captured.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#127769;</span>
+      <h3>Works everywhere</h3>
+      <p>Mobile-first, dark/light mode, persistent sessions. Your knowledge base is always there when you need it.</p>
+    </div>
+    <div class="feat reveal">
+      <span class="feat-icon">&#127381;</span>
+      <h3>Share one, get two — free forever</h3>
+      <p>Every video you share earns +2 more free video slots — a great way to extend your trial.</p>
+    </div>
+  </div>
+</section>
+
+
+<section style="padding-top:0">
+  <div class="sec-label reveal" style="text-align:center">Free vs Paid</div>
+  <h2 class="reveal" style="text-align:center">Genuinely useful free. <em>Absurdly cheap</em> paid.</h2>
+  <p class="sec-sub reveal" style="text-align:center;margin-left:auto;margin-right:auto">We want you hooked before we ask for anything.</p>
+  <div class="features reveal" style="max-width:700px;margin:0 auto;grid-template-columns:1fr 1fr">
+    <div class="feat" style="border-color:rgba(0,0,0,.08)">
+      <span class="feat-icon">&#127381;</span>
+      <h3>Free forever includes</h3>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--t2)">
+        <li>&#10003; &nbsp;30 free videos · 60 days</li>
+        <li>&#10003; &nbsp;Keep them all free — just share</li>
+        
+        <li>&#10003; &nbsp;Full AI analysis on every video</li>
+        <li>&#10003; &nbsp;Q&amp;A on any video</li>
+        <li>&#10003; &nbsp;Research Mode — ask across videos</li>
+        <li>&#10003; &nbsp;Share any video with a link</li>
+        <li>&#10003; &nbsp;Channel bulk import</li>
+      </ul>
+    </div>
+    <div class="feat" style="border-color:rgba(229,0,28,.3);background:rgba(229,0,28,.03)">
+      <span class="feat-icon">&#9889;</span>
+      <h3 style="color:var(--acc)">$10/month unlocks</h3>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--t2)">
+        <li>&#10003; &nbsp;<strong>Unlimited videos</strong></li>
+        <li>&#10003; &nbsp;Unlimited Q&amp;A history</li>
+        <li>&#10003; &nbsp;Unlimited channel imports</li>
+        <li>&#10003; &nbsp;Unlimited sharing</li>
+        <li>&#10003; &nbsp;Smart Find — AI-powered search</li>
+        <li>&#10003; &nbsp;Research Mode across all videos</li>
+        <li style="color:var(--acc);font-weight:600">&#10003; &nbsp;Cancel anytime, no questions asked</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="sec-label reveal" style="text-align:center">Pricing</div>
+  <h2 class="reveal" style="text-align:center">Your price is <em>locked in forever</em></h2>
+  <p class="sec-sub reveal" style="text-align:center;margin-left:auto;margin-right:auto">Whatever price you sign up at is your renewal price forever — as long as your subscription stays active. We never raise rates on existing customers.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:680px;margin:0 auto 20px" class="reveal">
+
+    <!-- Monthly -->
+    <div class="pricing-box" style="margin:0">
+      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin-bottom:8px">Monthly</p>
+      <div class="price"><sup>$</sup>10<sub>/mo</sub></div>
+      <p style="color:var(--t2);margin:8px 0 16px;font-size:13px">Billed monthly · cancel anytime</p>
+      <ul class="perks" style="margin-bottom:20px">
+        <li><span class="perk-check">&#10003;</span> Unlimited videos &amp; Q&amp;A</li>
+        <li><span class="perk-check">&#10003;</span> Smart Find + Research Mode</li>
+        <li><span class="perk-check">&#10003;</span> Cancel anytime</li>
+      </ul>
+      <a href="/signup.html" class="btn-hero btn-hero-s" style="width:100%;display:block;text-align:center;font-size:13px">Start Free →</a>
+    </div>
+
+    <!-- Annual -->
+    <div class="pricing-box" style="margin:0;border-color:var(--acc);position:relative">
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--acc);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap">BEST VALUE</div>
+      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin-bottom:8px">Annual</p>
+      <div class="price"><sup>$</sup><span class="founding-price">79</span><sub>/yr</sub></div>
+      <p style="color:var(--t2);margin:8px 0 4px;font-size:13px">Billed annually · 4 months free</p>
+      <div class="alert" style="margin:10px 0 14px;font-size:12px">&#128994; Founders — <span class="tier1-remaining">...</span> of 79 spots left · $79/yr forever</div>
+      <ul class="perks" style="margin-bottom:20px">
+        <li><span class="perk-check">&#10003;</span> Everything in monthly</li>
+        <li><span class="perk-check">&#10003;</span> 4 months free vs monthly billing</li>
+        <li><span class="perk-check">&#10003;</span> $99/yr standard after founders fill</li>
+      </ul>
+      <a href="/signup.html" class="btn-hero btn-hero-p" style="width:100%;display:block;text-align:center;font-size:13px">Start Free — Lock in $79/yr Founders →</a>
+      <p style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center">Billed annually · rate locked as long as subscription is active</p>
+    </div>
+
+  </div>
+
+  <p class="reveal" style="text-align:center;font-size:13px;color:var(--t3);margin-top:8px">Have a coupon code? Enter it at signup · 30 videos free, no credit card needed</p>
+</section>
+
+<section style="padding-top:0;padding-bottom:80px">
+  <div class="cta-band reveal">
+    <h2>Your YouTube watch history<br>is a goldmine. Start mining it.</h2>
+    <p>Every video you've watched and forgotten is a missed insight. ReelCall turns passive watching into active knowledge.</p>
+    <a href="/signup.html" class="btn-white">Get Started Free &rarr;</a>
+  </div>
+</section>
+
+<footer>
+  <a href="/index.html"><img src="/reelcall-logo-big.png" alt="ReelCall" style="height:60px;width:auto;display:block"></a>
+  <p>&copy; 2026 ReelCall &middot; Your YouTube Knowledge Base</p>
+  <div style="display:flex;gap:20px">
+    <a href="/signup.html">Sign In</a>
+    <a href="/signup.html">Start Free Trial</a>
+  </div>
+</footer>
+
+<script>
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = (i % 4) * 0.08 + 's';
+    obs.observe(el);
+  });
+
+  // Live subscription counter — pulls from offer_config
+  (async function() {
+    try {
+      const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+      const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+
+      // Get offer config
+      const r = await fetch(`${SB_URL}/rest/v1/offer_config?select=*&limit=1`, {
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+      });
+      const configs = await r.json();
+      const cfg = configs?.[0];
+      if (!cfg) return;
+
+      const remaining = Math.max(0, cfg.founding_slots_total - cfg.founding_slots_used);
+      const foundingPrice = (cfg.founding_price_cents / 100).toFixed(0);
+      const nextPrice = (cfg.next_price_cents / 100).toFixed(0);
+
+      // Update all counter elements
+      document.querySelectorAll('.tier1-remaining').forEach(el => el.textContent = remaining);
+      document.querySelectorAll('.founding-price').forEach(el => el.textContent = `$${foundingPrice}`);
+      document.querySelectorAll('.next-price').forEach(el => el.textContent = `$${nextPrice}`);
+
+      // Show urgency if low
+      if (remaining <= 10) {
+        document.querySelectorAll('.slots-urgency').forEach(el => {
+          el.style.display = 'block';
+          el.textContent = `⚡ Only ${remaining} of 79 founding spots left at $${foundingPrice}/yr — then $${nextPrice}/yr`;
+        });
+      }
+    } catch(e) {}
+  })();
+</script>
 </body>
 </html>
