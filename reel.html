@@ -667,7 +667,7 @@
                       setSmartLoading(false);
                     }
                   }}
-                  title={(isPrivileged || MEMBERSHIP?.isPaid) ? "Smart Find — describe what you remember, AI selects matching videos" : "Smart Find — upgrade to unlock"}
+                  title={(isPrivileged || MEMBERSHIP?.isPaid) ? "Smart Find — describe what you remember and AI finds matching videos across your entire library" : "Smart Find — upgrade to unlock AI-powered semantic search ($10/mo or $79/yr)"}
                   style={{ padding: "9px 16px", borderRadius: 8, background: smartResults !== null ? "var(--acc)" : (isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc-lo)" : "var(--s2)", border: `1px solid ${(isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc-mid)" : "var(--b)"}`, color: smartResults !== null ? "#fff" : (isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc)" : "var(--t3)", cursor: (isPrivileged || MEMBERSHIP?.isPaid) ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", opacity: (isPrivileged || MEMBERSHIP?.isPaid) ? 1 : 0.5 }}>
                   {smartLoading ? <Spinner size={13} /> : smartResults !== null ? `✦ ${smartResults.length} Smart Results ✕` : <>✦ Smart Find {(isPrivileged || MEMBERSHIP?.isPaid) ? "" : "🔒"}</>}
                 </button>
@@ -1040,7 +1040,7 @@ Return ONLY valid JSON (no markdown fences):
             <div className="rfade">
               {result.whatsNew && (
                 <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Key Insight</p>
                   <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7 }}>{result.whatsNew}</p>
                 </div>
               )}
@@ -1798,7 +1798,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
               <button className="rbtn-p" onClick={save} style={{ width: "100%", marginBottom: 14 }}>Save to Knowledge Base</button>
               {result.whatsNew && (
                 <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Key Insight</p>
                   <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7 }}>{result.whatsNew}</p>
                 </div>
               )}
@@ -2170,7 +2170,7 @@ Return a detailed assessment with:
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
-              <button onClick={deepCheck} disabled={checking} style={{ padding: "7px 14px", borderRadius: 8, background: isLow ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", border: `1px solid ${isLow ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, color: isLow ? "#ef4444" : "var(--warn)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+              <button onClick={deepCheck} disabled={checking} title="Run a full AI fact-check — analyzes the transcript for misleading claims, missing context, and credibility issues" style={{ padding: "7px 14px", borderRadius: 8, background: isLow ? "rgba(239,68,68,.1)" : "rgba(245,166,35,.1)", border: `1px solid ${isLow ? "rgba(239,68,68,.25)" : "rgba(245,166,35,.25)"}`, color: isLow ? "#ef4444" : "var(--warn)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
                 {checking ? <><Spinner size={12} /> Checking...</> : deepResult ? "↺ Re-check" : "🔍 Deep Check"}
               </button>
               {c?.deepCheckedAt && <span style={{ fontSize: 10, color: "var(--t3)" }}>Checked {fmtDate(c.deepCheckedAt)}</span>}
@@ -2349,13 +2349,21 @@ Answer questions accurately and specifically based on the content above.`,
                 <CredibilityCheckBtn video={video} onUpdate={onUpdate} videoTranscript={videoTranscript} />
               )}
               <ShareBtn video={video} onUpdate={onUpdate} />
-              <button className="rbtn-d" onClick={onDelete}>Delete</button>
+              <button onClick={onDelete} title="Delete this video from your library"
+                style={{ padding: "8px 12px", borderRadius: 8, background: "transparent", border: "1px solid var(--b)", color: "var(--t3)", fontSize: 12, cursor: "pointer", fontFamily: "Figtree,system-ui" }}
+                onMouseEnter={e => { e.currentTarget.style.color="var(--red)"; e.currentTarget.style.borderColor="var(--red-mid)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color="var(--t3)"; e.currentTarget.style.borderColor="var(--b)"; }}>
+                ✕ Delete
+              </button>
             </div>
           </div>
 
           <div className="rcard rfade" style={{ marginBottom: 14, overflow: "hidden" }}>
             {video.videoId
-              ? <img src={thumb(video.videoId)} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", background: "var(--s2)" }} />
+              ? <a href={video.url || `https://www.youtube.com/watch?v=${video.videoId}`} target="_blank" rel="noreferrer" style={{ display: "block", position: "relative" }}>
+                  <img src={thumb(video.videoId)} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", background: "var(--s2)" }} />
+                  <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,.7)", color: "#fff", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>▶ Watch on YouTube</div>
+                </a>
               : <div style={{ width: "100%", aspectRatio: "16/9", background: "var(--s2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, opacity: .3 }}>▶</div>
             }
             <div style={{ padding: "18px 20px" }}>
@@ -2376,7 +2384,7 @@ Answer questions accurately and specifically based on the content above.`,
 
           {video.whatsNew && (
             <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 12, padding: "16px 20px", marginBottom: 14 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>What's New</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Key Insight</p>
               <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.7 }}>{video.whatsNew}</p>
             </div>
           )}
@@ -3027,8 +3035,8 @@ Answer questions accurately and specifically based on the content above.`,
               ) : (
                 <div style={{ background: "var(--s1)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "16px 20px", marginBottom: mb, marginTop: mt, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                   <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, transition: "opacity .3s" }}>{PITCHES[pitchIdx].headline}</p>
-                    <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
+                    <p style={{ fontSize: 13, color: "var(--t2)", marginBottom: 2 }}>Someone shared this video analysis with you</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Save it to your free ReelCall library — ask unlimited questions, keep your Q&A</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                     <button onClick={goSignIn} style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "Figtree,system-ui" }}>Start Free — Save This</button>
@@ -3044,7 +3052,13 @@ Answer questions accurately and specifically based on the content above.`,
             </div>
             <div className="rcard rfade" style={{ marginBottom: 14, overflow: "hidden" }}>
               {video.videoId
-                ? <img src={thumb(video.videoId)} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", background: "var(--s2)" }} />
+                ? <a href={video.url || `https://www.youtube.com/watch?v=${video.videoId}`} target="_blank" rel="noreferrer" style={{ display: "block", position: "relative" }}>
+                    <img src={thumb(video.videoId)} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", background: "var(--s2)" }} />
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.3)", opacity: 0, transition: "opacity .2s" }}
+                      onMouseEnter={e => e.currentTarget.style.opacity=1} onMouseLeave={e => e.currentTarget.style.opacity=0}>
+                      <div style={{ background: "rgba(0,0,0,.7)", color: "#fff", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>▶ Watch on YouTube</div>
+                    </div>
+                  </a>
                 : <div style={{ width: "100%", aspectRatio: "16/9", background: "var(--s2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, opacity: .3 }}>▶</div>
               }
               <div style={{ padding: "18px 20px" }}>
@@ -3083,7 +3097,7 @@ Answer questions accurately and specifically based on the content above.`,
               </div>
             )}
 
-            <Sec title="Ask Questions" subtitle={saved ? "Q&A saved to your library" : authUser ? "Save this video to keep your Q&A" : "Sign up free to save this video and your Q&A"}>
+            <Sec title="Ask Questions" subtitle={saved ? "Q&A saved to your library" : authUser ? "Save this video to keep your Q&A" : "Ask anything below — sign up free to save your Q&A history"}>
               {qa.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
                   {qa.map((m) => (
@@ -3119,8 +3133,8 @@ Answer questions accurately and specifically based on the content above.`,
               ) : (
                 <div style={{ background: "var(--s1)", border: "1px solid var(--acc-mid)", borderRadius: 12, padding: "16px 20px", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                   <div>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4, transition: "opacity .3s" }}>{PITCHES[pitchIdx].headline}</p>
-                    <p style={{ fontSize: 13, color: "var(--t2)", transition: "opacity .3s" }}>{PITCHES[pitchIdx].sub}</p>
+                    <p style={{ fontSize: 13, color: "var(--t2)", marginBottom: 2 }}>Someone shared this video analysis with you</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Save it to your free ReelCall library — ask unlimited questions, keep your Q&A</p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                     <a href="/index.html" style={{ background: "var(--acc)", color: "#fff", padding: "9px 20px", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Free Trial</a>
