@@ -2937,18 +2937,19 @@ Instructions:
               sessionStorage.setItem("reelcall_referred_video", rows[0].id);
             }
           }).catch(() => {});
-        // Load shared video — try shared=true first, fall back to any public video
-        sbReq(`youtube_videos?select=*&id=eq.${videoId}&shared=eq.true`)
-          .then((rows) => {
-            if (rows?.length) { setVideo(fromDb(rows[0])); return; }
-            // Fallback — try without shared filter (in case shared flag not set)
-            return sbReq(`youtube_videos?select=*&id=eq.${videoId}&limit=1`);
-          })
-          .then((rows) => {
+        // Load shared video
+        (async () => {
+          try {
+            // Try shared=true first
+            let rows = await sbReq(`youtube_videos?select=*&id=eq.${videoId}&shared=eq.true`);
+            // Fallback — try without shared filter
+            if (!rows?.length) {
+              rows = await sbReq(`youtube_videos?select=*&id=eq.${videoId}&limit=1`);
+            }
             if (rows?.length) setVideo(fromDb(rows[0]));
             else setErr("This video isn't available. The owner may have removed it.");
-          })
-          .catch((e) => setErr(e.message));
+          } catch(e) { setErr(e.message); }
+        })();
       }, [videoId]);
 
       async function saveToLibrary() {
