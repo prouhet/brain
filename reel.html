@@ -1410,7 +1410,7 @@ Return ONLY valid JSON (no markdown fences):
     }
 
     // ─── Add Video View ───────────────────────────────────────────────────────
-    function AddVideoView({ onSave, onBack, existingVideos, prefillUrl = "" }) {
+    function AddVideoView({ onSave, onBack, onExisting, existingVideos, prefillUrl = "" }) {
       const [url, setUrl] = useState(prefillUrl);
       const cleanUrl = (raw) => {
         // Strip ?si= and all tracking params — keep only ?v= for regular URLs
@@ -1438,8 +1438,9 @@ Return ONLY valid JSON (no markdown fences):
         // Check local state first (fast)
         const existing = existingVideos.find((v) => v.videoId === videoId || v.url === url);
         if (existing) {
-          setErrMsg(`This video is already in your library: "${existing.title}"`);
-          setStep("error");
+          // Already in library — go straight to it
+          if (onExisting) onExisting(existing);
+          else onBack();
           return;
         }
         // Also check DB
@@ -1448,8 +1449,13 @@ Return ONLY valid JSON (no markdown fences):
             ? await sbReq(`youtube_videos?select=id,title&owner=eq.${OWNER}&video_id=eq.${videoId}&limit=1`)
             : await sbReq(`youtube_videos?select=id,title&owner=eq.${OWNER}&url=eq.${encodeURIComponent(url)}&limit=1`);
           if (dbCheck?.length) {
-            setErrMsg(`This video is already in your library: "${dbCheck[0].title}"`);
-            setStep("error");
+            // Already in DB — load full video and navigate to it
+            try {
+              const full = await sbReq(`youtube_videos?select=*&id=eq.${dbCheck[0].id}&limit=1`);
+              if (full?.length && onExisting) { onExisting(fromDb(full[0])); return; }
+            } catch {}
+            if (onExisting) onExisting({ id: dbCheck[0].id, title: dbCheck[0].title });
+            else onBack();
             return;
           }
         } catch {}
@@ -3932,7 +3938,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             </button>
           )}
           {view === "library" && <LibraryView videos={videos} onSelect={openVideo} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onResearchMode={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
-          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} prefillUrl={prefillUrl} />}
+          {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} onExisting={(v) => { setSelected(v); navigate("detail"); }} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} />}
           {view === "detail" && currentVideo && <VideoDetailView video={currentVideo} allVideos={videos} onUpdate={upsertVideo} onDelete={async () => { await removeVideo(selected.id); setSelected(null); navigate("library"); }} onBack={() => navigate("library")} onNavigate={(v) => { setSelected(v); }} />}
           {view === "query" && <ResearchModeView videos={videos} onBack={() => navigate("library")} />}
