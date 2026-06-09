@@ -581,7 +581,7 @@
                     </div>
                     <p style={{ fontSize: 11, color: showUpgrade ? "var(--warn)" : "var(--t3)", marginTop: 5 }}>
                       {showUpgrade
-                        ? <span>Almost there — share a video to earn more · <a href="/index.html" style={{ color: "var(--acc)", textDecoration: "none" }}>Upgrade $1/mo →</a></span>
+                        ? <span>Running low — <a href="/signup.html" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 600 }}>Upgrade $10/mo or $79/yr →</a></span>
                         : "Share a video to earn +2 more videos"
                       }
                     </p>
@@ -3390,7 +3390,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       const [procSteps, setProcSteps] = useState([]);
       const [procMsg, setProcMsg] = useState("");
       const [procPct, setProcPct] = useState(0);
-      const [offer, setOffer] = useState({ free_days: 60, free_video_limit: 30, founding_slots_total: 50, founding_slots_used: 0, founding_price_cents: 100, next_price_cents: 200 });
+      const [offer, setOffer] = useState({ free_days: 60, free_video_limit: 30, founding_slots_total: 79, founding_slots_used: 0, founding_price_cents: 7900, next_price_cents: 9900 });
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
 
       const NO_SHARE = params.get("no_share") === "true";
@@ -3613,7 +3613,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             <span className="preview-offer-text">
               Free {freeDays} days · {freeVideos} videos
               {slotsLeft > 0
-                ? ` · $${foundingPrice}/mo forever — ${slotsLeft} founding spots left`
+                ? ` · $10/mo or $79/yr founders — ${slotsLeft} spots left`
                 : ` · $${nextPrice}/mo`
               }
             </span>
@@ -3629,7 +3629,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               <div>
                 <p style={{ fontSize:15, fontWeight:700, color:"var(--text)", marginBottom:4 }}>Turn Videos Into Searchable Knowledge</p>
                 <p style={{ fontSize:13, color:"var(--t2)" }}>
-                  Free {freeDays} days · up to {freeVideos} videos · then ${foundingPrice}/mo forever
+                  Free {freeDays} days · up to {freeVideos} videos · then $10/mo or $79/yr annual
                   {slotsLeft > 0 && <span style={{ color:"var(--warn)", fontWeight:600, marginLeft:6 }}>· {slotsLeft} founding spots left</span>}
                 </p>
               </div>
@@ -3716,10 +3716,10 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               {slotsLeft > 0 ? (
                 <>
                   <p style={{ fontSize:18, fontWeight:700, color:"var(--text)", marginBottom:6 }}>
-                    {slotsLeft} founding spots left at ${foundingPrice}/mo
+                    {slotsLeft} founding spots left at $79/yr
                   </p>
                   <p style={{ fontSize:13, color:"var(--t2)", marginBottom:16, lineHeight:1.6 }}>
-                    Free {freeDays} days · {freeVideos} videos included · No credit card · Lock in ${foundingPrice}/mo forever<br/>
+                    Free {freeDays} days · {freeVideos} videos included · No credit card needed<br/>
                     <span style={{ color:"var(--t3)", fontSize:12 }}>After {slotsLeft} spots, price goes to ${nextPrice}/mo — never offered again at this price</span>
                   </p>
                 </>
