@@ -581,7 +581,7 @@
                     </div>
                     <p style={{ fontSize: 11, color: showUpgrade ? "var(--warn)" : "var(--t3)", marginTop: 5 }}>
                       {showUpgrade
-                        ? <span>Running low — <a href="/signup.html" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 600 }}>Upgrade $10/mo or $79/yr →</a></span>
+                        ? <span>Running low — <a href="/signup.html" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 600 }}>Upgrade $10/mo · $79/yr founders · $99/yr standard →</a></span>
                         : "Share a video to earn +2 more videos"
                       }
                     </p>
@@ -685,7 +685,7 @@
                       setSmartLoading(false);
                     }
                   }}
-                  title={(isPrivileged || MEMBERSHIP?.isPaid) ? "Smart Find — describe what you remember and AI finds matching videos across your entire library" : "Smart Find — upgrade to unlock AI-powered semantic search ($10/mo or $79/yr)"}
+                  title={(isPrivileged || MEMBERSHIP?.isPaid) ? "Smart Find — describe what you remember and AI finds matching videos across your entire library" : "Smart Find — upgrade to unlock AI-powered semantic search ($10/mo · $79/yr founders · $99/yr standard)"}
                   style={{ padding: "9px 16px", borderRadius: 8, background: smartResults !== null ? "var(--acc)" : (isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc-lo)" : "var(--s2)", border: `1px solid ${(isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc-mid)" : "var(--b)"}`, color: smartResults !== null ? "#fff" : (isPrivileged || MEMBERSHIP?.isPaid) ? "var(--acc)" : "var(--t3)", cursor: (isPrivileged || MEMBERSHIP?.isPaid) ? "pointer" : "not-allowed", fontSize: 13, fontFamily: "Figtree,system-ui", whiteSpace: "nowrap", opacity: (isPrivileged || MEMBERSHIP?.isPaid) ? 1 : 0.5 }}>
                   {smartLoading ? <Spinner size={13} /> : smartResults !== null ? `✦ ${smartResults.length} Smart Results ✕` : <>✦ Smart Find {(isPrivileged || MEMBERSHIP?.isPaid) ? "" : "🔒"}</>}
                 </button>
@@ -3613,7 +3613,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             <span className="preview-offer-text">
               Free {freeDays} days · {freeVideos} videos
               {slotsLeft > 0
-                ? ` · $10/mo or $79/yr founders — ${slotsLeft} spots left`
+                ? ` · $10/mo · $79/yr founders · $99/yr standard founders — ${slotsLeft} spots left`
                 : ` · $${nextPrice}/mo`
               }
             </span>
@@ -3629,7 +3629,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               <div>
                 <p style={{ fontSize:15, fontWeight:700, color:"var(--text)", marginBottom:4 }}>Turn Videos Into Searchable Knowledge</p>
                 <p style={{ fontSize:13, color:"var(--t2)" }}>
-                  Free {freeDays} days · up to {freeVideos} videos · then $10/mo or $79/yr annual
+                  Free {freeDays} days · up to {freeVideos} videos · then $10/mo · $79/yr founders · $99/yr standard annual
                   {slotsLeft > 0 && <span style={{ color:"var(--warn)", fontWeight:600, marginLeft:6 }}>· {slotsLeft} founding spots left</span>}
                 </p>
               </div>
