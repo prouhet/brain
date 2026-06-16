@@ -3503,8 +3503,8 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
             body: JSON.stringify({
               model: "claude-sonnet-4-6",
-              max_tokens: 2000,
-              system: getAnalysisPrompt(txData?.title || "", txData?.channel || "", kpCount),
+              max_tokens: COLLECTION_CONFIG ? 3500 : 2000,
+              system: getAnalysisPrompt(txData?.title || "", txData?.channel || "", COLLECTION_CONFIG ? 16 : kpCount),
               messages: [{ role: "user", content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${txData.transcript}` }],
             }),
           });
