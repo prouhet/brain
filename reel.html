@@ -96,8 +96,54 @@
     const IS_PREVIEW = params.get("preview") === "true";
     const PREVIEW_VID = params.get("vid");
     const COLLECTION = params.get("collection");
-    const COLLECTION_LABELS = { "huberman-lab": "Huberman Lab", "peptides": "Peptides Collection" };
-    const COLLECTION_URLS  = { "huberman-lab": "/know/huberman-lab.html", "peptides": "/know/peptides.html" };
+    const COLLECTION_LABELS = { "huberman-lab": "Huberman Lab", "peptides": "Peptides Collection", "randy-finney": "Right Side of the Chart" };
+    const COLLECTION_URLS  = { "huberman-lab": "/know/huberman-lab.html", "peptides": "/know/peptides.html", "randy-finney": "/know/randy-finney.html" };
+
+    // Collection config — loaded async from collection_metadata
+    let COLLECTION_CONFIG = null;
+    if (COLLECTION) {
+      sbReq(`collection_metadata?select=analysis_prompt,display_config,name,logo_url,show_branding,no_share&collection_tag=eq.${COLLECTION}&limit=1`)
+        .then(rows => { if (rows?.[0]) COLLECTION_CONFIG = rows[0]; })
+        .catch(() => {});
+    }
+
+    function getAnalysisPrompt(title, channel, kpCount = 8) {
+      if (COLLECTION_CONFIG?.analysis_prompt) {
+        return COLLECTION_CONFIG.analysis_prompt + `
+
+Return ONLY valid JSON:
+{
+  "title": "${title || "derive from transcript"}",
+  "channel": "${channel || "derive from transcript"}",
+  "summary": "2-3 paragraph narrative arc",
+  "keyPoints": ["specific fact with tickers/numbers", "...up to ${kpCount}"],
+  "quotes": ["short direct quote under 20 words"],
+  "tags": ["ticker or topic tag", "...up to 8"],
+  "whatsNew": "one contrarian or surprising claim",
+  "actionSuggestions": ["specific watchlist action", "...up to 3"],
+  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }
+}`;
+      }
+      return `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "title": "${title || "derive from transcript"}",
+  "channel": "${channel || "derive from transcript if possible"}",
+  "summary": "2-3 paragraph narrative arc — tell the story of the video",
+  "keyPoints": ["specific fact with numbers/data", "...up to ${kpCount} — be specific not generic"],
+  "quotes": ["short direct quote under 20 words", "another memorable quote"],
+  "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "whatsNew": "one contrarian or surprising claim from this content",
+  "actionSuggestions": ["specific action 1", "...up to 3"],
+  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }
+}`;
+    }
+
+    function getDisplayLabel(key, fallback) {
+      const cfg = COLLECTION_CONFIG?.display_config;
+      return (cfg && cfg[key]) ? cfg[key] : fallback;
+    }
     const userParam = (params.get("user") || "").toLowerCase();
     const sbAuth = supabase.createClient(SB_URL, SB_KEY);
 
@@ -2461,7 +2507,7 @@ Answer questions accurately and specifically based on the content above.`,
           </Sec>
 
           {video.keyPoints?.length > 0 && (
-            <Sec title="Key Points" subtitle={<span>Star anything worth recalling later<Tip text="Starred points are highlighted in amber and counted in the video header badge. Use them to track what's new or important to revisit." /></span>}>
+            <Sec title={getDisplayLabel("keyPointsLabel", "Key Points")} subtitle={<span>Star anything worth recalling later<Tip text="Starred points are highlighted in amber and counted in the video header badge. Use them to track what's new or important to revisit." /></span>}>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {video.keyPoints.map((p, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -3144,7 +3190,7 @@ Answer questions accurately and specifically based on the content above.`,
             </Sec>
 
             {video.keyPoints?.length > 0 && (
-              <Sec title="Key Points">
+              <Sec title={getDisplayLabel("keyPointsLabel", "Key Points")}>
                 <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
                   {video.keyPoints.map((p, i) => (
                     <li key={i} style={{ display: "flex", gap: 10, fontSize: 14 }}>
@@ -3458,7 +3504,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             body: JSON.stringify({
               model: "claude-sonnet-4-6",
               max_tokens: 2000,
-              system: `Analyze this video transcript. Return ONLY valid JSON:\n{\n  "title": "exact video title",\n  "channel": "channel name",\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote"],\n  "tags": ["up to 5 tags"],\n  "actionSuggestions": ["specific action"],\n  "whatsNew": "one contrarian or surprising claim",\n  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }\n}`,
+              system: getAnalysisPrompt(txData?.title || "", txData?.channel || "", kpCount),
               messages: [{ role: "user", content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${txData.transcript}` }],
             }),
           });
@@ -3673,7 +3719,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             </Sec>
 
             {video.keyPoints?.length > 0 && (
-              <Sec title="Key Points">
+              <Sec title={getDisplayLabel("keyPointsLabel", "Key Points")}>
                 <ul style={{ listStyle:"none", display:"flex", flexDirection:"column", gap:10 }}>
                   {video.keyPoints.map((p, i) => (
                     <li key={i} style={{ display:"flex", gap:10, fontSize:14 }}>
