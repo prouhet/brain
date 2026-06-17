@@ -3063,8 +3063,15 @@ Instructions:
           if (existing?.length) { setSaved(true); setSaving(false); return; }
           // Save — use REST anon key (RLS disabled on youtube_videos)
           const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: video.noShare || false };
-          const saveRes = await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(copy) });
+          await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(copy) });
+          // Clear any stored return URL so library doesn't bounce back
+          sessionStorage.removeItem("reelcall_return_to");
+          sessionStorage.removeItem("reelcall_auto_save_share");
           setSaved(true);
+          // Redirect to library after short delay
+          setTimeout(() => {
+            window.location.href = `/reel.html?user=${ownerVal}`;
+          }, 1200);
         } catch (e) {
           console.error("Save error:", e);
           const msg = e.message || "";
@@ -3874,6 +3881,9 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               if (returnTo && (returnTo.includes("?share=") || returnTo.includes("?preview=") || returnTo.includes("preview=true"))) {
                 sessionStorage.removeItem("reelcall_return_to");
                 window.location.href = returnTo;
+              } else {
+                // Clear any stale return URLs that shouldn't trigger a redirect
+                sessionStorage.removeItem("reelcall_return_to");
               }
               if (window.__showOnboarding) {
                 window.__showOnboarding = false;
