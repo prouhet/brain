@@ -107,8 +107,9 @@
         .catch(() => {});
     }
 
-    function getAnalysisPrompt(title, channel, kpCount = 8) {
-      if (COLLECTION_CONFIG?.analysis_prompt) {
+    function getAnalysisPrompt(title, channel, kpCount = 8, cfgOverride = null) {
+      const cfg = cfgOverride || COLLECTION_CONFIG || window.__tempCollCfg;
+      if (cfg?.analysis_prompt) {
         return COLLECTION_CONFIG.analysis_prompt + `
 
 Return ONLY valid JSON:
@@ -1630,6 +1631,15 @@ Return ONLY valid JSON (no markdown fences):
 
           setStepStatus("transcript", "done");
 
+          // ── Auto-load collection config by channel match ──
+          let activeCollectionCfg = COLLECTION_CONFIG;
+          if (!activeCollectionCfg && channelResolved) {
+            try {
+              const collMatch = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&channel_match=cs.{${encodeURIComponent(channelResolved)}}&limit=1`);
+              if (collMatch?.[0]?.analysis_prompt) activeCollectionCfg = collMatch[0];
+            } catch {}
+          }
+
           // ── Step 2: Claude analysis (skip if cached) ──
           setStepStatus("analyze", "active");
 
@@ -1656,7 +1666,8 @@ Return ONLY valid JSON (no markdown fences):
 
           // Dynamic key point count based on video duration
           const dur = txData?.duration || cachedAnalysis?.duration || null;
-          const kpCount = dur
+          const kpCount = activeCollectionCfg ? 28
+            : dur
             ? dur < 600 ? 5
             : dur < 1800 ? 9
             : dur < 3600 ? 12
@@ -1664,10 +1675,16 @@ Return ONLY valid JSON (no markdown fences):
             : 22
             : 8;
 
+          // Temporarily set COLLECTION_CONFIG for getAnalysisPrompt if channel matched
+          const prevConfig = COLLECTION_CONFIG;
+          if (activeCollectionCfg && !COLLECTION_CONFIG) window.__tempCollCfg = activeCollectionCfg;
+
           let data;
           try {
             data = await callClaude({
-              system: `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.${channelNote}
+              system: activeCollectionCfg?.analysis_prompt
+                ? getAnalysisPrompt(titleResolved, channelResolved, kpCount)
+                : `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.${channelNote}
 
 IMPORTANT DISTINCTIONS:
 - summary: The NARRATIVE ARC — what is this video about, what argument does it make, what journey does it take the viewer on. Write as flowing prose that tells the STORY of the video. Do NOT list facts here.
@@ -1688,7 +1705,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
   "credibility": { "score": "high|medium|low", "flags": ["list specific concerns if any"], "note": "one sentence — empty string if no concerns" }
 }`,
               messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}\n\nFULL TRANSCRIPT:\n${transcriptTruncated}` }],
-              maxTokens: 2500,
+              maxTokens: activeCollectionCfg ? 5000 : 2500,
             });
           } catch (apiErr) {
             setStepStatus("analyze", "error");
