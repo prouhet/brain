@@ -3061,16 +3061,9 @@ Instructions:
           // Check not already saved
           const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
           if (existing?.length) { setSaved(true); setSaving(false); return; }
-          // Save using authenticated client so RLS passes
-          // Preserve no_share flag — if original video disallows sharing, personal copy does too
+          // Save — use REST anon key (RLS disabled on youtube_videos)
           const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: video.noShare || false };
-          const { error } = await sbAuth.from("youtube_videos").insert(copy);
-          if (error) throw error;
-          // Increment videos_added counter
-          try {
-            const { data: prof } = await sbAuth.from("reel_users").select("videos_added").eq("id", authUser.id).single();
-            if (prof) await sbAuth.from("reel_users").update({ videos_added: (prof.videos_added || 0) + 1 }).eq("id", authUser.id);
-          } catch {}
+          const saveRes = await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(copy) });
           setSaved(true);
         } catch (e) {
           console.error("Save error:", e);
