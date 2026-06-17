@@ -3131,7 +3131,7 @@ Answer questions accurately and specifically based on the content above.`,
 
               // Store share URL so after login we can redirect back
               function goSignIn() {
-                sessionStorage.setItem("reelcall_return_to", shareUrl);
+                sessionStorage.setItem("reelcall_return_to", window.location.href);
                 sessionStorage.setItem("reelcall_auto_save_share", videoId);
                 window.location.href = "/signup.html";
               }
@@ -3701,7 +3701,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               ? <button disabled style={{ opacity:.5, padding:"8px 16px", borderRadius:6, fontSize:12, fontWeight:600, background:"var(--s3)", color:"var(--t2)", border:"1px solid var(--b)", cursor:"not-allowed" }}>Sharing not permitted</button>
               : null
             }
-            <a href="/signup.html" className="preview-cta-btn">Save to My Library →</a>
+            <a href="/signup.html" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("reelcall_return_to", window.location.href); sessionStorage.setItem("reelcall_auto_save_share", videoId); window.location.href = "/signup.html"; }} className="preview-cta-btn">Save to My Library →</a>
           </div>
 
           <div style={{ maxWidth:740, margin:"0 auto", padding:"24px 20px" }}>
@@ -3873,7 +3873,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                 MEMBERSHIP.videosUsed = mapped.length;
               }
               const returnTo = sessionStorage.getItem("reelcall_return_to");
-              if (returnTo && returnTo.includes("?share=")) {
+              if (returnTo && (returnTo.includes("?share=") || returnTo.includes("?preview=") || returnTo.includes("preview=true"))) {
                 sessionStorage.removeItem("reelcall_return_to");
                 window.location.href = returnTo;
               }
