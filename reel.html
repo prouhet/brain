@@ -1632,12 +1632,21 @@ Return ONLY valid JSON (no markdown fences):
           setStepStatus("transcript", "done");
 
           // ── Auto-load collection config by channel match ──
+          // Hardcoded channel → collection_tag map (add new channels here)
+          const CHANNEL_COLLECTION_MAP = {
+            'right side of the chart': 'randy-finney',
+            'right side of the chart - randy phinney': 'randy-finney',
+            'red side of the chart': 'randy-finney',
+          };
           let activeCollectionCfg = COLLECTION_CONFIG;
           if (!activeCollectionCfg && channelResolved) {
-            try {
-              const collMatch = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&channel_match=cs.{${encodeURIComponent(channelResolved)}}&limit=1`);
-              if (collMatch?.[0]?.analysis_prompt) activeCollectionCfg = collMatch[0];
-            } catch {}
+            const collectionTag = CHANNEL_COLLECTION_MAP[channelResolved.toLowerCase().trim()];
+            if (collectionTag) {
+              try {
+                const collMatch = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&collection_tag=eq.${collectionTag}&limit=1`);
+                if (collMatch?.[0]?.analysis_prompt) activeCollectionCfg = collMatch[0];
+              } catch {}
+            }
           }
 
           // ── Step 2: Claude analysis (skip if cached) ──
