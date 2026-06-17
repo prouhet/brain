@@ -1631,22 +1631,17 @@ Return ONLY valid JSON (no markdown fences):
 
           setStepStatus("transcript", "done");
 
-          // ── Auto-load collection config by channel match ──
-          // Hardcoded channel → collection_tag map (add new channels here)
-          const CHANNEL_COLLECTION_MAP = {
-            'right side of the chart': 'randy-finney',
-            'right side of the chart - randy phinney': 'randy-finney',
-            'red side of the chart': 'randy-finney',
-          };
+          // ── Auto-load collection config by channel match (DB-driven) ──
           let activeCollectionCfg = COLLECTION_CONFIG;
           if (!activeCollectionCfg && channelResolved) {
-            const collectionTag = CHANNEL_COLLECTION_MAP[channelResolved.toLowerCase().trim()];
-            if (collectionTag) {
-              try {
-                const collMatch = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&collection_tag=eq.${collectionTag}&limit=1`);
+            try {
+              // Look up channel name in collection_channels table (case-insensitive)
+              const chanRow = await sbReq(`collection_channels?select=collection_tag&channel_name=ilike.${encodeURIComponent(channelResolved)}&limit=1`);
+              if (chanRow?.[0]?.collection_tag) {
+                const collMatch = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&collection_tag=eq.${chanRow[0].collection_tag}&limit=1`);
                 if (collMatch?.[0]?.analysis_prompt) activeCollectionCfg = collMatch[0];
-              } catch {}
-            }
+              }
+            } catch {}
           }
 
           // ── Step 2: Claude analysis (skip if cached) ──
