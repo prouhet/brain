@@ -1014,23 +1014,11 @@ Return ONLY valid JSON (no markdown fences):
         let si = 0; setStepLabel(labels[0]);
         const ticker = setInterval(() => { si = (si + 1) % labels.length; setStepLabel(labels[si]); }, 2200);
         try {
+          const kpForCollection = COLLECTION_CONFIG ? 28 : 8;
           const data = await callClaude({
-            system: `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.
-
-Return ONLY valid JSON (no markdown fences):
-{
-  "title": "${title || "derive from transcript"}",
-  "channel": "${channel || "derive from transcript if possible"}",
-  "summary": "2-3 paragraph narrative arc — tell the story of the video",
-  "keyPoints": ["specific fact with numbers/data", "...up to 8 — be specific not generic"],
-  "quotes": ["short direct quote under 20 words", "another memorable quote"],
-  "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
-  "whatsNew": "one contrarian or surprising claim from this content",
-  "actionSuggestions": ["specific action 1", "...up to 3"],
-  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }
-}`,
+            system: getAnalysisPrompt(title, channel, kpForCollection),
             messages: [{ role: "user", content: `Title: ${title || "unknown"}\nChannel: ${channel || "unknown"}\nURL: ${url || "none"}\n\nFULL TRANSCRIPT:\n${cleanedTranscript}` }],
-            maxTokens: 2000,
+            maxTokens: COLLECTION_CONFIG ? 5000 : 2000,
           });
           clearInterval(ticker);
           const parsed = parseJSON(getText(data));
@@ -3503,8 +3491,8 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
             body: JSON.stringify({
               model: "claude-sonnet-4-6",
-              max_tokens: COLLECTION_CONFIG ? 3500 : 2000,
-              system: getAnalysisPrompt(txData?.title || "", txData?.channel || "", COLLECTION_CONFIG ? 16 : kpCount),
+              max_tokens: COLLECTION_CONFIG ? 5000 : 2000,
+              system: getAnalysisPrompt(txData?.title || "", txData?.channel || "", COLLECTION_CONFIG ? 28 : kpCount),
               messages: [{ role: "user", content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${txData.transcript}` }],
             }),
           });
