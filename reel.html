@@ -3074,7 +3074,12 @@ Instructions:
           setSaved(true);
         } catch (e) {
           console.error("Save error:", e);
-          alert(`Could not save: ${e.message}`);
+          const msg = e.message || "";
+          if (msg.includes("not logged") || msg.includes("JWT") || msg.includes("auth")) {
+            alert("Please sign in first to save this video to your library.");
+          } else {
+            alert(`Could not save: ${msg || "Please try again"}`);
+          }
         }
         finally { setSaving(false); }
       }
