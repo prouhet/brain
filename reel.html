@@ -110,7 +110,7 @@
     function getAnalysisPrompt(title, channel, kpCount = 8, cfgOverride = null) {
       const cfg = cfgOverride || COLLECTION_CONFIG || window.__tempCollCfg;
       if (cfg?.analysis_prompt) {
-        return COLLECTION_CONFIG.analysis_prompt + `
+        return cfg.analysis_prompt + `
 
 Return ONLY valid JSON:
 {
