@@ -137,11 +137,12 @@
   <!-- What you get -->
   <div class="features">
     <h3>What's included</h3>
-    <div class="feature"><div class="feature-dot">✓</div>Unlimited questions across all your videos</div>
-    <div class="feature"><div class="feature-dot">✓</div>Research Mode — ask across multiple videos at once</div>
-    <div class="feature"><div class="feature-dot">✓</div>Save unlimited videos to your personal library</div>
-    <div class="feature"><div class="feature-dot">✓</div>Full transcript access and deep Q&A</div>
-    <div class="feature"><div class="feature-dot">✓</div>Access to partner collections (Right Side of the Chart, etc.)</div>
+    <div class="feature"><div class="feature-dot">✓</div><div><strong style="color:#DDE4F5">Unlimited Q&A</strong> — ask as many questions as you want about any video in your library</div></div>
+    <div class="feature"><div class="feature-dot">✓</div><div><strong style="color:#DDE4F5">Research Mode</strong> — ask one question across your entire library at once and get a synthesized answer</div></div>
+    <div class="feature"><div class="feature-dot">✓</div><div><strong style="color:#DDE4F5">Unlimited video library</strong> — save as many videos as you want, no caps</div></div>
+    <div class="feature"><div class="feature-dot">✓</div><div><strong style="color:#DDE4F5">Smart Find</strong> — AI-powered search that finds videos by fuzzy description, not just exact title</div></div>
+    <div class="feature"><div class="feature-dot">✓</div><div><strong style="color:#DDE4F5">Priority analysis</strong> — your videos go to the front of the queue</div></div>
+    <div class="feature"><div class="feature-dot">✓</div><div><strong style="color:#DDE4F5">Rate locked forever</strong> — your subscription price never goes up as long as you stay active</div></div>
   </div>
 
 <script>
@@ -242,8 +243,24 @@
     window.location.href = url;
   }
 
-  // Init
+  // Init — auto-apply FOUNDERS79 if slots remain
   selectPlan('annual');
+  (async () => {
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/coupon_codes?select=uses_count,max_uses&code=eq.FOUNDERS79&active=eq.true&limit=1`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const rows = await res.json();
+      if (rows?.[0] && rows[0].uses_count < rows[0].max_uses) {
+        const remaining = rows[0].max_uses - rows[0].uses_count;
+        document.getElementById('coupon-input').value = 'FOUNDERS79';
+        document.getElementById('coupon-msg').textContent = `✦ Founders pricing — ${remaining} spots remaining`;
+        document.getElementById('coupon-msg').className = 'coupon-msg ok';
+        await applyCoupon();
+      }
+    } catch {}
+  })();
 </script>
 </body>
 </html>
