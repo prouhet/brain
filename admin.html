@@ -612,10 +612,10 @@
       const filtered = collFilter_active === 'all' ? collVideos : collVideos.filter(v => v.collection_tag === collFilter_active);
       const el = document.getElementById('coll-video-list');
       if (!filtered.length) { el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>`; return; }
-      const COLL_CLASS = {};
-      const color = COLL_COLORS[v.collection_tag] || '#7B8FAD';
-      const pillStyle = `display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:${color}22;color:${color};border:1px solid ${color}44`;
-      el.innerHTML = filtered.map(v => `
+      el.innerHTML = filtered.map(v => {
+        const color = COLL_COLORS[v.collection_tag] || '#7B8FAD';
+        const pillStyle = `display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:${color}22;color:${color};border:1px solid ${color}44`;
+        return `
         <div class="video-row">
           <img src="${thumb(v.video_id)}" onerror="this.style.display='none'">
           <div>
@@ -632,7 +632,7 @@
             <button class="btn-red" onclick="collDelete('${v.id}','${(v.title||'').replace(/'/g,"\'")}') " style="padding:3px 7px;font-size:10px">Delete</button>
           </div>
         </div>
-      `).join('');
+      `; }).join('');
     }
 
     function collSelectChange(sel) {
