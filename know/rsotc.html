@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Right Side of the Chart — AI Video Analysis | ReelCall</title>
-  <meta name="description" content="AI-powered summaries and Q&A for every Right Side of the Chart video by Randy Phinney. Get instant trade breakdowns, ticker lists, and ask questions about any video.">
+  <meta name="description" content="AI-powered summaries and Q&A for every Right Side of the Chart video by Randy Finney. Get instant trade breakdowns, ticker lists, and ask questions about any video.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -86,7 +86,7 @@
 
 <!-- Hero -->
 <section class="hero">
-  <div class="hero-badge">Right Side of the Chart · Randy Phinney</div>
+  <div class="hero-badge">Right Side of the Chart · Randy Finney</div>
   <h1>Every video.<br><em>Instant analysis.</em></h1>
   <p class="hero-sub">Get a full ticker-by-ticker breakdown of every Right Side of the Chart video — trade status, price targets, key signals, and Randy's best quotes. Ask any question about any video.</p>
   <div class="hero-actions">
@@ -121,22 +121,22 @@
   <div class="section-label">Video Library</div>
   <div class="section-title">Right Side of the Chart · Analysis</div>
 
-  <div class="search-bar">
-    <input class="search-input" id="search" placeholder="Search by ticker, topic, or date..." oninput="filterVideos()">
-  </div>
-
-  <div class="video-grid" id="video-grid">
-    <div class="loading"><div class="spinner"></div>Loading videos...</div>
+  <div style="background:#0D1220;border:1px solid #1E2D48;border-radius:14px;padding:32px;text-align:center;margin-top:8px">
+    <p style="font-size:28px;margin-bottom:12px">🔒</p>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:8px">Members — click your video link</h3>
+    <p style="font-size:14px;color:#7B8FAD;line-height:1.6;max-width:480px;margin:0 auto 20px">This collection is private. To view the AI analysis for a Right Side of the Chart video, click the ReelCall link Randy includes next to his YouTube videos.</p>
+    <a href="/signup.html" style="display:inline-block;background:#E5001C;color:#fff;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:700;text-decoration:none">Create Free Account →</a>
   </div>
 </section>
 
 <!-- Footer -->
 <footer class="footer">
   <p>Powered by <a href="/index.html">ReelCall</a> · AI video analysis for serious traders · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a></p>
-  <p style="margin-top:6px">Not affiliated with Right Side of the Chart. Video content belongs to Randy Phinney.</p>
+  <p style="margin-top:6px">Not affiliated with Right Side of the Chart. Video content belongs to Randy Finney.</p>
 </footer>
 
 <script>
+// Private collection — no public video listing
 const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
 
@@ -210,7 +210,7 @@ async function loadVideos() {
   }
 }
 
-loadVideos();
+// loadVideos(); — private collection
 </script>
 </body>
 </html>
