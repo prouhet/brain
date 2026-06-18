@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upgrade — ReelCall</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07090F; --card: #0D1220; --border: #1E2D48;
+      --t1: #DDE4F5; --t2: #7B8FAD; --t3: #3D5070;
+      --acc: #E5001C; --ok: #22C55E; --warn: #F59E0B;
+    }
+    body { font-family: 'Figtree', system-ui, sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+
+    /* Back link */
+    .back { position: fixed; top: 20px; left: 20px; font-size: 13px; color: var(--t3); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .back:hover { color: var(--t2); }
+
+    /* Logo */
+    .logo { margin-bottom: 32px; text-align: center; }
+    .logo img { height: 28px; filter: brightness(0) invert(1); opacity: .85; }
+
+    /* Headline */
+    .headline { text-align: center; margin-bottom: 32px; }
+    .headline h1 { font-family: 'Syne', sans-serif; font-size: clamp(22px, 4vw, 32px); font-weight: 800; margin-bottom: 8px; }
+    .headline p { font-size: 14px; color: var(--t2); line-height: 1.6; }
+
+    /* Plan toggle */
+    .plan-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; width: 100%; max-width: 420px; }
+    .plan-btn { flex: 1; padding: 14px 12px; font-size: 14px; font-family: 'Figtree', sans-serif; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--t2); transition: all .15s; text-align: center; position: relative; }
+    .plan-btn.active { background: var(--acc); color: #fff; }
+    .plan-btn:first-child { border-right: 1px solid var(--border); }
+    .plan-price { display: block; font-size: 11px; font-weight: 400; margin-top: 2px; opacity: .8; }
+    .badge-save { display: inline-block; background: rgba(34,197,94,.15); color: var(--ok); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+
+    /* Coupon field — only shows for annual */
+    .coupon-section { width: 100%; max-width: 420px; margin-bottom: 20px; }
+    .coupon-label { font-size: 12px; color: var(--t2); margin-bottom: 8px; display: block; }
+    .coupon-row { display: flex; gap: 8px; }
+    .coupon-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 11px 14px; font-size: 14px; font-family: 'Figtree', sans-serif; color: var(--t1); outline: none; letter-spacing: .05em; text-transform: uppercase; }
+    .coupon-input::placeholder { text-transform: none; letter-spacing: 0; color: var(--t3); }
+    .coupon-input:focus { border-color: var(--acc); }
+    .coupon-input.valid { border-color: var(--ok); }
+    .coupon-apply { background: var(--border); border: none; border-radius: 9px; padding: 11px 16px; font-size: 13px; font-weight: 600; font-family: 'Figtree', sans-serif; color: var(--t1); cursor: pointer; white-space: nowrap; }
+    .coupon-apply:hover { background: #2A3D5A; }
+    .coupon-msg { font-size: 12px; margin-top: 8px; min-height: 18px; }
+    .coupon-msg.ok { color: var(--ok); }
+    .coupon-msg.err { color: var(--acc); }
+
+    /* Price summary */
+    .price-summary { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+    .price-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 8px; }
+    .price-row:last-child { margin-bottom: 0; padding-top: 12px; border-top: 1px solid var(--border); font-weight: 700; font-size: 16px; }
+    .price-row .label { color: var(--t2); }
+    .price-row .discount { color: var(--ok); }
+    .price-row .total { color: var(--t1); }
+
+    /* CTA */
+    .cta-btn { display: block; width: 100%; max-width: 420px; background: var(--acc); color: #fff; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 700; font-family: 'Figtree', sans-serif; cursor: pointer; text-align: center; text-decoration: none; transition: opacity .15s; }
+    .cta-btn:hover { opacity: .9; }
+    .cta-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Fine print */
+    .fine-print { margin-top: 16px; font-size: 11px; color: var(--t3); text-align: center; max-width: 420px; line-height: 1.6; }
+    .fine-print a { color: var(--t3); text-decoration: underline; }
+
+    /* What you get */
+    .features { width: 100%; max-width: 420px; margin-top: 28px; border-top: 1px solid var(--border); padding-top: 24px; }
+    .features h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--t3); margin-bottom: 14px; }
+    .feature { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--t2); line-height: 1.5; }
+    .feature-dot { width: 18px; height: 18px; border-radius: 50%; background: rgba(229,0,28,.12); border: 1px solid rgba(229,0,28,.25); color: var(--acc); font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  </style>
+</head>
+<body>
+
+  <a href="javascript:history.back()" class="back">← Back</a>
+
+  <div class="logo">
+    <a href="/index.html"><img src="/reelcall-logo-big.png" alt="ReelCall"></a>
+  </div>
+
+  <div class="headline">
+    <h1>Unlock unlimited access</h1>
+    <p>Ask unlimited questions across your entire video library</p>
+  </div>
+
+  <!-- Plan toggle -->
+  <div class="plan-toggle">
+    <button class="plan-btn" id="btn-monthly" onclick="selectPlan('monthly')">
+      Monthly
+      <span class="plan-price">$10 / month</span>
+    </button>
+    <button class="plan-btn active" id="btn-annual" onclick="selectPlan('annual')">
+      Annual <span class="badge-save">Save 17%</span>
+      <span class="plan-price">$99 / year</span>
+    </button>
+  </div>
+
+  <!-- Coupon field (annual only) -->
+  <div class="coupon-section" id="coupon-section">
+    <span class="coupon-label">Have a coupon code?</span>
+    <div class="coupon-row">
+      <input class="coupon-input" id="coupon-input" placeholder="Enter code" oninput="resetCoupon()" onkeydown="if(event.key==='Enter') applyCoupon()">
+      <button class="coupon-apply" onclick="applyCoupon()">Apply</button>
+    </div>
+    <div class="coupon-msg" id="coupon-msg"></div>
+  </div>
+
+  <!-- Price summary -->
+  <div class="price-summary" id="price-summary">
+    <div class="price-row">
+      <span class="label">Annual plan</span>
+      <span>$99.00</span>
+    </div>
+    <div class="price-row" id="discount-row" style="display:none">
+      <span class="label discount" id="discount-label">Coupon discount</span>
+      <span class="discount" id="discount-amount">−$0.00</span>
+    </div>
+    <div class="price-row">
+      <span class="label total">Total today</span>
+      <span class="total" id="total-price">$99.00</span>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <a href="#" class="cta-btn" id="cta-btn" onclick="checkout(event)">Upgrade Now →</a>
+
+  <p class="fine-print">
+    Secure checkout via Stripe. Cancel anytime. By upgrading you agree to our
+    <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.
+    Your subscription rate is locked as long as it stays active.
+  </p>
+
+  <!-- What you get -->
+  <div class="features">
+    <h3>What's included</h3>
+    <div class="feature"><div class="feature-dot">✓</div>Unlimited questions across all your videos</div>
+    <div class="feature"><div class="feature-dot">✓</div>Research Mode — ask across multiple videos at once</div>
+    <div class="feature"><div class="feature-dot">✓</div>Save unlimited videos to your personal library</div>
+    <div class="feature"><div class="feature-dot">✓</div>Full transcript access and deep Q&A</div>
+    <div class="feature"><div class="feature-dot">✓</div>Access to partner collections (Right Side of the Chart, etc.)</div>
+  </div>
+
+<script>
+  const STRIPE_MONTHLY = "https://buy.stripe.com/4gM7sL5Yp3vOgl86midUY00";
+  const STRIPE_ANNUAL  = "https://buy.stripe.com/4gM7sL1I92rK0macKGdUY02";
+  const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+
+  let currentPlan = 'annual';
+  let appliedCode = null;
+  let discountCents = 0;
+
+  function selectPlan(plan) {
+    currentPlan = plan;
+    document.getElementById('btn-monthly').classList.toggle('active', plan === 'monthly');
+    document.getElementById('btn-annual').classList.toggle('active', plan === 'annual');
+    document.getElementById('coupon-section').style.display = plan === 'annual' ? 'block' : 'none';
+    document.getElementById('price-summary').style.display = plan === 'annual' ? 'block' : 'none';
+    document.getElementById('cta-btn').textContent = plan === 'monthly' ? 'Upgrade — $10/month →' : 'Upgrade Now →';
+    resetCoupon();
+    updatePrice();
+  }
+
+  function resetCoupon() {
+    appliedCode = null;
+    discountCents = 0;
+    document.getElementById('coupon-input').classList.remove('valid');
+    document.getElementById('coupon-msg').textContent = '';
+    document.getElementById('coupon-msg').className = 'coupon-msg';
+    updatePrice();
+  }
+
+  function updatePrice() {
+    const base = 9900;
+    const final = Math.max(0, base - discountCents);
+    document.getElementById('discount-row').style.display = discountCents > 0 ? 'flex' : 'none';
+    document.getElementById('discount-amount').textContent = `−$${(discountCents / 100).toFixed(2)}`;
+    document.getElementById('total-price').textContent = `$${(final / 100).toFixed(2)}`;
+    const baseRow = document.querySelector('.price-row:first-child span:last-child');
+    if (baseRow) baseRow.textContent = discountCents > 0 ? `~~$99.00~~` : '$99.00';
+    document.getElementById('cta-btn').textContent = discountCents > 0
+      ? `Upgrade — $${(final / 100).toFixed(2)}/yr →`
+      : (currentPlan === 'monthly' ? 'Upgrade — $10/month →' : 'Upgrade Now — $99/yr →');
+  }
+
+  async function applyCoupon() {
+    const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+    const msgEl = document.getElementById('coupon-msg');
+    if (!code) return;
+
+    msgEl.textContent = 'Checking...';
+    msgEl.className = 'coupon-msg';
+
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/coupon_codes?select=code,description,discount_type,price_override_cents,max_uses,uses_count,active,billing_period&code=eq.${encodeURIComponent(code)}&active=eq.true&billing_period=eq.annual&limit=1`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const rows = await res.json();
+
+      if (!rows?.length) {
+        msgEl.textContent = 'Code not found or not valid for annual plans.';
+        msgEl.className = 'coupon-msg err';
+        return;
+      }
+
+      const coupon = rows[0];
+      if (coupon.max_uses && coupon.uses_count >= coupon.max_uses) {
+        msgEl.textContent = 'This code has reached its usage limit.';
+        msgEl.className = 'coupon-msg err';
+        return;
+      }
+
+      // Calculate discount
+      if (coupon.discount_type === 'price_override' && coupon.price_override_cents) {
+        discountCents = 9900 - coupon.price_override_cents;
+      }
+
+      appliedCode = code;
+      document.getElementById('coupon-input').classList.add('valid');
+      document.getElementById('discount-label').textContent = `${code} — ${coupon.description || 'Discount'}`;
+      msgEl.textContent = `✓ Code applied — $${(discountCents / 100).toFixed(2)} off`;
+      msgEl.className = 'coupon-msg ok';
+      updatePrice();
+
+    } catch(e) {
+      msgEl.textContent = 'Could not validate code — please try again.';
+      msgEl.className = 'coupon-msg err';
+    }
+  }
+
+  function checkout(e) {
+    e.preventDefault();
+    let url = currentPlan === 'monthly' ? STRIPE_MONTHLY : STRIPE_ANNUAL;
+    if (currentPlan === 'annual' && appliedCode) {
+      url += `?prefilled_promo_code=${encodeURIComponent(appliedCode)}`;
+    }
+    window.location.href = url;
+  }
+
+  // Init
+  selectPlan('annual');
+</script>
+</body>
+</html>
