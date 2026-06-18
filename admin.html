@@ -46,6 +46,7 @@
     .coll-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
     .coll-huberman{background:rgba(251,176,64,.12);color:#FBB040;border:1px solid rgba(251,176,64,.25)}
     .coll-peptides{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}
+    .coll-randy{background:rgba(229,0,28,.1);color:#E5001C;border:1px solid rgba(229,0,28,.25)}
     .coll-general{background:var(--s3);color:var(--t2);border:1px solid var(--b)}
     .filter-btn{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
     .filter-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -66,6 +67,7 @@
     .coll-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
     .coll-huberman{background:rgba(251,176,64,.12);color:#FBB040;border:1px solid rgba(251,176,64,.25)}
     .coll-peptides{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}
+    .coll-randy{background:rgba(229,0,28,.1);color:#E5001C;border:1px solid rgba(229,0,28,.25)}
     .coll-general{background:var(--s3);color:var(--t2);border:1px solid var(--b)}
     .filter-btn{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
     .filter-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -233,17 +235,13 @@
                   <button class="btn-g" onclick="collReset()" style="font-size:11px">Try Again</button>
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:auto">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:auto" id="coll-stats-grid">
                 <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)"><div style="font-size:20px;font-weight:700;color:#fff;font-family:'Syne',sans-serif" id="coll-stat-total">—</div><div style="font-size:10px;color:var(--t2);margin-top:2px">Total</div></div>
-                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)"><div style="font-size:20px;font-weight:700;color:#FBB040;font-family:'Syne',sans-serif" id="coll-stat-hub">—</div><div style="font-size:10px;color:var(--t2);margin-top:2px">Huberman</div></div>
-                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)"><div style="font-size:20px;font-weight:700;color:var(--ok);font-family:'Syne',sans-serif" id="coll-stat-pep">—</div><div style="font-size:10px;color:var(--t2);margin-top:2px">Peptides</div></div>
               </div>
             </div>
             <div class="coll-main">
-              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="coll-filter-bar">
                 <button class="filter-btn active" onclick="collFilter('all',this)">All</button>
-                <button class="filter-btn" onclick="collFilter('huberman-lab',this)">Huberman Lab</button>
-                <button class="filter-btn" onclick="collFilter('peptides',this)">Peptides</button>
                 <button class="filter-btn" onclick="collFilter('general',this)">General</button>
                 <button class="btn-g" onclick="collLoad()" style="margin-left:auto;padding:4px 10px;font-size:11px">↺ Refresh</button>
               </div>
@@ -538,7 +536,9 @@
     // ── Collections ───────────────────────────────────────────────────────────
     let collVideos = [], collFilter_active = 'all', collCurrentResult = null;
     const COLLECTION_OWNER = "reelcall_collections";
-    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides", "glp1": "GLP-1", "longevity": "Longevity", "fitness": "Fitness", "general": "General" };
+    let COLL_LABEL = { "general": "General" };
+    let COLL_COLORS = {};
+    const FALLBACK_COLORS = ["#7B8FAD","#FBB040","#22C55E","#E5001C","#A78BFA","#38BDF8","#FB923C","#F472B6"];
 
     function collToast(msg) {
       const el = document.getElementById('coll-toast');
@@ -548,12 +548,54 @@
 
     async function collLoad() {
       try {
+        // Load collection metadata dynamically
+        const meta = await sbReq(`collection_metadata?select=collection_tag,name,display_config&order=collection_tag.asc`);
+        const collections = meta || [];
+
+        // Build label + color maps
+        collections.forEach((c, i) => {
+          COLL_LABEL[c.collection_tag] = c.name || c.collection_tag;
+          COLL_COLORS[c.collection_tag] = c.display_config?.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+        });
+
+        // Build filter buttons dynamically
+        const bar = document.getElementById('coll-filter-bar');
+        const refreshBtn = bar.querySelector('.btn-g');
+        // Remove old partner buttons (keep All, General, Refresh)
+        bar.querySelectorAll('.filter-btn:not(:first-child)').forEach(b => b.remove());
+        collections.forEach(c => {
+          const btn = document.createElement('button');
+          btn.className = 'filter-btn';
+          btn.textContent = c.name || c.collection_tag;
+          btn.onclick = () => collFilter(c.collection_tag, btn);
+          bar.insertBefore(btn, refreshBtn);
+        });
+        const genBtn = document.createElement('button');
+        genBtn.className = 'filter-btn';
+        genBtn.textContent = 'General';
+        genBtn.onclick = () => collFilter('general', genBtn);
+        bar.insertBefore(genBtn, refreshBtn);
+
+        // Load videos
         const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added&owner=eq.${COLLECTION_OWNER}&order=date_added.desc`);
         collVideos = rows || [];
         collRenderList();
+
+        // Build stats dynamically
+        const statsGrid = document.getElementById('coll-stats-grid');
+        // Keep total stat, remove others
+        statsGrid.querySelectorAll('div:not(:first-child)').forEach(d => d.remove());
         document.getElementById('coll-stat-total').textContent = collVideos.length;
-        document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
-        document.getElementById('coll-stat-pep').textContent = collVideos.filter(v => v.collection_tag === 'peptides').length;
+        collections.forEach(c => {
+          const count = collVideos.filter(v => v.collection_tag === c.collection_tag).length;
+          const color = COLL_COLORS[c.collection_tag] || '#7B8FAD';
+          const shortName = (c.name || c.collection_tag).split(' ').map(w => w[0]).join('').slice(0,5).toUpperCase();
+          const div = document.createElement('div');
+          div.style.cssText = 'text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)';
+          div.innerHTML = `<div style="font-size:20px;font-weight:700;color:${color};font-family:'Syne',sans-serif">${count}</div><div style="font-size:10px;color:var(--t2);margin-top:2px">${shortName}</div>`;
+          statsGrid.appendChild(div);
+        });
+
       } catch(e) {
         document.getElementById('coll-video-list').innerHTML = `<p style="color:var(--red);font-size:13px">Error: ${e.message}</p>`;
       }
@@ -570,13 +612,15 @@
       const filtered = collFilter_active === 'all' ? collVideos : collVideos.filter(v => v.collection_tag === collFilter_active);
       const el = document.getElementById('coll-video-list');
       if (!filtered.length) { el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>`; return; }
-      const COLL_CLASS = { "huberman-lab": "coll-huberman", "peptides": "coll-peptides", "general": "coll-general" };
+      const COLL_CLASS = {};
+      const color = COLL_COLORS[v.collection_tag] || '#7B8FAD';
+      const pillStyle = `display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:${color}22;color:${color};border:1px solid ${color}44`;
       el.innerHTML = filtered.map(v => `
         <div class="video-row">
           <img src="${thumb(v.video_id)}" onerror="this.style.display='none'">
           <div>
             <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap">
-              <span class="coll-pill ${COLL_CLASS[v.collection_tag] || 'coll-general'}">${COLL_LABEL[v.collection_tag] || v.collection_tag || 'General'}</span>
+              <span style="${pillStyle}">${COLL_LABEL[v.collection_tag] || v.collection_tag || 'General'}</span>
               ${v.credibility?.score ? `<span style="font-size:10px;color:var(--t3)">credibility: ${v.credibility.score}</span>` : ''}
             </div>
             <p style="font-size:12px;font-weight:600;color:#DDE4F5;line-height:1.35;margin-bottom:3px">${v.title || 'Untitled'}</p>
