@@ -4104,6 +4104,59 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               {dark ? "☀" : "🌙"}
             </button>
           )}
+          {MEMBERSHIP && !MEMBERSHIP.isPrivileged && (() => {
+            const daysToRenew = MEMBERSHIP.expiresAt
+              ? Math.ceil((new Date(MEMBERSHIP.expiresAt) - Date.now()) / 86400000)
+              : null;
+            if (!MEMBERSHIP.isPaid) {
+              // Free trial — red upgrade pill
+              return (
+                <a href="/upgrade.html" style={{
+                  position: "fixed", bottom: 20, right: 20, zIndex: 999,
+                  background: "#E5001C", color: "#fff",
+                  borderRadius: 999, padding: "10px 20px",
+                  fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  boxShadow: "0 4px 16px rgba(229,0,28,.4)",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = ".85"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                >
+                  ✦ Upgrade for more benefits
+                </a>
+              );
+            } else if (daysToRenew !== null && daysToRenew <= 30) {
+              // Paid — renewal coming up (orange warning)
+              return (
+                <div style={{
+                  position: "fixed", bottom: 20, right: 20, zIndex: 999,
+                  background: "rgba(251,176,64,.12)", color: "#FBB040",
+                  border: "1px solid rgba(251,176,64,.3)",
+                  borderRadius: 999, padding: "8px 16px",
+                  fontSize: 12, fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(0,0,0,.2)",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                  ⚠ Subscription renews in {daysToRenew}d
+                </div>
+              );
+            } else {
+              // Paid — happy subscriber (subtle green)
+              return (
+                <div style={{
+                  position: "fixed", bottom: 20, right: 20, zIndex: 999,
+                  background: "rgba(52,211,153,.08)", color: "#34D399",
+                  border: "1px solid rgba(52,211,153,.2)",
+                  borderRadius: 999, padding: "8px 16px",
+                  fontSize: 12, fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(0,0,0,.15)",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                  ✦ Thank you for subscribing
+                </div>
+              );
+            }
+          })()}
           {view === "library" && <LibraryView videos={videos} onSelect={openVideo} onDelete={removeVideo} onAddNew={(url) => { if (url) { setPrefillUrl(url); navigate("add"); } }} onResearchMode={() => navigate("query")} onPaste={() => navigate("paste")} onChannelImport={() => navigate("channel")} onUpsertVideo={upsertVideo} dark={dark} onToggleDark={() => setDark(!dark)} />}
           {view === "add" && <AddVideoView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} onExisting={(v) => { setSelected(v); navigate("detail"); }} existingVideos={videos} prefillUrl={prefillUrl} />}
           {view === "paste" && <PasteTranscriptView onSave={(v) => { upsertVideo(v); setSelected(v); navigate("detail"); }} onBack={() => navigate("library")} existingVideos={videos} />}
