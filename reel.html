@@ -3461,11 +3461,78 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       const [procPct, setProcPct] = useState(0);
       const [offer, setOffer] = useState({ free_days: 60, free_video_limit: 30, founding_slots_total: 79, founding_slots_used: 0, founding_price_cents: 7900, next_price_cents: 9900 });
       const [dark, setDark] = useState(() => localStorage.getItem("reel-theme") === "dark");
+      const [authUser, setAuthUser] = useState(null);
+      const [saved, setSaved] = useState(false);
+      const [saving, setSaving] = useState(false);
+      const [shouldAutoSave, setShouldAutoSave] = useState(false);
 
       const NO_SHARE = params.get("no_share") === "true";
-      const [partner, setPartner] = useState(null); // { name, logo_url, show_branding }
+      const [partner, setPartner] = useState(null);
       const collectionLabel = COLLECTION_LABELS[collection] || "Collection";
       const collectionUrl   = COLLECTION_URLS[collection]  || "/index.html";
+
+      // Auth check — runs on mount to detect logged-in user
+      useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userParam = (urlParams.get("user") || "").toLowerCase();
+        const PRIVILEGED_USERS = { dave: "dave", doreen: "doreen" };
+        if (PRIVILEGED_USERS[userParam]) {
+          setAuthUser({ id: userParam, owner: userParam, privileged: true });
+        } else {
+          sbAuth.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              setAuthUser(session.user);
+              const autoSave = sessionStorage.getItem("reelcall_auto_save_share");
+              if (autoSave === videoId) {
+                sessionStorage.removeItem("reelcall_auto_save_share");
+                setTimeout(() => setShouldAutoSave(true), 1500);
+              }
+            }
+          });
+        }
+      }, []);
+
+      // Auto-save: fires when user just logged in and video is ready
+      useEffect(() => {
+        if (shouldAutoSave && video && authUser && !saved && !saving) {
+          setShouldAutoSave(false);
+          saveToLibrary();
+        }
+      }, [shouldAutoSave, video, authUser]);
+
+      async function saveToLibrary() {
+        if (!authUser || !video) { return; }
+        setSaving(true);
+        try {
+          let ownerVal;
+          if (authUser.privileged) {
+            ownerVal = authUser.owner;
+          } else {
+            const profiles = await sbReq(`reel_users?select=owner&id=eq.${authUser.id}&limit=1`);
+            if (!profiles?.[0]?.owner) throw new Error(`Profile not found for id=${authUser.id}`);
+            ownerVal = profiles[0].owner;
+          }
+          // Check not already saved
+          const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
+          if (existing?.length) { setSaved(true); setSaving(false); setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1000); return; }
+          // Save to personal library
+          const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: [], dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: NO_SHARE };
+          await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(copy) });
+          sessionStorage.removeItem("reelcall_return_to");
+          sessionStorage.removeItem("reelcall_auto_save_share");
+          setSaved(true);
+          setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1500);
+        } catch (e) {
+          alert(`Could not save: ${e.message}`);
+        }
+        finally { setSaving(false); }
+      }
+
+      function goSignIn() {
+        sessionStorage.setItem("reelcall_return_to", window.location.href);
+        sessionStorage.setItem("reelcall_auto_save_share", videoId);
+        window.location.href = "/signup.html";
+      }
 
       useEffect(() => {
         document.body.style.background = dark ? "#07090F" : "#F8F9FC";
@@ -3709,7 +3776,15 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               ? <button disabled style={{ opacity:.5, padding:"8px 16px", borderRadius:6, fontSize:12, fontWeight:600, background:"var(--s3)", color:"var(--t2)", border:"1px solid var(--b)", cursor:"not-allowed" }}>Sharing not permitted</button>
               : null
             }
-            <a href="/signup.html" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("reelcall_return_to", window.location.href); sessionStorage.setItem("reelcall_auto_save_share", videoId); window.location.href = "/signup.html"; }} className="preview-cta-btn">Save to My Library →</a>
+            {saved ? (
+              <div className="preview-cta-btn" style={{ background: "var(--ok)", cursor: "default" }}>✓ Saved to your library!</div>
+            ) : authUser ? (
+              <button onClick={saveToLibrary} disabled={saving} className="preview-cta-btn" style={{ border: "none", cursor: saving ? "wait" : "pointer" }}>
+                {saving ? "Saving..." : "Save to My Library →"}
+              </button>
+            ) : (
+              <a href="/signup.html" onClick={(e) => { e.preventDefault(); goSignIn(); }} className="preview-cta-btn">Save to My Library →</a>
+            )}
           </div>
 
           <div style={{ maxWidth:740, margin:"0 auto", padding:"24px 20px" }}>
