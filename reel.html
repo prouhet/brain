@@ -295,8 +295,9 @@ Return ONLY valid JSON (no markdown fences):
     async function sbReq(path, opts = {}) {
       const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: { ...SBH, ...opts.headers } });
       if (!r.ok) throw new Error(await r.text());
-      if (r.status === 204) return null;
-      return r.json();
+      if (r.status === 204 || r.status === 201) return null;
+      const text = await r.text();
+      return text ? JSON.parse(text) : null;
     }
     const CACHE_KEY = "reel_videos_cache";
     async function sbLoad() {
@@ -3050,8 +3051,7 @@ Instructions:
       }, [videoId]);
 
       async function saveToLibrary() {
-        if (!authUser) { alert("DEBUG: authUser is null — not logged in via Supabase"); return; }
-        if (!video) { alert("DEBUG: video is null — video not loaded yet"); return; }
+        if (!authUser || !video) return;
         setSaving(true);
         try {
           let ownerVal;
@@ -3062,7 +3062,6 @@ Instructions:
             if (!profiles?.[0]?.owner) throw new Error(`Profile not found for id=${authUser.id}`);
             ownerVal = profiles[0].owner;
           }
-          alert(`DEBUG: owner=${ownerVal} videoId=${video.videoId}`);
           const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
           if (existing?.length) { setSaved(true); setSaving(false); setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1000); return; }
           const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: video.noShare || false };
