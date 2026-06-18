@@ -267,11 +267,13 @@
         const { data: loginData, error } = await sb.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
         if (loginData?.session) {
+          // Always go through /reel.html#tokens to establish session in localStorage
+          // returnTo stays in sessionStorage — reel.html picks it up and redirects
           window.location.href = "/reel.html#access_token=" + loginData.session.access_token + "&refresh_token=" + loginData.session.refresh_token + "&type=login";
         } else {
           const returnTo = sessionStorage.getItem("reelcall_return_to");
-        sessionStorage.removeItem("reelcall_return_to");
-        window.location.href = returnTo || "/reel.html";
+          sessionStorage.removeItem("reelcall_return_to");
+          window.location.href = returnTo || "/reel.html";
         }
       } catch (e) {
         setMsg("msg-login", e.message, "err");
