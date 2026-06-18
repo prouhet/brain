@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Right Side of the Chart — AI Video Analysis | ReelCall</title>
+  <meta name="description" content="AI-powered summaries and Q&A for every Right Side of the Chart video by Randy Phinney. Get instant trade breakdowns, ticker lists, and ask questions about any video.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Figtree',system-ui,sans-serif;background:#07090F;color:#DDE4F5;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+    /* Header */
+    .header{padding:18px 24px;border-bottom:1px solid #1E2D48;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#07090F;z-index:10}
+    .header-logo{display:flex;align-items:center;gap:16px}
+    .header-logo img{height:32px;width:auto;filter:brightness(0) invert(1);opacity:.9}
+    .header-divider{width:1px;height:24px;background:#1E2D48}
+    .partner-name{font-size:14px;font-weight:600;color:#DDE4F5}
+    .header-cta{background:#E5001C;color:#fff;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;font-family:'Figtree',sans-serif}
+    /* Hero */
+    .hero{padding:48px 24px 36px;max-width:900px;margin:0 auto;text-align:center}
+    .hero-badge{display:inline-block;background:rgba(229,0,28,.12);border:1px solid rgba(229,0,28,.25);color:#E5001C;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 14px;border-radius:20px;margin-bottom:16px}
+    .hero h1{font-family:'Syne',sans-serif;font-size:clamp(26px,5vw,40px);font-weight:800;line-height:1.15;margin-bottom:14px}
+    .hero h1 em{color:#E5001C;font-style:normal}
+    .hero-sub{font-size:15px;color:#7B8FAD;line-height:1.6;max-width:560px;margin:0 auto 28px}
+    .hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn-primary{background:#E5001C;color:#fff;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;font-family:'Figtree',sans-serif}
+    .btn-secondary{background:transparent;color:#7B8FAD;border:1px solid #1E2D48;border-radius:10px;padding:12px 20px;font-size:14px;font-family:'Figtree',sans-serif}
+    /* How it works */
+    .how{background:#0D1220;border-top:1px solid #1E2D48;border-bottom:1px solid #1E2D48;padding:28px 24px}
+    .how-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .how-step{text-align:center;padding:8px}
+    .how-num{width:32px;height:32px;border-radius:50%;background:rgba(229,0,28,.15);border:1px solid rgba(229,0,28,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#E5001C;margin:0 auto 10px}
+    .how-step h3{font-size:13px;font-weight:700;margin-bottom:4px}
+    .how-step p{font-size:12px;color:#7B8FAD;line-height:1.5}
+    /* Videos */
+    .videos-section{max-width:900px;margin:0 auto;padding:36px 24px}
+    .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#E5001C;margin-bottom:8px}
+    .section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:24px}
+    .search-bar{display:flex;gap:10px;margin-bottom:24px}
+    .search-input{flex:1;background:#0D1220;border:1px solid #1E2D48;border-radius:10px;padding:11px 16px;font-size:14px;color:#DDE4F5;font-family:'Figtree',sans-serif;outline:none}
+    .search-input::placeholder{color:#3D5070}
+    .search-input:focus{border-color:#E5001C}
+    /* Video grid */
+    .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+    .video-card{background:#0D1220;border:1px solid #1E2D48;border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .2s}
+    .video-card:hover{border-color:#E5001C}
+    .thumb{aspect-ratio:16/9;background:#131B2E;position:relative;overflow:hidden}
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .thumb-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+    .video-card:hover .thumb-overlay{opacity:1}
+    .play-badge{background:rgba(229,0,28,.9);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;color:#fff}
+    .card-body{padding:14px}
+    .card-date{font-size:11px;color:#3D5070;margin-bottom:6px}
+    .card-title{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .card-summary{font-size:12px;color:#7B8FAD;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #1E2D48}
+    .card-link{font-size:12px;font-weight:600;color:#E5001C}
+    .card-kp{font-size:11px;color:#3D5070}
+    /* Loading */
+    .loading{text-align:center;padding:60px 20px;color:#3D5070}
+    .spinner{width:32px;height:32px;border:3px solid #1E2D48;border-top-color:#E5001C;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .empty{text-align:center;padding:60px 20px;color:#3D5070}
+    /* Footer */
+    .footer{border-top:1px solid #1E2D48;padding:24px;text-align:center;font-size:12px;color:#3D5070;margin-top:40px}
+    .footer a{color:#E5001C}
+    @media(max-width:600px){
+      .how-inner{grid-template-columns:1fr}
+      .hero{padding:32px 16px 24px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-logo">
+    <a href="/index.html"><img src="/reelcall-logo-big.png" alt="ReelCall"></a>
+    <div class="header-divider"></div>
+    <span class="partner-name">Right Side of the Chart</span>
+  </div>
+  <a href="/signup.html" class="header-cta">Start Free →</a>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">Right Side of the Chart · Randy Phinney</div>
+  <h1>Every video.<br><em>Instant analysis.</em></h1>
+  <p class="hero-sub">Get a full ticker-by-ticker breakdown of every Right Side of the Chart video — trade status, price targets, key signals, and Randy's best quotes. Ask any question about any video.</p>
+  <div class="hero-actions">
+    <a href="/signup.html" class="btn-primary">Start Free — Ask Anything →</a>
+    <a href="https://www.rightsideofthechart.com" target="_blank" class="btn-secondary">Visit Randy's Site ↗</a>
+  </div>
+</section>
+
+<!-- How it works -->
+<div class="how">
+  <div class="how-inner">
+    <div class="how-step">
+      <div class="how-num">1</div>
+      <h3>Click any video below</h3>
+      <p>Open the full AI analysis — summary, all tickers, price targets, and key quotes.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">2</div>
+      <h3>Ask one free question</h3>
+      <p>Every video includes one free Q&A — ask about any trade, setup, or concept Randy covered.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num">3</div>
+      <h3>Save &amp; go unlimited</h3>
+      <p>Create a free account to save videos and ask unlimited questions across Randy's entire library.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Videos -->
+<section class="videos-section">
+  <div class="section-label">Video Library</div>
+  <div class="section-title">Right Side of the Chart · Analysis</div>
+
+  <div class="search-bar">
+    <input class="search-input" id="search" placeholder="Search by ticker, topic, or date..." oninput="filterVideos()">
+  </div>
+
+  <div class="video-grid" id="video-grid">
+    <div class="loading"><div class="spinner"></div>Loading videos...</div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>Powered by <a href="/index.html">ReelCall</a> · AI video analysis for serious traders · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a></p>
+  <p style="margin-top:6px">Not affiliated with Right Side of the Chart. Video content belongs to Randy Phinney.</p>
+</footer>
+
+<script>
+const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
+
+let allVideos = [];
+
+function thumb(videoId) {
+  return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+}
+
+function formatDate(str) {
+  if (!str) return "";
+  const d = new Date(str);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function previewUrl(videoId) {
+  return `/reel.html?vid=${videoId}&preview=true&collection=randy-finney&no_share=true`;
+}
+
+function renderCard(v) {
+  const kpCount = Array.isArray(v.key_points) ? v.key_points.length : 0;
+  return `
+    <a class="video-card" href="${previewUrl(v.video_id)}">
+      <div class="thumb">
+        <img src="${thumb(v.video_id)}" alt="${v.title}" loading="lazy">
+        <div class="thumb-overlay"><span class="play-badge">View Analysis →</span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-date">${formatDate(v.date_added)}</div>
+        <div class="card-title">${v.title || "Untitled"}</div>
+        <div class="card-summary">${v.summary ? v.summary.slice(0, 120) + "..." : ""}</div>
+        <div class="card-footer">
+          <span class="card-link">View Analysis →</span>
+          ${kpCount ? `<span class="card-kp">${kpCount} key points</span>` : ""}
+        </div>
+      </div>
+    </a>`;
+}
+
+function filterVideos() {
+  const q = document.getElementById("search").value.toLowerCase().trim();
+  const filtered = q ? allVideos.filter(v =>
+    (v.title || "").toLowerCase().includes(q) ||
+    (v.summary || "").toLowerCase().includes(q) ||
+    (Array.isArray(v.tags) ? v.tags.join(" ") : "").toLowerCase().includes(q)
+  ) : allVideos;
+
+  const grid = document.getElementById("video-grid");
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty">No videos found for "${q}"</div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(renderCard).join("");
+}
+
+async function loadVideos() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/youtube_videos?select=video_id,title,summary,key_points,tags,date_added&owner=eq.reelcall_collections&collection_tag=eq.randy-finney&order=date_added.desc&limit=100`,
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+    );
+    allVideos = await res.json();
+    const grid = document.getElementById("video-grid");
+    if (!allVideos?.length) {
+      grid.innerHTML = `<div class="empty">No videos yet — check back soon.</div>`;
+      return;
+    }
+    grid.innerHTML = allVideos.map(renderCard).join("");
+  } catch(e) {
+    document.getElementById("video-grid").innerHTML = `<div class="empty">Could not load videos. Please refresh.</div>`;
+  }
+}
+
+loadVideos();
+</script>
+</body>
+</html>
