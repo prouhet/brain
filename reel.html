@@ -631,7 +631,7 @@ Return ONLY valid JSON (no markdown fences):
                     </div>
                     <p style={{ fontSize: 11, color: showUpgrade ? "var(--warn)" : "var(--t3)", marginTop: 5 }}>
                       {showUpgrade
-                        ? <span>Running low — <a href="https://buy.stripe.com/4gM7sL1I92rK0macKGdUY02" target="_blank" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 600 }}>Upgrade — from $79/yr →</a></span>
+                        ? <span>Running low — <a href="/upgrade.html" style={{ color: "var(--acc)", textDecoration: "none", fontWeight: 600 }}>Upgrade — view plans →</a></span>
                         : "Share a video to earn +2 more videos"
                       }
                     </p>
@@ -4037,8 +4037,8 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                 <p style={{ fontSize: 11, color: "#3D5070", marginTop: 4 }}>4 months free</p>
               </div>
             </div>
-            <a href="https://buy.stripe.com/4gM7sL1I92rK0macKGdUY02" target="_blank" style={{ display: "block", background: "#E5001C", color: "#fff", padding: "13px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Upgrade — $99/yr →</a>
-            <a href="https://buy.stripe.com/4gM7sL5Yp3vOgl86midUY00" target="_blank" style={{ display: "block", color: "var(--t2)", padding: "8px 0", textDecoration: "none", fontSize: 13, textAlign: "center" }}>or $10/month →</a>
+            <a href="/upgrade.html" style={{ display: "block", background: "#E5001C", color: "#fff", padding: "13px 28px", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Upgrade — view plans →</a>
+            
             <p style={{ fontSize: 12, color: "#3D5070", marginBottom: 4 }}>🔒 Your renewal rate is locked forever while subscription is active</p>
             <p style={{ fontSize: 12, color: "#E5001C", marginBottom: 10 }}>Founders: use code <strong>FOUNDERS79</strong> at checkout for $20 off annual</p>
             <a href={`/reel.html?user=${OWNER}&readonly=1`} style={{ display: "block", color: "#3D5070", fontSize: 13, textDecoration: "none", padding: "8px 0" }}>Browse my saved videos →</a>
@@ -4077,7 +4077,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
                   <span style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: ".05em" }}>videos</span>
                 </div>
                 {MEMBERSHIP.daysLeft <= 14 && (
-                  <a href="https://buy.stripe.com/4gM7sL1I92rK0macKGdUY02" target="_blank" style={{ background: "var(--acc)", color: "#fff", borderRadius: 7, padding: "5px 10px", fontSize: 11, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>Upgrade →</a>
+                  <a href="/upgrade.html" style={{ background: "var(--acc)", color: "#fff", borderRadius: 7, padding: "5px 10px", fontSize: 11, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>Upgrade →</a>
                 )}
               </div>
             )}
