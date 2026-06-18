@@ -8,19 +8,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Figtree',system-ui,sans-serif;font-size:14px;transition:background .2s,color .2s}
-    :root{--acc:#4B8BF5;--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070;--bg:#07090F;--text:#DDE4F5;--card-bg:#0D1220}
-    .light-mode{--s1:#FFFFFF;--s2:#F4F6FA;--s3:#E8ECF4;--b:#D2DAEA;--t2:#4A5B78;--t3:#8B97AE;--bg:#F0F2F8;--text:#0F1729;--card-bg:#FFFFFF;--warn:#B45309;--warn-lo:rgba(180,83,9,.08);--warn-mid:rgba(180,83,9,.2);--red:#DC2626;--red-lo:rgba(220,38,38,.08);--red-mid:rgba(220,38,38,.2);--ok:#059669;--ok-lo:rgba(5,150,105,.08);--ok-mid:rgba(5,150,105,.2)}
-    .theme-toggle{position:fixed;top:14px;right:20px;z-index:9999;background:var(--s2);border:1px solid var(--b);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--t2);font-family:inherit;transition:all .15s}
-    .theme-toggle:hover{border-color:var(--acc);color:var(--acc)}
+    html,body{min-height:100vh;background:#07090F;color:#DDE4F5;font-family:'Figtree',system-ui,sans-serif;font-size:14px}
+    :root{--acc:#4B8BF5;--ok:#34D399;--ok-lo:rgba(52,211,153,.1);--ok-mid:rgba(52,211,153,.25);--warn:#FBB040;--warn-lo:rgba(251,176,64,.12);--warn-mid:rgba(251,176,64,.3);--red:#F07070;--red-lo:rgba(240,112,112,.1);--red-mid:rgba(240,112,112,.25);--s1:#0D1220;--s2:#131B2E;--s3:#1A2438;--b:#1E2D48;--t2:#7B8FAD;--t3:#3D5070}
     .wrap{max-width:1100px;margin:0 auto;padding:28px 20px}
     h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#fff;margin-bottom:4px}
     .sub{font-size:13px;color:var(--t2);margin-bottom:28px}
     .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:28px}
-    .stat{background:var(--card-bg);border:1px solid var(--b);border-radius:10px;padding:16px}
-    .stat-n{font-size:28px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif}
-    .stat-l{font-size:12px;color:var(--t2);margin-top:2px;text-transform:uppercase;letter-spacing:.06em;font-weight:500}
-    .card{background:var(--card-bg);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin-bottom:20px}
+    .stat{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:16px}
+    .stat-n{font-size:28px;font-weight:700;color:#fff;font-family:'Syne',sans-serif}
+    .stat-l{font-size:12px;color:var(--t2);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+    .card{background:var(--s1);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin-bottom:20px}
     .card-head{padding:14px 20px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
     .card-head h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t2)}
     table{width:100%;border-collapse:collapse}
@@ -29,25 +26,11 @@
     tr:last-child td{border-bottom:none}
     tr:hover td{background:rgba(255,255,255,.02)}
     .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+    .badge-ok{background:rgba(34,201,138,.12);color:#22C98A;border:1px solid rgba(34,201,138,.25)}
     .badge-ok{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}
     .badge-warn{background:var(--warn-lo);color:var(--warn);border:1px solid var(--warn-mid)}
     .badge-red{background:var(--red-lo);color:var(--red);border:1px solid var(--red-mid)}
     .badge-gray{background:var(--s3);color:var(--t2);border:1px solid var(--b)}
-    .mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t2)}
-    button{font-family:'Figtree',system-ui,sans-serif;cursor:pointer;border:none;border-radius:6px;font-size:12px;font-weight:500;padding:5px 12px;transition:all .15s}
-    .btn-ok{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}.btn-ok:hover{background:rgba(52,211,153,.18)}
-    .btn-red{background:var(--red-lo);color:var(--red);border:1px solid var(--red-mid)}.btn-red:hover{background:rgba(240,112,112,.18)}
-    .btn-g{background:transparent;color:var(--t2);border:1px solid var(--b)}.btn-g:hover{background:var(--s2);color:#fff}
-    .btn-acc{background:rgba(75,139,245,.12);color:var(--acc);border:1px solid rgba(75,139,245,.28)}.btn-acc:hover{background:rgba(75,139,245,.2)}
-    .search{background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:'Figtree',system-ui,sans-serif;width:240px;transition:border-color .15s}
-    .search:focus{border-color:var(--acc)}
-    .search::placeholder{color:var(--t3)}
-    .days-bar{display:flex;align-items:center;gap:8px}
-    .bar-bg{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;max-width:80px}
-    .bar-fill{height:100%;border-radius:2px;transition:width .3s}
-    .gate{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;color:var(--t2)}
-    .gate h2{color:#fff;font-family:'Syne',sans-serif;font-size:20px}
-    /* ── Collections Tab ── */
     .coll-layout{display:grid;grid-template-columns:360px 1fr;gap:0;min-height:500px}
     .coll-sidebar{border-right:1px solid var(--b);padding:20px;display:flex;flex-direction:column;gap:16px}
     .coll-main{padding:20px;overflow-y:auto}
@@ -68,29 +51,45 @@
     .filter-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
     #coll-toast{position:fixed;bottom:24px;right:24px;background:var(--ok-lo);border:1px solid var(--ok-mid);color:var(--ok);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999}
     #coll-toast.show{opacity:1}
-    .video-row[draggable]{transition:opacity .15s}
-    .video-row.drag-over{border:2px dashed var(--acc)!important;background:var(--acc-lo)!important}
-    .light-mode .video-row{background:var(--s2)!important}
-    .light-mode .card{background:var(--card-bg)!important}
-    .light-mode table td,.light-mode table th{color:var(--text)}
-    .light-mode .mono{color:var(--t2)}
-    .light-mode .badge{background:var(--s3);border-color:var(--b)}
-    .light-mode input,.light-mode select,.light-mode textarea{color:#0F1729!important;background:#E8ECF4!important}
-    .light-mode .stat-n{color:#0F1729!important}
-    .light-mode .card-head h2{color:#4A5B78!important}
-    .light-mode .coll-sidebar{background:#F4F6FA}
-    .light-mode .coll-main{background:#fff}
-    .light-mode p[style*="color:#DDE4F5"]{color:#0F1729!important}
-    .light-mode span[style*="color:#DDE4F5"]{color:#0F1729!important}
-    .light-mode div[style*="color:#DDE4F5"]{color:#0F1729!important}
-    .light-mode [style*="color:#FBB040"]{color:#b45309!important}
-    .light-mode [style*="color:var(--t3)"]{color:#4A5B78!important}
-    .light-mode [style*="color:var(--t2)"]{color:#374151!important}
-    .light-mode .manage-section-label{color:#374151!important}
+    .coll-layout{display:grid;grid-template-columns:360px 1fr;gap:0;min-height:500px}
+    .coll-sidebar{border-right:1px solid var(--b);padding:20px;display:flex;flex-direction:column;gap:16px}
+    .coll-main{padding:20px;overflow-y:auto}
+    .coll-progress-bar{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:8px}
+    .coll-progress-fill{height:100%;background:var(--acc);border-radius:2px;transition:width .4s ease}
+    .coll-step{display:flex;gap:10px;align-items:flex-start;padding:5px 0}
+    .coll-step-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;border:1px solid var(--b);background:var(--s3);color:var(--t3)}
+    .coll-step-dot.active{background:rgba(75,139,245,.12);border-color:rgba(75,139,245,.28);color:var(--acc)}
+    .coll-step-dot.done{background:var(--ok-lo);border-color:var(--ok-mid);color:var(--ok)}
+    .coll-step-dot.error{background:var(--red-lo);border-color:var(--red-mid);color:var(--red)}
+    .video-row{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:start;padding:12px;background:var(--s2);border:1px solid var(--b);border-radius:10px;margin-bottom:8px}
+    .video-row img{width:110px;height:62px;object-fit:cover;border-radius:6px;background:var(--s3)}
+    .coll-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+    .coll-huberman{background:rgba(251,176,64,.12);color:#FBB040;border:1px solid rgba(251,176,64,.25)}
+    .coll-peptides{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}
+    .coll-general{background:var(--s3);color:var(--t2);border:1px solid var(--b)}
+    .filter-btn{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
+    .filter-btn.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+    #coll-toast{position:fixed;bottom:24px;right:24px;background:var(--ok-lo);border:1px solid var(--ok-mid);color:var(--ok);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999}
+    #coll-toast.show{opacity:1}
+    .mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t2)}
+    button{font-family:'Figtree',system-ui,sans-serif;cursor:pointer;border:none;border-radius:6px;font-size:12px;font-weight:500;padding:5px 12px;transition:all .15s}
+    .btn-ok{background:var(--ok-lo);color:var(--ok);border:1px solid var(--ok-mid)}.btn-ok:hover{background:rgba(52,211,153,.18)}
+    .btn-red{background:var(--red-lo);color:var(--red);border:1px solid var(--red-mid)}.btn-red:hover{background:rgba(240,112,112,.18)}
+    .btn-g{background:transparent;color:var(--t2);border:1px solid var(--b)}.btn-g:hover{background:var(--s2);color:#fff}
+    .btn-acc{background:rgba(75,139,245,.12);color:var(--acc);border:1px solid rgba(75,139,245,.28)}.btn-acc:hover{background:rgba(75,139,245,.2)}
+    .search{background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:'Figtree',system-ui,sans-serif;width:240px;transition:border-color .15s}
+    .search:focus{border-color:var(--acc)}
+    .search::placeholder{color:var(--t3)}
+    .days-bar{display:flex;align-items:center;gap:8px}
+    .bar-bg{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;max-width:80px}
+    .bar-fill{height:100%;border-radius:2px;transition:width .3s}
+    .gate{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;color:var(--t2)}
+    .gate h2{color:#fff;font-family:'Syne',sans-serif;font-size:20px}
+    input.ext{background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;width:50px;font-family:'Figtree',system-ui,sans-serif}
+    input.ext:focus{border-color:var(--acc)}
   </style>
 </head>
 <body>
-  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
   <div id="gate" class="gate" style="display:none">
     <h2>Access Denied</h2>
     <p>This page is only accessible to Dave or Doreen.</p>
@@ -111,7 +110,8 @@
         <button onclick="showTab('users')" id="tab-users" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;background:var(--acc);color:#fff">Users</button>
         <button onclick="showTab('shares')" id="tab-shares" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Share Activity</button>
         <button onclick="showTab('collections')" id="tab-collections" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Collections</button>
-<button onclick="showTab('bulk')" id="tab-bulk" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Bulk Re-analyze</button>
+        <button onclick="showTab('collections')" id="tab-collections" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Collections</button>
+        <button onclick="showTab('bulk')" id="tab-bulk" style="flex:1;padding:8px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--t2)">Bulk Re-analyze</button>
       </div>
 
       <!-- USERS TAB -->
@@ -123,7 +123,11 @@
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>Email</th><th>Owner ID</th><th>Status</th><th>Membership</th><th>Tier</th><th>Videos</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Email</th><th>Owner ID</th><th>Status</th><th>Membership</th><th>Tier</th><th>Videos</th><th>Actions</th>
+                </tr>
+              </thead>
               <tbody id="tbody"></tbody>
             </table>
           </div>
@@ -142,20 +146,27 @@
             <div id="shares-content" style="display:none">
               <div style="overflow-x:auto">
                 <table>
-                  <thead><tr><th>Video</th><th>Shared By</th><th>Views</th><th>Signups</th><th>Last Viewed</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Video</th><th>Shared By</th><th>Views</th><th>Signups</th><th>Last Viewed</th>
+                    </tr>
+                  </thead>
                   <tbody id="shares-tbody"></tbody>
                 </table>
               </div>
             </div>
           </div>
         </div>
+
         <div class="card" style="margin-top:16px">
           <div class="card-head"><h2>Recent Share Views</h2></div>
           <div style="padding:16px">
             <div id="views-content" style="display:none">
               <div style="overflow-x:auto">
                 <table>
-                  <thead><tr><th>Time</th><th>Video</th><th>Shared By</th><th>Signed Up As</th></tr></thead>
+                  <thead>
+                    <tr><th>Time</th><th>Video</th><th>Shared By</th><th>Signed Up As</th></tr>
+                  </thead>
                   <tbody id="views-tbody"></tbody>
                 </table>
               </div>
@@ -172,18 +183,7 @@
             <p style="font-size:11px;color:var(--t3)">Videos here power huberman-lab.html, peptides.html etc — separate from any personal library</p>
           </div>
           <div class="coll-layout">
-
-            <!-- Left: Add form -->
             <div class="coll-sidebar">
-              <!-- Collection filter dropdown — top of sidebar -->
-              <div style="padding-bottom:14px;border-bottom:1px solid var(--b);margin-bottom:14px">
-                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);display:block;margin-bottom:6px">Filter by Collection</label>
-                <select id="coll-filter-dropdown" onchange="collFilterFromDropdown(this.value)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:9px 12px;font-size:13px;outline:none;width:100%;font-family:inherit;cursor:pointer">
-                  <option value="all">All Collections</option>
-                </select>
-                <p id="coll-filter-count" style="font-size:11px;color:var(--t3);margin-top:6px"></p>
-              </div>
-
               <div>
                 <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px">Add Video to Collection</p>
                 <div style="display:flex;flex-direction:column;gap:8px">
@@ -192,8 +192,8 @@
                     <option value="huberman-lab">Huberman Lab</option>
                     <option value="peptides">Peptides Explained</option>
                     <option value="glp1">GLP-1 Explained</option>
-                    <option value="longevity">Longevity & Anti-Aging</option>
-                    <option value="fitness">Fitness & Performance</option>
+                    <option value="longevity">Longevity &amp; Anti-Aging</option>
+                    <option value="fitness">Fitness &amp; Performance</option>
                     <option value="general">General Collection</option>
                     <option value="__new__">+ Add new collection...</option>
                   </select>
@@ -202,11 +202,9 @@
                     <input id="coll-new-name" placeholder="Collection name (e.g. Lex Fridman)" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1">
                     <button class="btn-ok" onclick="collAddNew()" style="padding:8px 12px;white-space:nowrap">Add</button>
                   </div>
-                  <button class="btn-acc" id="coll-analyze-btn" onclick="collAnalyze()" style="padding:9px;font-size:13px;font-weight:600;width:100%">Analyze & Add to Collection</button>
+                  <button class="btn-acc" id="coll-analyze-btn" onclick="collAnalyze()" style="padding:9px;font-size:13px;font-weight:600;width:100%">Analyze &amp; Add to Collection</button>
                 </div>
               </div>
-
-              <!-- Progress -->
               <div id="coll-progress" style="display:none">
                 <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:8px">Processing</p>
                 <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px">
@@ -215,8 +213,6 @@
                   <p id="coll-prog-msg" style="font-size:11px;color:var(--t2);margin-top:6px"></p>
                 </div>
               </div>
-
-              <!-- Result preview -->
               <div id="coll-result" style="display:none">
                 <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:8px">Ready to Save</p>
                 <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
@@ -231,187 +227,73 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Error -->
               <div id="coll-error" style="display:none">
                 <div style="background:var(--red-lo);border:1px solid var(--red-mid);border-radius:10px;padding:12px">
                   <p id="coll-err-msg" style="font-size:12px;color:var(--red);margin-bottom:8px"></p>
                   <button class="btn-g" onclick="collReset()" style="font-size:11px">Try Again</button>
                 </div>
               </div>
-
-
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:auto">
+                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)"><div style="font-size:20px;font-weight:700;color:#fff;font-family:'Syne',sans-serif" id="coll-stat-total">—</div><div style="font-size:10px;color:var(--t2);margin-top:2px">Total</div></div>
+                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)"><div style="font-size:20px;font-weight:700;color:#FBB040;font-family:'Syne',sans-serif" id="coll-stat-hub">—</div><div style="font-size:10px;color:var(--t2);margin-top:2px">Huberman</div></div>
+                <div style="text-align:center;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b)"><div style="font-size:20px;font-weight:700;color:var(--ok);font-family:'Syne',sans-serif" id="coll-stat-pep">—</div><div style="font-size:10px;color:var(--t2);margin-top:2px">Peptides</div></div>
+              </div>
             </div>
-
-            <!-- Right: Video list + Collection Manager -->
             <div class="coll-main">
-              <!-- Top bar -->
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                <p id="coll-view-label" style="font-size:13px;font-weight:600;color:var(--text)">All Collections</p>
-                <div style="display:flex;gap:8px">
-                  <button id="manage-toggle-btn" onclick="toggleManagePanel()" style="display:none;font-size:12px;background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">⚙ Manage</button>
-                  <button class="btn-g" onclick="collLoad()" style="padding:4px 10px;font-size:11px">↺ Refresh</button>
-                </div>
+              <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+                <button class="filter-btn active" onclick="collFilter('all',this)">All</button>
+                <button class="filter-btn" onclick="collFilter('huberman-lab',this)">Huberman Lab</button>
+                <button class="filter-btn" onclick="collFilter('peptides',this)">Peptides</button>
+                <button class="filter-btn" onclick="collFilter('general',this)">General</button>
+                <button class="btn-g" onclick="collLoad()" style="margin-left:auto;padding:4px 10px;font-size:11px">↺ Refresh</button>
               </div>
-
-              <!-- Collection Manager Panel (collapsible, shows when collection selected) -->
-              <div id="coll-manager" style="display:none;margin-bottom:16px">
-
-                <!-- Header with live page link -->
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                  <p style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em">Manage Collection</p>
-                  <div style="display:flex;gap:8px;align-items:center">
-                    <a id="coll-live-link" href="#" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none;background:var(--acc-lo);border:1px solid var(--acc-mid);border-radius:4px;padding:3px 10px">View Live Page ↗</a>
-                    <button onclick="deleteCollection()" style="font-size:11px;padding:3px 10px;background:var(--red-lo);border:1px solid var(--red-mid);color:var(--red);border-radius:4px;cursor:pointer;font-family:inherit">🗑 Delete Collection</button>
-                  </div>
-                </div>
-
-                <!-- Business Profile -->
-                <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                    <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Collection Settings</p>
-                    <button class="btn-ok" onclick="saveProfile()" style="font-size:11px;padding:4px 10px">Save All Settings</button>
-                  </div>
-
-                  <!-- Basic Info -->
-                  <p style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Basic Info</p>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-                    <div>
-                      <label style="font-size:11px;color:var(--text);font-weight:500;display:block;margin-bottom:3px">Collection Name</label>
-                      <input id="prof-name" placeholder="e.g. Right Side of the Chart" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                    </div>
-                    <div>
-                      <label style="font-size:11px;color:var(--text);font-weight:500;display:block;margin-bottom:3px">Their Website</label>
-                      <input id="prof-url" placeholder="https://rsotc.com" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                    </div>
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-                    <div>
-                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">URL Prefix <span style="color:var(--t3);font-weight:400">(e.g. rsotc)</span></label>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <span style="font-size:11px;color:var(--t3);white-space:nowrap">reelcall.app/</span>
-                        <input id="prof-prefix" placeholder="rsotc" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                      </div>
-                      <p style="font-size:10px;color:var(--t3);margin-top:3px">Randy types go.reelcall.app/rsotc/[videoid] in his posts</p>
-                    </div>
-                    <div>
-                      <label style="font-size:11px;color:var(--text);font-weight:500;display:block;margin-bottom:3px">Member Price <span style="color:var(--t3);font-weight:400">($/mo)</span></label>
-                      <input id="prof-rate" type="number" placeholder="10" min="0" step="1" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                      <p style="font-size:10px;color:var(--t3);margin-top:3px">What their members pay to unlock full ReelCall</p>
-                    </div>
-                    <div>
-                      <label style="font-size:11px;color:var(--text);font-weight:500;display:block;margin-bottom:3px">Partner Revenue Split <span style="color:var(--t3);font-weight:400">(%)</span></label>
-                      <input id="prof-split" type="number" placeholder="20" min="0" max="100" step="5" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                      <p style="font-size:10px;color:var(--t3);margin-top:3px">% of member signups that goes back to partner</p>
-                    </div>
-                  </div>
-                  <div style="margin-bottom:8px">
-                    <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Short Description <span style="color:var(--t3);font-weight:400">(shows on the collection page and index)</span></label>
-                    <textarea id="prof-bio" placeholder="Brief description of this collection..." rows="2" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%;resize:none;font-family:inherit"></textarea>
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-                    <div>
-                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Logo URL <span style="color:var(--t3);font-weight:400">(optional)</span></label>
-                      <input id="prof-logo" placeholder="https://..." style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                    </div>
-                    <div>
-                      <label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Page Filename <span style="color:var(--t3);font-weight:400">(e.g. randy-finney.html)</span></label>
-                      <input id="prof-page-url" placeholder="randy-finney.html" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;width:100%">
-                    </div>
-                  </div>
-
-                  <!-- Access & Privacy -->
-                  <p style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Access & Privacy</p>
-                  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-public" checked style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div>
-                        <label for="prof-public" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">List on the public /know/ index page</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Turn OFF to keep this collection private. The page still works — it just won't appear in the public directory. Good for paid communities like Randy's.</p>
-                      </div>
-                    </div>
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-no-share" style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div>
-                        <label for="prof-no-share" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Hide the Share button on summary pages</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">Members can read and ask questions but can't generate a shareable link. Good for paid content that shouldn't leave the membership.</p>
-                      </div>
-                    </div>
-
-                    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--s3);border-radius:8px;border:1px solid var(--b)">
-                      <input type="checkbox" id="prof-show-branding" checked style="width:14px;height:14px;cursor:pointer;accent-color:var(--acc);margin-top:2px;flex-shrink:0">
-                      <div>
-                        <label for="prof-show-branding" style="font-size:13px;color:var(--text);cursor:pointer;font-weight:600">Show their logo and name on summary pages</label>
-                        <p style="font-size:11px;color:var(--t3);margin-top:2px">The summary page shows "Right Side of the Chart" branding so it feels like Randy's product, not ReelCall's. Members see a familiar brand.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Marketing -->
-                  <p id="prof-save-msg" style="font-size:11px;color:var(--ok);margin-top:2px;display:none">✓ All settings saved</p>
-                </div>
-
-                <!-- Research Mode Demo -->
-                <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
-                  <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">✦ Research Mode Demo</p>
-                  <div id="demo-current-inline" style="padding:8px 10px;background:var(--s3);border-radius:6px;margin-bottom:8px;min-height:32px;font-size:11px;color:var(--t3)">Loading...</div>
-                  <div style="display:flex;gap:8px;margin-bottom:8px">
-                    <input id="demo-question-inline" placeholder="Ask a question across all videos in this collection..." style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;flex:1">
-                    <button class="btn-acc" onclick="runDemoInline()" id="demo-run-inline-btn" style="padding:6px 12px;font-weight:600;white-space:nowrap;font-size:12px">▶ Run</button>
-                  </div>
-                  <div id="demo-loading-inline" style="display:none;font-size:11px;color:var(--t2)">Running across collection...</div>
-                  <div id="demo-result-inline" style="display:none">
-                    <div style="background:var(--s3);border-radius:6px;padding:10px;margin-bottom:8px;max-height:160px;overflow-y:auto">
-                      <p id="demo-answer-inline" style="font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap"></p>
-                    </div>
-                    <div style="display:flex;gap:8px;align-items:center">
-                      <button class="btn-ok" onclick="saveDemoInline()" style="font-size:11px;padding:5px 12px;font-weight:600">✓ Set as Live Demo</button>
-                      <button class="btn-g" onclick="clearDemoInline()" style="font-size:11px;padding:5px 10px">Clear</button>
-                      <p id="demo-inline-msg" style="font-size:11px;color:var(--ok);display:none;margin:0">✓ Saved</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Collection Users / Partner Access -->
-                <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                    <p style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Partner Access</p>
-                    <a href="/collection-admin.html" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none">Open Partner Portal ↗</a>
-                  </div>
-                  <p style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5">People who can log into the partner portal and see their collection's videos and links. They receive a magic link email — no password needed.</p>
-                  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-                    <input id="new-user-email" placeholder="partner@email.com" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;flex:1;min-width:180px">
-                    <select id="new-user-role" style="background:var(--s3);border:1px solid var(--b);color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;outline:none;font-family:inherit;cursor:pointer">
-                      <option value="viewer">Viewer — can see videos and copy links</option>
-                      <option value="manager">Manager — can also add/remove videos</option>
-                    </select>
-                    <button class="btn-ok" onclick="addCollectionUser()" style="font-size:11px;padding:6px 12px;white-space:nowrap">Add User</button>
-                  </div>
-                  <div id="coll-user-list" style="display:flex;flex-direction:column;gap:6px">
-                    <p style="font-size:11px;color:var(--t3)">Select a collection above to see users.</p>
-                  </div>
-                </div>
+              <div id="coll-video-list"><div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Loading...</div></div>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--b)">
+            <div onclick="toggleDemoPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer">
+              <div>
+                <p style="font-size:12px;font-weight:700;color:var(--t2)">✦ Research Mode Demo Builder</p>
+                <p style="font-size:11px;color:var(--t3);margin-top:2px">Set the live demo Q&amp;A block shown on huberman-lab.html, peptides.html etc.</p>
               </div>
-
-              <!-- Video list -->
-              <div id="coll-video-list">
-                <div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Loading...</div>
+              <span id="demo-chevron" style="color:var(--t3);font-size:12px;transition:transform .2s">▼</span>
+            </div>
+            <div id="demo-panel" style="display:none;padding:0 20px 20px;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <select id="demo-coll-select" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit;width:160px">
+                  <option value="huberman-lab">Huberman Lab</option>
+                  <option value="peptides">Peptides</option>
+                  <option value="glp1">GLP-1</option>
+                  <option value="longevity">Longevity</option>
+                  <option value="fitness">Fitness</option>
+                  <option value="general">General</option>
+                </select>
+                <input id="demo-question" placeholder="Ask a question across all videos in this collection..." style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;flex:1;min-width:180px">
+                <button class="btn-acc" onclick="runDemoQuery()" id="demo-run-btn" style="padding:8px 16px;font-weight:600;white-space:nowrap">▶ Run</button>
+              </div>
+              <div id="demo-loading" style="display:none;color:var(--t2);font-size:12px">Running Research Mode across collection...</div>
+              <div id="demo-result" style="display:none;flex-direction:column;gap:10px">
+                <div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:14px">
+                  <p style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Answer Preview</p>
+                  <p id="demo-answer-text" style="font-size:12px;color:#DDE4F5;line-height:1.7;white-space:pre-wrap;max-height:220px;overflow-y:auto"></p>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <button class="btn-ok" onclick="saveDemoToDb()" style="font-weight:600">✓ Set as Demo on Page</button>
+                  <button class="btn-g" onclick="clearDemo()" style="font-size:12px">Clear</button>
+                  <p id="demo-save-msg" style="font-size:11px;color:var(--ok);display:none;margin:0">✓ Saved — refresh the public page to see it</p>
+                </div>
               </div>
             </div>
           </div>
-
-          
         </div>
       </div>
 
-      <!-- BULK-- BULK RE-ANALYZE TAB -->
+      <!-- BULK RE-ANALYZE TAB -->
       <div id="pane-bulk" style="display:none">
         <div class="card">
           <div class="card-head"><h2>🔍 Bulk Re-analyze Videos</h2></div>
           <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-            <p style="color:var(--t2);font-size:13px;line-height:1.6">Re-runs full AI analysis on stored transcripts. Updates summary, key points, quotes, and <strong style="color:#fff">adds credibility scoring</strong> to all matching videos.</p>
+            <p style="color:var(--t2);font-size:13px;line-height:1.6">Re-runs full AI analysis on stored transcripts. Updates summary, key points, quotes, and <strong style="color:#fff">adds credibility scoring</strong> to all matching videos. Leave the tab open — processes ~1 video/second.</p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
               <div>
                 <label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Owner (blank = all)</label>
@@ -435,28 +317,50 @@
             </div>
           </div>
         </div>
+
+        <!-- Patch Durations -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-head"><h2>⏱ Patch Missing Durations</h2></div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <p style="color:var(--t2);font-size:13px;line-height:1.6">Fetches duration from the NUC for all videos where <code style="background:var(--s3);padding:1px 6px;border-radius:4px;font-size:11px">duration IS NULL</code>. Requires the NUC tunnel to be online. Does NOT re-analyze — only updates duration.</p>
+            <div id="duration-count" style="font-size:13px;color:var(--t3)">Loading...</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn-acc" onclick="startPatchDurations()" style="padding:8px 18px;font-size:13px;font-weight:600">▶ Start Patching</button>
+              <button class="btn-red" onclick="stopDurationPatch()" style="padding:8px 14px;font-size:13px">■ Stop</button>
+              <span id="dur-pct" style="font-size:12px;color:var(--t3)">0/0 (0%)</span>
+            </div>
+            <div>
+              <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:8px">
+                <div id="dur-bar-fill" style="height:100%;background:var(--ok);border-radius:3px;width:0%;transition:width .3s"></div>
+              </div>
+              <p id="dur-status" style="font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace">Ready</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-    </div>
-  </div>
+    </div> <!-- /wrap -->
+  </div> <!-- /app -->
+
+  <div id="coll-toast"></div>
 
   <!-- Edit User Modal -->
   <div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:20px">
     <div style="background:var(--s1);border:1px solid var(--b);border-radius:16px;padding:28px;width:100%;max-width:460px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <h2 style="font-size:18px;font-weight:700;color:var(--text)">Edit User</h2>
+        <h2 style="font-size:18px;font-weight:700">Edit User</h2>
         <button onclick="closeEditUser()" style="background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Email (read only)</label>
-          <input id="edit-email" readonly style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:7px 10px;font-size:13px;width:100%"></div>
+          <input id="edit-email" readonly style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
         <div><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Username / Owner</label>
-          <input id="edit-owner" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%"></div>
+          <input id="edit-owner" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
         <div style="display:flex;gap:12px">
           <div style="flex:1"><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Video Capacity</label>
-            <input id="edit-capacity" type="number" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%"></div>
+            <input id="edit-capacity" type="number" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
           <div style="flex:1"><label style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">Days Remaining</label>
-            <input id="edit-days" type="number" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%"></div>
+            <input id="edit-days" type="number" style="background:var(--s2);border:1px solid var(--b);color:#fff;border-radius:6px;padding:7px 10px;font-size:13px;width:100%;box-sizing:border-box"></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="edit-active" style="width:14px;height:14px">
@@ -471,19 +375,15 @@
     </div>
   </div>
 
-  <div id="coll-toast"></div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
     const SB_URL = "https://rzkrydqtgmuyeaipronh.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6a3J5ZHF0Z211eWVhaXByb25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzE1NDksImV4cCI6MjA5MDQwNzU0OX0.YFSnanaiB_TJrAmlWN1ziARjajLaeT7kMrJT2TlkTy4";
     const sb = supabase.createClient(SB_URL, SB_KEY);
-    const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
 
     const ADMINS = ["dave", "doreen"];
     const params = new URLSearchParams(location.search);
     const userParam = (params.get("user") || "").toLowerCase();
-    const COLLECTION_OWNER = "reelcall_collections";
 
     let users = [], videoCounts = {};
 
@@ -495,26 +395,6 @@
       init();
     }
 
-    async function sbReq(path, opts = {}) {
-      const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: { ...SBH, ...opts.headers } });
-      if (r.status === 204) return null;
-      const text = await r.text();
-      if (!text) return null;
-      let data;
-      try { data = JSON.parse(text); } catch { return null; }
-      if (!r.ok) throw new Error(data?.message || data?.hint || JSON.stringify(data));
-      return data;
-    }
-
-    function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-    function extractVid(url) {
-      const clean = (url || "").split("?")[0].split("&")[0];
-      return clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)?.[1] ||
-             clean.match(/\/embed\/([a-zA-Z0-9_-]{11})/)?.[1] ||
-             url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)?.[1] || null;
-    }
-    function thumb(id) { return `https://img.youtube.com/vi/${id}/mqdefault.jpg`; }
-
     async function init() {
       const [usersRes, videosRes] = await Promise.all([
         sb.from("reel_users").select("*").order("created_at", { ascending: false }),
@@ -522,13 +402,14 @@
       ]);
       users = usersRes.data || [];
       (videosRes.data || []).forEach(v => { videoCounts[v.owner] = (videoCounts[v.owner] || 0) + 1; });
-      renderStats(); renderTable(); collLoad(); collLoadSavedCollections();
+      renderStats();
+      renderTable();
     }
 
     function trialStatus(u) {
       if (!u.active) return { label: "Inactive", cls: "badge-red" };
       const now = Date.now();
-      const end = new Date(u.trial_ends_at).getTime();
+      const end = new Date(u.qa_expires_at || u.trial_ends_at).getTime();
       const days = Math.ceil((end - now) / 86400000);
       if (days < 0) return { label: "Expired", cls: "badge-red", days: 0 };
       if (days <= 7) return { label: `${days}d left`, cls: "badge-warn", days };
@@ -537,7 +418,7 @@
 
     function renderStats() {
       const active = users.filter(u => u.active).length;
-      const expired = users.filter(u => { const d = Math.ceil((new Date(u.trial_ends_at) - Date.now()) / 86400000); return d < 0 && u.active; }).length;
+      const expired = users.filter(u => { const d = Math.ceil((new Date(u.qa_expires_at || u.trial_ends_at) - Date.now()) / 86400000); return d < 0 && u.active; }).length;
       const totalVideos = Object.values(videoCounts).reduce((a, b) => a + b, 0);
       document.getElementById("stats").innerHTML = `
         <div class="stat"><div class="stat-n">${users.length}</div><div class="stat-l">Total Users</div></div>
@@ -564,7 +445,7 @@
               <span class="badge ${ts.cls}">${ts.label}</span>
               ${ts.days > 0 ? `<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${barColor}"></div></div>` : ""}
             </div>
-            <div style="font-size:11px;color:var(--t3);margin-top:4px">📹 ${u.videos_added||0}/${u.videos_capacity||10} videos</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">📹 ${vcount}/${u.videos_capacity||30} videos</div>
           </td>
           <td><span class="badge badge-gray">Tier ${u.tier || 1}</span></td>
           <td style="color:var(--t2)">${vcount}
@@ -574,7 +455,8 @@
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               ${u.active
                 ? `<button class="btn-red" onclick="toggleActive('${u.id}', false)">Deactivate</button>`
-                : `<button class="btn-ok" onclick="toggleActive('${u.id}', true)">Activate</button>`}
+                : `<button class="btn-ok" onclick="toggleActive('${u.id}', true)">Activate</button>`
+              }
               <button class="btn-acc" onclick="extendTrial('${u.id}', '${u.trial_ends_at}')">+30 days</button>
               <select onchange="setTier('${u.id}', this.value)" style="background:var(--s2);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:5px 6px;font-size:12px;outline:none;cursor:pointer">
                 ${[1,2,3,4,5].map(t => `<option value="${t}" ${(u.tier||1)==t?"selected":""}>\$${t}/mo</option>`).join("")}
@@ -589,19 +471,22 @@
     async function toggleActive(id, val) {
       await sb.from("reel_users").update({ active: val }).eq("id", id);
       users = users.map(u => u.id === id ? { ...u, active: val } : u);
-      renderStats(); renderTable();
+      renderStats(); renderTable(); collLoad(); collLoadSavedCollections();
     }
 
     async function extendTrial(id, currentEnd) {
-      const cur = new Date(currentEnd), now = new Date();
+      const cur = new Date(currentEnd);
+      const now = new Date();
       const base = cur > now ? cur : now;
       const newEnd = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      await sb.from("reel_users").update({ trial_ends_at: newEnd }).eq("id", id);
-      users = users.map(u => u.id === id ? { ...u, trial_ends_at: newEnd } : u);
+      await sb.from("reel_users").update({ trial_ends_at: newEnd, qa_expires_at: newEnd }).eq("id", id);
+      users = users.map(u => u.id === id ? { ...u, trial_ends_at: newEnd, qa_expires_at: newEnd } : u);
       renderTable();
     }
 
+    // ── Edit User ─────────────────────────────────────────────────────────────
     let editingUser = null;
+
     async function openEditUser(user) {
       editingUser = user;
       document.getElementById("edit-email").value = user.email || "";
@@ -611,7 +496,12 @@
       document.getElementById("edit-active").checked = user.active !== false;
       document.getElementById("edit-modal").style.display = "flex";
     }
-    function closeEditUser() { document.getElementById("edit-modal").style.display = "none"; editingUser = null; }
+
+    function closeEditUser() {
+      document.getElementById("edit-modal").style.display = "none";
+      editingUser = null;
+    }
+
     async function saveEditUser() {
       if (!editingUser) return;
       const owner = document.getElementById("edit-owner").value.trim();
@@ -619,74 +509,36 @@
       const days = parseInt(document.getElementById("edit-days").value);
       const active = document.getElementById("edit-active").checked;
       const newExpiry = new Date(Date.now() + days * 86400000).toISOString();
-      const { error } = await sb.from("reel_users").update({ owner, videos_capacity: capacity, active, qa_expires_at: newExpiry, trial_ends_at: newExpiry }).eq("id", editingUser.id);
+
+      const { error } = await sb.from("reel_users").update({
+        owner, videos_capacity: capacity, active,
+        qa_expires_at: newExpiry, trial_ends_at: newExpiry
+      }).eq("id", editingUser.id);
+
       if (error) { alert("Save failed: " + error.message); return; }
+
+      // Update local list
       users = users.map(u => u.id === editingUser.id ? { ...u, owner, videos_capacity: capacity, active, qa_expires_at: newExpiry } : u);
-      renderTable(); closeEditUser();
+      renderUsers();
+      closeEditUser();
     }
+
     async function resetPassword(email) {
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://reelcall.app/reel.html" });
       if (error) alert("Error: " + error.message);
       else alert("Password reset email sent to " + email);
     }
+
     async function setTier(id, tier) {
       await sb.from("reel_users").update({ tier: parseInt(tier) }).eq("id", id);
       users = users.map(u => u.id === id ? { ...u, tier: parseInt(tier) } : u);
     }
 
-    // ── Tab switching ─────────────────────────────────────────────────────────
-    function showTab(name) {
-      ["users","shares","collections","bulk"].forEach(t => {
-        const pane = document.getElementById(`pane-${t}`);
-        if (pane) pane.style.display = t === name ? "" : "none";
-        const btn = document.getElementById(`tab-${t}`);
-        if (btn) {
-          btn.style.background = t === name ? "var(--acc)" : "transparent";
-          btn.style.color = t === name ? "#fff" : "var(--t2)";
-          btn.style.fontWeight = t === name ? "600" : "500";
-        }
-      });
-      if (name === "shares") loadShares();
-      if (name === "collections") collLoad();
-    }
-
-    // ── Share Activity ─────────────────────────────────────────────────────────
-    async function loadShares() {
-      document.getElementById("shares-loading").style.display = "block";
-      document.getElementById("shares-content").style.display = "none";
-      document.getElementById("views-content").style.display = "none";
-      try {
-        const views = await sb.from("reel_share_views").select("*").order("viewed_at", { ascending: false }).limit(200);
-        const shareData = views.data || [];
-        const videoIds = [...new Set(shareData.map(v => v.video_id))];
-        const videos = videoIds.length ? (await sb.from("youtube_videos").select("id,video_id,title,owner").in("id", videoIds)).data || [] : [];
-        const videoMap = Object.fromEntries(videos.map(v => [v.id, v]));
-        const byVideo = {};
-        shareData.forEach(v => {
-          if (!byVideo[v.video_id]) byVideo[v.video_id] = { owner: v.owner, views: 0, signups: [], lastViewed: null };
-          byVideo[v.video_id].views++;
-          if (v.signed_up_as) byVideo[v.video_id].signups.push(v.signed_up_as);
-          if (!byVideo[v.video_id].lastViewed || v.viewed_at > byVideo[v.video_id].lastViewed) byVideo[v.video_id].lastViewed = v.viewed_at;
-        });
-        document.getElementById("shares-tbody").innerHTML = Object.entries(byVideo).sort((a,b) => b[1].views - a[1].views).map(([vid, d]) => {
-          const vInfo = videoMap[vid];
-          const shareUrl = vInfo?.video_id ? `https://reelcall.app/reel.html?share=${vid}` : null;
-          return `<tr><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${shareUrl ? `<a href="${shareUrl}" target="_blank" style="color:var(--acc);text-decoration:none" title="View summary">${vInfo?.title || vid} ↗</a>` : (vInfo?.title || vid)}</td><td><span class="badge">${d.owner}</span></td><td>${d.views}</td><td>${d.signups.length > 0 ? d.signups.map(s => `<span class="badge badge-ok">${s}</span>`).join(" ") : "<span style='color:var(--t3)'>0</span>"}</td><td style="font-size:11px;color:var(--t3)">${d.lastViewed ? new Date(d.lastViewed).toLocaleDateString() : ""}</td></tr>`;
-        }).join("") || "<tr><td colspan='5' style='color:var(--t3);text-align:center;padding:20px'>No shares yet</td></tr>";
-        document.getElementById("views-tbody").innerHTML = shareData.slice(0, 50).map(v => {
-          const vInfo = videoMap[v.video_id];
-          const vShareUrl = vInfo?.video_id ? `https://reelcall.app/reel.html?share=${v.video_id}` : null;
-          return `<tr><td style="font-size:11px;color:var(--t3)">${new Date(v.viewed_at).toLocaleString()}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${vShareUrl ? `<a href="${vShareUrl}" target="_blank" style="color:var(--acc);text-decoration:none">${vInfo?.title || v.video_id} ↗</a>` : (vInfo?.title || v.video_id)}</td><td><span class="badge">${v.owner}</span></td><td>${v.signed_up_as ? `<span class="badge badge-ok">${v.signed_up_as}</span>` : "<span style='color:var(--t3)'>—</span>"}</td></tr>`;
-        }).join("") || "<tr><td colspan='4' style='color:var(--t3);text-align:center;padding:20px'>No views yet</td></tr>";
-        document.getElementById("shares-loading").style.display = "none";
-        document.getElementById("shares-content").style.display = "block";
-        document.getElementById("views-content").style.display = "block";
-      } catch(e) { document.getElementById("shares-loading").textContent = "Error loading: " + e.message; }
-    }
 
     // ── Collections ───────────────────────────────────────────────────────────
     let collVideos = [], collFilter_active = 'all', collCurrentResult = null;
-    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides Explained", "glp1": "GLP-1 Explained", "longevity": "Longevity & Anti-Aging", "fitness": "Fitness & Performance", "general": "General Collection" };
+    const COLLECTION_OWNER = "reelcall_collections";
+    const COLL_LABEL = { "huberman-lab": "Huberman Lab", "peptides": "Peptides", "glp1": "GLP-1", "longevity": "Longevity", "fitness": "Fitness", "general": "General" };
 
     function collToast(msg) {
       const el = document.getElementById('coll-toast');
@@ -696,20 +548,12 @@
 
     async function collLoad() {
       try {
-        const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added,sort_order&owner=eq.${COLLECTION_OWNER}&order=sort_order.asc,date_added.asc`).catch(e => { throw new Error('Could not load videos: ' + e.message); });
+        const rows = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,tags,credibility,collection_tag,date_added&owner=eq.${COLLECTION_OWNER}&order=date_added.desc`);
         collVideos = rows || [];
-
-        // Populate the collection filter dropdown
-        const tags = [...new Set(collVideos.map(v => v.collection_tag).filter(Boolean))];
-        const dropdown = document.getElementById('coll-filter-dropdown');
-        const currentVal = dropdown.value;
-        dropdown.innerHTML = '<option value="all">All Collections</option>' +
-          tags.map(tag => `<option value="${tag}">${COLL_LABEL[tag] || tag}</option>`).join('');
-        // Restore selection if still valid
-        if (currentVal && tags.includes(currentVal)) dropdown.value = currentVal;
-
         collRenderList();
-        document.getElementById('coll-filter-count').textContent = collVideos.length + ' videos across ' + tags.length + ' collections';
+        document.getElementById('coll-stat-total').textContent = collVideos.length;
+        document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
+        document.getElementById('coll-stat-pep').textContent = collVideos.filter(v => v.collection_tag === 'peptides').length;
       } catch(e) {
         document.getElementById('coll-video-list').innerHTML = `<p style="color:var(--red);font-size:13px">Error: ${e.message}</p>`;
       }
@@ -718,89 +562,37 @@
     function collFilter(f, btn) {
       collFilter_active = f;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
+      btn.classList.add('active');
       collRenderList();
-    }
-
-    function collFilterFromDropdown(val) {
-      collFilter_active = val;
-      const label = document.getElementById('coll-view-label');
-      const manageBtn = document.getElementById('manage-toggle-btn');
-      if (val === 'all') {
-        label.textContent = 'All Collections';
-        manageBtn.style.display = 'none';
-        document.getElementById('coll-manager').style.display = 'none';
-      } else {
-        label.textContent = COLL_LABEL[val] || val;
-        manageBtn.style.display = 'inline-block';
-      }
-      collRenderList();
-    }
-
-    let managePanelOpen = false;
-    function toggleManagePanel() {
-      managePanelOpen = !managePanelOpen;
-      const manager = document.getElementById('coll-manager');
-      const btn = document.getElementById('manage-toggle-btn');
-      manager.style.display = managePanelOpen ? 'block' : 'none';
-      btn.textContent = managePanelOpen ? '✕ Close' : '⚙ Manage';
-      if (managePanelOpen && currentCollection) loadCollectionManager(currentCollection);
     }
 
     function collRenderList() {
       const filtered = collFilter_active === 'all' ? collVideos : collVideos.filter(v => v.collection_tag === collFilter_active);
       const el = document.getElementById('coll-video-list');
-      const manager = document.getElementById('coll-manager');
-
-      // Manager shown via toggle button - just update current collection
-      if (collFilter_active !== 'all') {
-        currentCollection = collFilter_active;
-        if (managePanelOpen) {
-          manager.style.display = 'block';
-          loadCollectionManager(collFilter_active);
-        }
-      } else {
-        manager.style.display = 'none';
-        managePanelOpen = false;
-        const btn = document.getElementById('manage-toggle-btn');
-        if (btn) btn.textContent = '⚙ Manage';
-      }
-
-      if (!filtered.length) { el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>'; return; }
+      if (!filtered.length) { el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">No videos in this collection yet</div>`; return; }
       const COLL_CLASS = { "huberman-lab": "coll-huberman", "peptides": "coll-peptides", "general": "coll-general" };
-      const sorted = [...filtered].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-      el.innerHTML = sorted.map((v, i) => {
-        const title = (v.title || 'Untitled').replace(/'/g, "\'");
-        const credColor = v.credibility?.score === 'high' ? 'var(--ok)' : v.credibility?.score === 'low' ? 'var(--red)' : 'var(--warn)';
-        return `<div class="video-row" id="vrow-${v.id}">
+      el.innerHTML = filtered.map(v => `
+        <div class="video-row">
           <img src="${thumb(v.video_id)}" onerror="this.style.display='none'">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;gap:6px;margin-bottom:4px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="display:flex;gap:6px;margin-bottom:5px;flex-wrap:wrap">
               <span class="coll-pill ${COLL_CLASS[v.collection_tag] || 'coll-general'}">${COLL_LABEL[v.collection_tag] || v.collection_tag || 'General'}</span>
-              ${v.credibility?.score ? `<span style="font-size:10px;color:${credColor}">${v.credibility.score}</span>` : ''}
-              <span style="font-size:10px;color:var(--t3);margin-left:auto">#${i+1}</span>
+              ${v.credibility?.score ? `<span style="font-size:10px;color:var(--t3)">credibility: ${v.credibility.score}</span>` : ''}
             </div>
-            <p style="font-size:12px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title || 'Untitled'}</p>
-            <p style="font-size:11px;color:var(--t2);margin-bottom:3px">${v.channel || ''}</p>
-            <p style="font-size:11px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">${v.summary || ''}</p>
+            <p style="font-size:12px;font-weight:600;color:#DDE4F5;line-height:1.35;margin-bottom:3px">${v.title || 'Untitled'}</p>
+            <p style="font-size:11px;color:var(--t2);margin-bottom:4px">${v.channel || ''}</p>
+            <p style="font-size:11px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${v.summary || ''}</p>
           </div>
-          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">
-            ${collFilter_active !== 'all' ? `<div style="display:flex;gap:3px">
-              <button onclick="moveVideo('${v.id}',${i},-1)" ${i===0?'disabled':''} style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;font-family:inherit;${i===0?'opacity:.3':''}">↑</button>
-              <button onclick="moveVideo('${v.id}',${i},1)" ${i===sorted.length-1?'disabled':''} style="background:var(--s3);border:1px solid var(--b);color:var(--t2);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;font-family:inherit;${i===sorted.length-1?'opacity:.3':''}">↓</button>
-            </div>` : ''}
+          <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
             <a href="https://reelcall.app/reel.html?vid=${v.video_id}&preview=true&collection=${v.collection_tag||'general'}" target="_blank" style="font-size:11px;color:var(--acc);text-decoration:none;white-space:nowrap">Preview ↗</a>
-            <button class="btn-red" onclick="collDelete('${v.id}','${title}')" style="padding:3px 7px;font-size:10px">Delete</button>
+            <button class="btn-red" onclick="collDelete('${v.id}','${(v.title||'').replace(/'/g,"\'")}') " style="padding:3px 7px;font-size:10px">Delete</button>
           </div>
-        </div>`;
-      }).join('');
-      if (collFilter_active !== 'all') setTimeout(initDrag, 50);
+        </div>
+      `).join('');
     }
 
     function collSelectChange(sel) {
-      const newBox = document.getElementById('coll-new-box');
-      newBox.style.display = sel.value === '__new__' ? 'flex' : 'none';
+      document.getElementById('coll-new-box').style.display = sel.value === '__new__' ? 'flex' : 'none';
       if (sel.value === '__new__') setTimeout(() => document.getElementById('coll-new-name').focus(), 50);
     }
 
@@ -809,17 +601,10 @@
       if (!name) return;
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const sel = document.getElementById('coll-select');
-      // Check if already exists
-      const exists = Array.from(sel.options).some(o => o.value === slug);
-      if (!exists) {
-        const opt = new Option(name, slug);
-        sel.insertBefore(opt, sel.options[sel.options.length - 1]); // before "Add new..."
-        // Persist to localStorage
+      if (!Array.from(sel.options).some(o => o.value === slug)) {
+        sel.insertBefore(new Option(name, slug), sel.options[sel.options.length - 1]);
         const saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
-        if (!saved.find(c => c.slug === slug)) {
-          saved.push({ slug, name });
-          localStorage.setItem('reelcall_collections', JSON.stringify(saved));
-        }
+        if (!saved.find(c => c.slug === slug)) { saved.push({ slug, name }); localStorage.setItem('reelcall_collections', JSON.stringify(saved)); }
         COLL_LABEL[slug] = name;
       }
       sel.value = slug;
@@ -831,38 +616,8 @@
       const saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
       const sel = document.getElementById('coll-select');
       saved.forEach(({ slug, name }) => {
-        if (!Array.from(sel.options).some(o => o.value === slug)) {
-          const opt = new Option(name, slug);
-          sel.insertBefore(opt, sel.options[sel.options.length - 1]);
-          COLL_LABEL[slug] = name;
-        }
+        if (!Array.from(sel.options).some(o => o.value === slug)) { sel.insertBefore(new Option(name, slug), sel.options[sel.options.length - 1]); COLL_LABEL[slug] = name; }
       });
-      renderCollDeleteBtns();
-    }
-
-    function renderCollDeleteBtns() {
-      const saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
-      const container = document.getElementById('coll-custom-list');
-      if (!container) return;
-      if (!saved.length) { container.innerHTML = ''; return; }
-      container.innerHTML = saved.map(({ slug, name }) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--s3);border-radius:6px;border:1px solid var(--b)">
-          <span style="font-size:12px;color:var(--t2)">${name}</span>
-          <button onclick="collDeleteCustom('${slug}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:0 4px;font-family:inherit" title="Delete collection">✕</button>
-        </div>
-      `).join('');
-    }
-
-    function collDeleteCustom(slug) {
-      if (!confirm("Delete \"" + (COLL_LABEL[slug] || slug) + "\" collection? This only removes it from this dropdown — videos in the DB are not deleted.")) return;
-      let saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
-      saved = saved.filter(c => c.slug !== slug);
-      localStorage.setItem('reelcall_collections', JSON.stringify(saved));
-      delete COLL_LABEL[slug];
-      const sel = document.getElementById('coll-select');
-      Array.from(sel.options).forEach(o => { if (o.value === slug) o.remove(); });
-      renderCollDeleteBtns();
-      collToast('Collection removed from dropdown');
     }
 
     async function collAnalyze() {
@@ -871,39 +626,26 @@
       if (!url) return;
       const videoId = extractVid(url);
       if (!videoId) { collShowError("Couldn't find a YouTube video ID in that URL."); return; }
-
       const existing = await sbReq(`youtube_videos?select=id,title&owner=eq.${COLLECTION_OWNER}&video_id=eq.${videoId}&limit=1`).catch(() => null);
       if (existing?.length) { collShowError(`Already in collection: "${existing[0].title}"`); return; }
-
       document.getElementById('coll-progress').style.display = 'block';
       document.getElementById('coll-result').style.display = 'none';
       document.getElementById('coll-error').style.display = 'none';
       document.getElementById('coll-analyze-btn').disabled = true;
-
-      const steps = [
-        { id: 'cache', label: 'Check analysis cache' },
-        { id: 'transcript', label: 'Fetch transcript' },
-        { id: 'analyze', label: 'Claude analysis' },
-      ];
-      document.getElementById('coll-steps').innerHTML = steps.map(s =>
-        `<div class="coll-step"><div class="coll-step-dot" id="cs-${s.id}">·</div><p style="font-size:12px;color:#DDE4F5">${s.label}</p></div>`
-      ).join('');
-
-      function setStep(id, status, text) {
+      const steps = [{ id: 'cache', label: 'Check analysis cache' }, { id: 'transcript', label: 'Fetch transcript' }, { id: 'analyze', label: 'Claude analysis' }];
+      document.getElementById('coll-steps').innerHTML = steps.map(s => `<div class="coll-step"><div class="coll-step-dot" id="cs-${s.id}">·</div><p style="font-size:12px;color:#DDE4F5">${s.label}</p></div>`).join('');
+      function setStep(id, status) {
         const el = document.getElementById('cs-' + id);
         if (!el) return;
         el.className = 'coll-step-dot ' + status;
         el.textContent = status === 'done' ? '✓' : status === 'error' ? '✕' : '·';
       }
-
       try {
         setStep('cache', 'active');
         document.getElementById('coll-prog-fill').style.width = '10%';
         document.getElementById('coll-prog-msg').textContent = 'Checking cache...';
-
         let transcript = null, analysisData = null;
         const cached = await sbReq(`youtube_videos?select=transcript,title,channel,summary,key_points,quotes,whats_new,action_suggestions,tags,duration,credibility&video_id=eq.${videoId}&transcript=not.is.null&limit=1`).catch(() => null);
-
         if (cached?.length && cached[0].summary) {
           analysisData = { title: cached[0].title, channel: cached[0].channel, summary: cached[0].summary, keyPoints: cached[0].key_points || [], quotes: cached[0].quotes || [], whatsNew: cached[0].whats_new || "", actionSuggestions: cached[0].action_suggestions || [], tags: cached[0].tags || [], credibility: cached[0].credibility || null, duration: cached[0].duration };
           transcript = cached[0].transcript;
@@ -912,25 +654,20 @@
           document.getElementById('coll-prog-msg').textContent = 'Loaded from cache — instant!';
           await new Promise(r => setTimeout(r, 500));
         } else {
-          setStep('cache', 'done');
-          setStep('transcript', 'active');
+          setStep('cache', 'done'); setStep('transcript', 'active');
           document.getElementById('coll-prog-fill').style.width = '33%';
           document.getElementById('coll-prog-msg').textContent = 'Fetching transcript...';
-
           const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ videoId }) });
           const txData = await txRes.json();
           if (txData.error && !txData.transcript) throw new Error(txData.error);
           transcript = txData.transcript;
           if (!transcript) throw new Error("No transcript available.");
-          setStep('transcript', 'done');
-
-          setStep('analyze', 'active');
+          setStep('transcript', 'done'); setStep('analyze', 'active');
           document.getElementById('coll-prog-fill').style.width = '66%';
           document.getElementById('coll-prog-msg').textContent = 'Claude analyzing...';
-
           const dur = txData.duration || null;
           const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
-          const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: `Analyze this video transcript. Return ONLY valid JSON:\n{\n  "title": "exact video title",\n  "channel": "channel name",\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote", "another"],\n  "tags": ["up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance peptides longevity biohacking"],\n  "actionSuggestions": ["specific action", "...up to 3"],\n  "whatsNew": "one contrarian or surprising claim",\n  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }\n}`, messages: [{ role: 'user', content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${transcript}` }] }) });
+          const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: `Analyze this video transcript. Return ONLY valid JSON:\n{\n  "title": "exact video title",\n  "channel": "channel name",\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote"],\n  "tags": ["up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance peptides longevity biohacking"],\n  "actionSuggestions": ["specific action", "...up to 3"],\n  "whatsNew": "one contrarian or surprising claim",\n  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }\n}`, messages: [{ role: 'user', content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${transcript}` }] }) });
           const aData = await aRes.json();
           const text = (aData.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
           const parsed = JSON.parse(text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim());
@@ -941,9 +678,7 @@
           document.getElementById('coll-prog-msg').textContent = 'Done!';
           await new Promise(r => setTimeout(r, 300));
         }
-
         collCurrentResult = { videoId, url: `https://www.youtube.com/watch?v=${videoId}`, transcript, collection, ...analysisData };
-        // Autosave — no confirmation step needed
         await collSave();
       } catch(e) { collShowError(e.message); }
     }
@@ -968,15 +703,12 @@
       if (!collCurrentResult) return;
       document.getElementById('coll-prog-msg').textContent = 'Saving to collection...';
       document.getElementById('coll-progress').style.display = 'block';
-      document.getElementById('coll-result').style.display = 'none';
       try {
         const r = collCurrentResult;
         await sbReq('youtube_videos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ id: genId(), video_id: r.videoId, url: r.url, title: r.title || 'Untitled', channel: r.channel || '', summary: r.summary, key_points: r.keyPoints || [], point_status: [], tags: r.tags || [], quotes: r.quotes || [], credibility: r.credibility || null, qa: [], whats_new: r.whatsNew || '', action_suggestions: r.actionSuggestions || [], transcript: r.transcript || null, duration: r.duration || null, shared: true, open_count: 0, share_count: 0, date_added: new Date().toISOString(), owner: COLLECTION_OWNER, collection_tag: r.collection }) });
         collToast('✓ Saved to ' + (COLL_LABEL[r.collection] || r.collection) + ' collection');
         collReset(); collLoad();
-      } catch(e) {
-        collShowError('Save failed: ' + e.message);
-      }
+      } catch(e) { collShowError('Save failed: ' + e.message); }
     }
 
     async function collDelete(id, title) {
@@ -985,475 +717,47 @@
       catch(e) { collToast('Error: ' + e.message); }
     }
 
-    // ── Collection Manager ────────────────────────────────────────────────────────
-    const PAGE_URLS = {
-      'huberman-lab': 'https://reelcall.app/know/huberman-lab.html',
-      'peptides': 'https://reelcall.app/know/peptides.html',
-      'glp1': 'https://reelcall.app/know/glp1.html',
-      'longevity': 'https://reelcall.app/know/longevity.html',
-      'fitness': 'https://reelcall.app/know/fitness.html',
-      'general': 'https://reelcall.app/know/general.html',
-    };
-
-    let currentCollection = null;
-    let currentDemoResult = null;
-
-    async function loadCollectionManager(tag) {
-      currentCollection = tag;
-
-      // Set live page link — will be updated from DB if page_url saved
-      const liveLink = document.getElementById('coll-live-link');
-      liveLink.href = PAGE_URLS[tag] || `https://reelcall.app/know/${tag}.html`;
-      liveLink.textContent = `View ${COLL_LABEL[tag] || tag} Page ↗`;
-
-      // Load business profile
-      try {
-        const rows = await sbReq(`collection_metadata?collection_tag=eq.${tag}&limit=1`).catch(() => null);
-        if (rows?.[0]) {
-          document.getElementById('prof-name').value = rows[0].name || '';
-          document.getElementById('prof-url').value = rows[0].website_url || '';
-          document.getElementById('prof-bio').value = rows[0].bio || '';
-          document.getElementById('prof-logo').value = rows[0].logo_url || '';
-          document.getElementById('prof-prefix').value = rows[0].url_prefix || '';
-          document.getElementById('prof-rate').value = rows[0].partner_rate || '';
-          document.getElementById('prof-split').value = rows[0].revenue_split || '';
-          document.getElementById('prof-public').checked = rows[0].is_public !== false;
-          document.getElementById('prof-page-url').value = rows[0].page_url || '';
-          // Update live page link from DB
-          if (rows[0].page_url) {
-            const liveLink = document.getElementById('coll-live-link');
-            liveLink.href = rows[0].page_url;
-          }
-        } else {
-          document.getElementById('prof-name').value = COLL_LABEL[tag] || '';
-          document.getElementById('prof-url').value = '';
-          document.getElementById('prof-bio').value = '';
-          document.getElementById('prof-logo').value = '';
-          document.getElementById('prof-page-url').value = `/know/${tag}.html`;
-          document.getElementById('prof-prefix').value = '';
-          document.getElementById('prof-rate').value = '';
-          document.getElementById('prof-split').value = '';
-          document.getElementById('prof-public').checked = true;
-        }
-        document.getElementById('prof-save-msg').style.display = 'none';
-      } catch(e) { /* table may not exist yet */ }
-
-      // Load demo
-      try {
-        const demos = await sbReq(`collection_demos?collection_tag=eq.${tag}&limit=1`).catch(() => null);
-        const demoBox = document.getElementById('demo-current-inline');
-        if (demos?.[0]) {
-          demoBox.innerHTML = '<span style="color:var(--acc);font-style:italic">"' + demos[0].question + '"</span>' +
-            '<span style="color:var(--t3);margin-left:8px">· Updated ' + new Date(demos[0].updated_at).toLocaleDateString() + '</span>';
-          document.getElementById('demo-question-inline').value = demos[0].question;
-        } else {
-          demoBox.textContent = 'No demo set yet.';
-          document.getElementById('demo-question-inline').value = '';
-        }
-      } catch(e) { document.getElementById('demo-current-inline').textContent = 'Could not load demo.'; }
-
-      // Load collection users
-      loadCollectionUsers(tag);
-
-      // Reset demo result
-      document.getElementById('demo-result-inline').style.display = 'none';
-      document.getElementById('demo-inline-msg').style.display = 'none';
-    }
-
-    async function deleteCollection() {
-      if (!currentCollection) return;
-      const label = COLL_LABEL[currentCollection] || currentCollection;
-      const tag = currentCollection;
-
-      // Count videos first
-      let count = 0;
-      try {
-        const videos = await sbReq(`youtube_videos?select=id&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${tag}`);
-        count = videos?.length || 0;
-      } catch(e) {}
-
-      const confirmed = confirm(
-        `Delete "${label}" collection?
-
-` +
-        `This will permanently remove ${count} video${count !== 1 ? 's' : ''} from this collection.
-
-` +
-        `This cannot be undone.`
-      );
-      if (!confirmed) return;
-
-      try {
-        // Delete videos — must use raw fetch with DELETE header
-        await fetch(`${SB_URL}/rest/v1/youtube_videos?owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${tag}`, {
-          method: 'DELETE',
-          headers: { ...SBH }
-        });
-
-        // Delete demo
-        await fetch(`${SB_URL}/rest/v1/collection_demos?collection_tag=eq.${tag}`, {
-          method: 'DELETE', headers: { ...SBH }
-        }).catch(() => {});
-
-        // Delete metadata
-        await fetch(`${SB_URL}/rest/v1/collection_metadata?collection_tag=eq.${tag}`, {
-          method: 'DELETE', headers: { ...SBH }
-        }).catch(() => {});
-
-        // Remove from BOTH dropdowns (add form + demo builder)
-        ['coll-select', 'demo-coll-select'].forEach(selId => {
-          const sel = document.getElementById(selId);
-          if (!sel) return;
-          Array.from(sel.options).forEach(o => { if (o.value === tag) o.remove(); });
-        });
-
-        // Remove from filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-          if (btn.getAttribute('onclick')?.includes(`'${tag}'`)) btn.remove();
-        });
-
-        // Remove from localStorage
-        let saved = JSON.parse(localStorage.getItem('reelcall_collections') || '[]');
-        saved = saved.filter(c => c.slug !== tag);
-        localStorage.setItem('reelcall_collections', JSON.stringify(saved));
-        delete COLL_LABEL[tag];
-
-        // Reset collVideos
-        collVideos = collVideos.filter(v => v.collection_tag !== tag);
-        currentCollection = null;
-
-        // Reset to All view
-        document.getElementById('coll-manager').style.display = 'none';
-        managePanelOpen = false;
-        collFilter_active = 'all';
-        const dd = document.getElementById('coll-filter-dropdown');
-        if (dd) dd.value = 'all';
-        document.getElementById('coll-view-label').textContent = 'All Collections';
-        document.getElementById('manage-toggle-btn').style.display = 'none';
-        collRenderList();
-
-        // Update stats
-        document.getElementById('coll-stat-total').textContent = collVideos.length;
-        document.getElementById('coll-stat-hub').textContent = collVideos.filter(v => v.collection_tag === 'huberman-lab').length;
-        document.getElementById('coll-stat-pep').textContent = collVideos.filter(v => v.collection_tag === 'peptides').length;
-
-        collToast(`✓ "${label}" deleted — ${count} video${count !== 1 ? 's' : ''} removed`);
-
-      } catch(e) {
-        collToast('Delete failed: ' + e.message);
-      }
-    }
-
-        async function saveProfile() {
-      if (!currentCollection) return;
-      const pageUrl = document.getElementById('prof-page-url').value.trim();
-      const record = {
-        collection_tag: currentCollection,
-        name: document.getElementById('prof-name').value.trim(),
-        url_prefix: document.getElementById('prof-prefix').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,''),
-        partner_rate: parseFloat(document.getElementById('prof-rate').value) || null,
-        revenue_split: parseFloat(document.getElementById('prof-split').value) || null,
-        website_url: document.getElementById('prof-url').value.trim(),
-        bio: document.getElementById('prof-bio').value.trim(),
-        logo_url: document.getElementById('prof-logo').value.trim(),
-        page_url: pageUrl ? (pageUrl.startsWith('/') ? pageUrl : `/know/${pageUrl}`) : `/know/${currentCollection}.html`,
-        is_public: document.getElementById('prof-public').checked,
-        no_share: document.getElementById('prof-no-share').checked,
-        show_branding: document.getElementById('prof-show-branding').checked,
-        updated_at: new Date().toISOString()
-      };
-      // Update live page link immediately
-      if (pageUrl) {
-        const liveLink = document.getElementById('coll-live-link');
-        liveLink.href = pageUrl;
-      }
-      try {
-        const existing = await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}&limit=1`).catch(() => null);
-        if (existing?.length) {
-          await sbReq(`collection_metadata?collection_tag=eq.${currentCollection}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
-        } else {
-          await sbReq('collection_metadata', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
-        }
-        document.getElementById('prof-save-msg').style.display = 'block';
-        collToast('✓ Profile saved for ' + (COLL_LABEL[currentCollection] || currentCollection));
-        setTimeout(() => { document.getElementById('prof-save-msg').style.display = 'none'; }, 3000);
-      } catch(e) { collToast('Error: ' + e.message); }
-    }
-
-    async function moveVideo(id, currentIdx, direction) {
-      const filtered = collVideos.filter(v => v.collection_tag === collFilter_active)
-        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-      const newIdx = currentIdx + direction;
-      if (newIdx < 0 || newIdx >= filtered.length) return;
-
-      // Swap sort_order values
-      const a = filtered[currentIdx];
-      const b = filtered[newIdx];
-      const aOrder = currentIdx;
-      const bOrder = newIdx;
-
-      try {
-        await Promise.all([
-          sbReq(`youtube_videos?id=eq.${a.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ sort_order: bOrder }) }),
-          sbReq(`youtube_videos?id=eq.${b.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ sort_order: aOrder }) })
-        ]);
-        // Update local state
-        collVideos = collVideos.map(v => {
-          if (v.id === a.id) return { ...v, sort_order: bOrder };
-          if (v.id === b.id) return { ...v, sort_order: aOrder };
-          return v;
-        });
-        collRenderList();
-      } catch(e) { collToast('Error moving video: ' + e.message); }
-    }
-
-    async function runDemoInline() {
-      if (!currentCollection) return;
-      const question = document.getElementById('demo-question-inline').value.trim();
-      if (!question) return;
-      document.getElementById('demo-run-inline-btn').disabled = true;
-      document.getElementById('demo-loading-inline').style.display = 'block';
-      document.getElementById('demo-result-inline').style.display = 'none';
-      try {
-        const videos = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,key_points&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${currentCollection}&order=sort_order.asc,date_added.asc`);
-        if (!videos?.length) { collToast('No videos in this collection'); return; }
-        const ctx = videos.map((v, i) =>
-          `[${i+1}] "${v.title}" — ${v.channel || 'Unknown'}\nSummary: ${v.summary || ''}\nKey Points: ${(v.key_points || []).join('; ')}`
-        ).join('\n\n---\n\n');
-        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` },
-          body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500,
-            system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos.\n\n${ctx}\n\nAnswer directly, cite video titles in brackets, use bold for key conclusions, format with clear sections.`,
-            messages: [{ role: 'user', content: question }] })
-        });
-        const data = await resp.json();
-        const answer = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-        currentDemoResult = { collection: currentCollection, question, answer };
-        document.getElementById('demo-answer-inline').textContent = answer;
-        document.getElementById('demo-result-inline').style.display = 'block';
-      } catch(e) { collToast('Error: ' + e.message); }
-      finally { document.getElementById('demo-loading-inline').style.display = 'none'; document.getElementById('demo-run-inline-btn').disabled = false; }
-    }
-
-    async function saveDemoInline() {
-      if (!currentDemoResult) return;
-      try {
-        const record = { collection_tag: currentDemoResult.collection, question: currentDemoResult.question, answer: currentDemoResult.answer, updated_at: new Date().toISOString() };
-        const existing = await sbReq(`collection_demos?collection_tag=eq.${currentDemoResult.collection}&limit=1`).catch(() => null);
-        if (existing?.length) {
-          await sbReq(`collection_demos?collection_tag=eq.${currentDemoResult.collection}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
-        } else {
-          await sbReq('collection_demos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) });
-        }
-        document.getElementById('demo-inline-msg').style.display = 'block';
-        document.getElementById('demo-current-inline').innerHTML = '<span style="color:var(--acc);font-style:italic">"' + currentDemoResult.question + '"</span><span style="color:var(--t3);margin-left:8px">· Just updated</span>';
-        collToast('✓ Demo saved for ' + (COLL_LABEL[currentDemoResult.collection] || currentDemoResult.collection));
-      } catch(e) { collToast('Save error: ' + e.message); }
-    }
-
-    function clearDemoInline() {
-      currentDemoResult = null;
-      document.getElementById('demo-result-inline').style.display = 'none';
-      document.getElementById('demo-question-inline').value = '';
-    }
-
-    // ── Collection User Management ───────────────────────────────────────────────
-    async function loadCollectionUsers(tag) {
-      const el = document.getElementById('coll-user-list');
-      if (!el) return;
-      try {
-        const rows = await sbReq(`collection_users?collection_tag=eq.${tag}&order=created_at.asc`).catch(() => null);
-        if (!rows?.length) {
-          el.innerHTML = '<p style="font-size:11px;color:var(--t3)">No users yet — add one above.</p>';
-          return;
-        }
-        el.innerHTML = rows.map(u => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--s3);border-radius:6px;border:1px solid var(--b)">
-            <div>
-              <span style="font-size:12px;color:#DDE4F5;font-weight:500">${u.email}</span>
-              <span style="font-size:10px;color:var(--t3);margin-left:8px">${u.role}</span>
-              ${u.last_login ? `<span style="font-size:10px;color:var(--t3);margin-left:8px">Last login: ${new Date(u.last_login).toLocaleDateString()}</span>` : '<span style="font-size:10px;color:var(--t3);margin-left:8px">Never logged in</span>'}
-            </div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <span class="badge ${u.active ? 'badge-ok' : 'badge-red'}" style="font-size:10px">${u.active ? 'Active' : 'Inactive'}</span>
-              <button onclick="toggleCollectionUser('${u.id}', ${!u.active})" style="font-size:10px;background:transparent;border:1px solid var(--b);color:var(--t2);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit">${u.active ? 'Deactivate' : 'Activate'}</button>
-              <button onclick="removeCollectionUser('${u.id}', '${u.email}')" style="font-size:10px;background:var(--red-lo);border:1px solid var(--red-mid);color:var(--red);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit">Remove</button>
-            </div>
-          </div>
-        `).join('');
-      } catch(e) {
-        el.innerHTML = `<p style="font-size:11px;color:var(--red)">Error loading users: ${e.message}</p>`;
-      }
-    }
-
-    async function addCollectionUser() {
-      if (!currentCollection) return;
-      const email = document.getElementById('new-user-email').value.trim().toLowerCase();
-      const role = document.getElementById('new-user-role').value;
-      if (!email) return;
-
-      try {
-        await sbReq('collection_users', {
-          method: 'POST',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({ email, collection_tag: currentCollection, role, active: true })
-        });
-        document.getElementById('new-user-email').value = '';
-        collToast(`✓ ${email} added as ${role}`);
-        loadCollectionUsers(currentCollection);
-      } catch(e) {
-        collToast('Error: ' + e.message);
-      }
-    }
-
-    async function toggleCollectionUser(id, active) {
-      try {
-        await sbReq(`collection_users?id=eq.${id}`, {
-          method: 'PATCH',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({ active })
-        });
-        loadCollectionUsers(currentCollection);
-      } catch(e) { collToast('Error: ' + e.message); }
-    }
-
-    async function removeCollectionUser(id, email) {
-      if (!confirm(`Remove ${email} from this collection?`)) return;
-      try {
-        await sbReq(`collection_users?id=eq.${id}`, { method: 'DELETE' });
-        collToast(`✓ ${email} removed`);
-        loadCollectionUsers(currentCollection);
-      } catch(e) { collToast('Error: ' + e.message); }
-    }
-
     // ── Research Mode Demo Builder ─────────────────────────────────────────────
     let demoPanelOpen = false;
     function toggleDemoPanel() {
       demoPanelOpen = !demoPanelOpen;
       document.getElementById('demo-panel').style.display = demoPanelOpen ? 'flex' : 'none';
       document.getElementById('demo-chevron').style.transform = demoPanelOpen ? 'rotate(180deg)' : '';
-      if (demoPanelOpen) loadCurrentDemo();
-    }
-
-    async function loadCurrentDemo() {
-      const collection = document.getElementById('demo-coll-select').value;
-      try {
-        const rows = await sbReq(`collection_demos?collection_tag=eq.${collection}&limit=1`).catch(() => null);
-        const currentEl = document.getElementById('demo-current');
-        if (rows?.[0]) {
-          currentEl.innerHTML = '<p style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Currently Live</p>' +
-            '<p style="font-size:12px;color:var(--acc);margin-bottom:4px;font-style:italic">"' + rows[0].question + '"</p>' +
-            '<p style="font-size:11px;color:var(--t3)">Updated ' + new Date(rows[0].updated_at).toLocaleDateString() + '</p>';
-          // Pre-fill question input
-          document.getElementById('demo-question').value = rows[0].question;
-        } else {
-          currentEl.innerHTML = '<p style="font-size:11px;color:var(--t3)">No demo set yet for this collection.</p>';
-          document.getElementById('demo-question').value = '';
-        }
-      } catch(e) {
-        document.getElementById('demo-current').innerHTML = '<p style="font-size:11px;color:var(--t3)">Could not load current demo.</p>';
-      }
     }
     let demoResult = null;
-
     async function runDemoQuery() {
       const collection = document.getElementById('demo-coll-select').value;
       const question = document.getElementById('demo-question').value.trim();
       if (!question) return;
-
       document.getElementById('demo-run-btn').disabled = true;
       document.getElementById('demo-loading').style.display = 'block';
       document.getElementById('demo-result').style.display = 'none';
-
       try {
-        // Load all videos in this collection
         const videos = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,key_points&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${collection}&order=date_added.asc`);
-
-        if (!videos?.length) {
-          collToast('No videos in this collection yet');
-          return;
-        }
-
-        // Build context from all videos
-        const ctx = videos.map((v, i) =>
-          `[${i+1}] "${v.title}" — ${v.channel || 'Unknown'}\nSummary: ${v.summary || ''}\nKey Points: ${(v.key_points || []).join('; ')}`
-        ).join('\n\n---\n\n');
-
-        // Ask Claude
-        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1500,
-            system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos in a collection.
-
-${ctx}
-
-Answer the question by synthesizing across all relevant videos. Cite video titles in brackets. Be specific and direct. Use bold for key conclusions. Format with clear sections separated by blank lines.`,
-            messages: [{ role: 'user', content: question }]
-          })
-        });
-
+        if (!videos?.length) { collToast('No videos in this collection yet'); return; }
+        const ctx = videos.map((v, i) => `[${i+1}] "${v.title}" — ${v.channel || 'Unknown'}\nSummary: ${v.summary || ''}\nKey Points: ${(v.key_points || []).join('; ')}`).join('\n\n---\n\n');
+        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos.\n\n${ctx}\n\nAnswer by synthesizing across all relevant videos. Cite video titles in brackets. Be specific. Use bold for key conclusions.`, messages: [{ role: 'user', content: question }] }) });
         const data = await resp.json();
         const answer = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-
-        demoResult = { collection, question, answer, videoTitles: videos.map(v => v.title) };
-        document.getElementById('demo-answer-text').innerHTML = answer
-          .replace(/## (.*?)(?:\n|$)/g, '<p style="font-size:12px;font-weight:700;color:var(--text);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em">$1</p>')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\n\n/g, '<br><br>')
-          .replace(/\n/g, '<br>');
+        demoResult = { collection, question, answer };
+        document.getElementById('demo-answer-text').innerHTML = answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
         document.getElementById('demo-result').style.display = 'block';
         document.getElementById('demo-save-msg').style.display = 'none';
-
-      } catch(e) {
-        collToast('Error: ' + e.message);
-      } finally {
-        document.getElementById('demo-loading').style.display = 'none';
-        document.getElementById('demo-run-btn').disabled = false;
-      }
+      } catch(e) { collToast('Error: ' + e.message); }
+      finally { document.getElementById('demo-loading').style.display = 'none'; document.getElementById('demo-run-btn').disabled = false; }
     }
-
     async function saveDemoToDb() {
       if (!demoResult) return;
       try {
-        // Save to collection_demos table (upsert by collection)
         const existing = await sbReq(`collection_demos?collection_tag=eq.${demoResult.collection}&limit=1`).catch(() => null);
-        
-        const record = {
-          collection_tag: demoResult.collection,
-          question: demoResult.question,
-          answer: demoResult.answer,
-          updated_at: new Date().toISOString()
-        };
-
-        if (existing?.length) {
-          await sbReq(`collection_demos?collection_tag=eq.${demoResult.collection}`, {
-            method: 'PATCH',
-            headers: { Prefer: 'return=minimal' },
-            body: JSON.stringify(record)
-          });
-        } else {
-          await sbReq('collection_demos', {
-            method: 'POST',
-            headers: { Prefer: 'return=minimal' },
-            body: JSON.stringify(record)
-          });
-        }
-
+        const record = { collection_tag: demoResult.collection, question: demoResult.question, answer: demoResult.answer, updated_at: new Date().toISOString() };
+        if (existing?.length) { await sbReq(`collection_demos?collection_tag=eq.${demoResult.collection}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) }); }
+        else { await sbReq('collection_demos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(record) }); }
         document.getElementById('demo-save-msg').style.display = 'block';
         collToast('✓ Demo saved to ' + (COLL_LABEL[demoResult.collection] || demoResult.collection));
-      } catch(e) {
-        collToast('Save error: ' + e.message);
-      }
+      } catch(e) { collToast('Save error: ' + e.message); }
     }
-
-    function clearDemo() {
-      demoResult = null;
-      document.getElementById('demo-result').style.display = 'none';
-      document.getElementById('demo-question').value = '';
-    }
+    function clearDemo() { demoResult = null; document.getElementById('demo-result').style.display = 'none'; document.getElementById('demo-question').value = ''; }
 
     // ── Bulk Re-analyze ────────────────────────────────────────────────────────
     let bulkRunning = false;
@@ -1461,143 +765,237 @@ Answer the question by synthesizing across all relevant videos. Cite video title
     async function startBulkReanalyze() {
       if (bulkRunning) return;
       bulkRunning = true;
+
       const ownerFilter = document.getElementById("bulk-owner").value.trim() || null;
       const onlyMissing = document.getElementById("bulk-missing").checked;
+
+      // Fetch videos
       let query = sb.from("youtube_videos").select("id,title,channel,transcript,summary,key_points,tags,duration,owner").not("transcript", "is", null);
       if (ownerFilter) query = query.eq("owner", ownerFilter);
       if (onlyMissing) query = query.is("credibility", null);
+
       const { data: videos, error } = await query.order("date_added", { ascending: false });
-      if (error || !videos?.length) { setStatus(`No videos found. ${error?.message || ""}`); bulkRunning = false; return; }
+      if (error || !videos?.length) {
+        setStatus(`No videos found. ${error?.message || ""}`);
+        bulkRunning = false;
+        return;
+      }
+
       const total = videos.length;
       setStatus(`Found ${total} videos to process...`);
       setProgress(0, total);
+
       let done = 0, errors = 0;
+
       for (const video of videos) {
         if (!bulkRunning) break;
         setStatus(`Processing: ${video.title?.slice(0, 60) || video.id} (${done + 1}/${total})`);
+
         try {
           const dur = video.duration;
           const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
-          const body = { model: "claude-sonnet-4-20250514", max_tokens: 2500, system: `Analyze this YouTube video transcript. Return ONLY valid JSON:\n{\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote", "another"],\n  "whatsNew": "one contrarian or surprising claim",\n  "actionSuggestions": ["specific action", "...up to 3"],\n  "tags": ["tag1", "...up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],\n  "credibility": { "score": "high|medium|low", "flags": ["specific flags if any"], "note": "one sentence — empty string if no concerns" }\n}`, messages: [{ role: "user", content: `Video: "${video.title}" by ${video.channel}\n\nFULL TRANSCRIPT:\n${video.transcript}` }] };
-          const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` }, body: JSON.stringify(body) });
+          const transcript = video.transcript || "";
+
+          const body = {
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2500,
+            system: `You are analyzing a YouTube video transcript for a personal knowledge base. Use ONLY the provided transcript.
+
+IMPORTANT DISTINCTIONS:
+- summary: NARRATIVE ARC — what is this video about, what argument does it make. Flowing prose.
+- keyPoints: SPECIFIC QUOTABLE FACTS — numbers, protocols, contrarian claims. Be specific not generic.
+- quotes: 2-3 short direct quotes under 20 words each from the transcript.
+- credibility: Assess for misinformation signals.
+
+Return ONLY valid JSON:
+{
+  "summary": "2-3 paragraph narrative arc",
+  "keyPoints": ["specific fact", "...up to ${kpCount}"],
+  "quotes": ["short direct quote", "another quote"],
+  "whatsNew": "one contrarian or surprising claim",
+  "actionSuggestions": ["specific action", "...up to 3"],
+  "tags": ["tag1", "...up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
+  "credibility": {
+    "score": "high|medium|low",
+    "flags": ["specific flags if any"],
+    "note": "one sentence — empty string if no concerns"
+  }
+}`,
+            messages: [{ role: "user", content: `Video: "${video.title}" by ${video.channel}\n\nFULL TRANSCRIPT:\n${transcript}` }]
+          };
+
+          const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+            body: JSON.stringify(body)
+          });
           const respData = await resp.json();
           const text = (respData.content || []).map(c => c.text || "").join("");
-          const parsed = JSON.parse(text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
-          if (parsed.summary) { await sb.from("youtube_videos").update({ summary: parsed.summary, key_points: parsed.keyPoints || [], quotes: parsed.quotes || [], whats_new: parsed.whatsNew || "", action_suggestions: parsed.actionSuggestions || [], tags: parsed.tags || [], credibility: parsed.credibility || null }).eq("id", video.id); }
+          const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+          const parsed = JSON.parse(clean);
+
+          if (parsed.summary) {
+            await sb.from("youtube_videos").update({
+              summary: parsed.summary,
+              key_points: parsed.keyPoints || [],
+              quotes: parsed.quotes || [],
+              whats_new: parsed.whatsNew || "",
+              action_suggestions: parsed.actionSuggestions || [],
+              tags: parsed.tags || [],
+              credibility: parsed.credibility || null
+            }).eq("id", video.id);
+          }
           done++;
-        } catch(e) { errors++; console.error(e); }
+        } catch (e) {
+          errors++;
+          console.error(`Failed: ${video.id}`, e);
+        }
+
         setProgress(done + errors, total);
+        // Small delay to avoid rate limiting
         await new Promise(r => setTimeout(r, 800));
       }
+
       bulkRunning = false;
       setStatus(`✓ Done — ${done} updated, ${errors} errors`);
       setProgress(total, total);
     }
 
-    function stopBulk() { bulkRunning = false; setStatus("Stopped."); }
+    function showTab(name) {
+      ["users","shares","collections","bulk"].forEach(t => {
+        document.getElementById(`pane-${t}`).style.display = t === name ? "" : "none";
+        const btn = document.getElementById(`tab-${t}`);
+        btn.style.background = t === name ? "var(--acc)" : "transparent";
+        btn.style.color = t === name ? "#fff" : "var(--t2)";
+        btn.style.fontWeight = t === name ? "600" : "500";
+      });
+      if (name === "shares") loadShares();
+      if (name === "collections") collLoad();
+      if (name === "bulk") loadDurationCount();
+      if (name === "bulk") loadDurationCount();
+    }
+
+    async function loadShares() {
+      document.getElementById("shares-loading").style.display = "block";
+      document.getElementById("shares-content").style.display = "none";
+      document.getElementById("views-content").style.display = "none";
+
+      try {
+        // Get all share views joined with video titles
+        const views = await sb.from("reel_share_views").select("*").order("viewed_at", { ascending: false }).limit(200);
+        const shareData = views.data || [];
+
+        // Get unique video IDs to fetch titles
+        const videoIds = [...new Set(shareData.map(v => v.video_id))];
+        const videos = videoIds.length ? (await sb.from("youtube_videos").select("id,title,owner").in("id", videoIds)).data || [] : [];
+        const videoMap = Object.fromEntries(videos.map(v => [v.id, v]));
+
+        // Group by video_id for summary
+        const byVideo = {};
+        shareData.forEach(v => {
+          if (!byVideo[v.video_id]) byVideo[v.video_id] = { owner: v.owner, views: 0, signups: [], lastViewed: null };
+          byVideo[v.video_id].views++;
+          if (v.signed_up_as) byVideo[v.video_id].signups.push(v.signed_up_as);
+          if (!byVideo[v.video_id].lastViewed || v.viewed_at > byVideo[v.video_id].lastViewed) byVideo[v.video_id].lastViewed = v.viewed_at;
+        });
+
+        // Render summary table
+        const tbody = document.getElementById("shares-tbody");
+        tbody.innerHTML = Object.entries(byVideo).sort((a,b) => b[1].views - a[1].views).map(([vid, d]) => {
+          const vInfo = videoMap[vid];
+          return `<tr>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${vInfo?.title || vid}</td>
+            <td><span class="badge">${d.owner}</span></td>
+            <td>${d.views}</td>
+            <td>${d.signups.length > 0 ? d.signups.map(s => `<span class="badge badge-ok">${s}</span>`).join(" ") : "<span style='color:var(--t3)'>0</span>"}</td>
+            <td style="font-size:11px;color:var(--t3)">${d.lastViewed ? new Date(d.lastViewed).toLocaleDateString() : ""}</td>
+          </tr>`;
+        }).join("") || "<tr><td colspan='5' style='color:var(--t3);text-align:center;padding:20px'>No shares yet</td></tr>";
+
+        // Render recent views
+        const viewsTbody = document.getElementById("views-tbody");
+        viewsTbody.innerHTML = shareData.slice(0, 50).map(v => {
+          const vInfo = videoMap[v.video_id];
+          return `<tr>
+            <td style="font-size:11px;color:var(--t3)">${new Date(v.viewed_at).toLocaleString()}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${vInfo?.title || v.video_id}</td>
+            <td><span class="badge">${v.owner}</span></td>
+            <td>${v.signed_up_as ? `<span class="badge badge-ok">${v.signed_up_as}</span>` : "<span style='color:var(--t3)'>—</span>"}</td>
+          </tr>`;
+        }).join("") || "<tr><td colspan='4' style='color:var(--t3);text-align:center;padding:20px'>No views yet</td></tr>";
+
+        document.getElementById("shares-loading").style.display = "none";
+        document.getElementById("shares-content").style.display = "block";
+        document.getElementById("views-content").style.display = "block";
+      } catch(e) {
+        document.getElementById("shares-loading").textContent = "Error loading: " + e.message;
+      }
+    }
+
+
+    // ── Patch Missing Durations ───────────────────────────────────────────────
+    let durRunning = false;
+    const NUC_URL = "https://reel.studiostrong.fit";
+    const NUC_TOKEN = "reelcall-transcript-2026";
+
+    async function startPatchDurations() {
+      if (durRunning) return;
+      durRunning = true;
+      const { data: videos, error } = await sb.from("youtube_videos")
+        .select("id,video_id,title").is("duration", null)
+        .not("video_id", "is", null).order("date_added", { ascending: false });
+      if (error || !videos?.length) {
+        document.getElementById("dur-status").textContent = `No videos found. ${error?.message || ""}`;
+        durRunning = false; return;
+      }
+      const total = videos.length;
+      document.getElementById("duration-count").textContent = `Found ${total} videos missing duration`;
+      setDurProgress(0, total);
+      let done = 0, errors = 0;
+      for (const video of videos) {
+        if (!durRunning) break;
+        document.getElementById("dur-status").textContent = `[${done+errors+1}/${total}] ${video.title?.slice(0, 50) || video.video_id}`;
+        let duration = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const res = await fetch(`${NUC_URL}/transcript`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-Transcript-Token": NUC_TOKEN },
+              body: JSON.stringify({ videoId: video.video_id })
+            });
+            const data = await res.json();
+            if (data.duration) { duration = data.duration; break; }
+          } catch (e) {}
+          if (attempt < 2) await new Promise(r => setTimeout(r, 2000 * Math.pow(2, attempt)));
+        }
+        if (duration) {
+          await sb.from("youtube_videos").update({ duration }).eq("id", video.id);
+          done++;
+          document.getElementById("dur-status").textContent = `✓ [${done+errors}/${total}] ${video.title?.slice(0,50)} — ${duration}s`;
+        } else { errors++; }
+        setDurProgress(done + errors, total);
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      durRunning = false;
+      document.getElementById("dur-status").textContent = `✓ Done — ${done} updated, ${errors} failed`;
+      setDurProgress(total, total);
+    }
+
+    function stopDurationPatch() { durRunning = false; document.getElementById("dur-status").textContent = "Stopped."; }
+    function setDurProgress(done, total) {
+      const pct = total > 0 ? Math.round(done / total * 100) : 0;
+      document.getElementById("dur-bar-fill").style.width = pct + "%";
+      document.getElementById("dur-pct").textContent = `${done}/${total} (${pct}%)`;
+    }
+
+        function stopBulk() { bulkRunning = false; setStatus("Stopped."); }
+
     function setStatus(msg) { document.getElementById("bulk-status").textContent = msg; }
     function setProgress(done, total) {
       const pct = total > 0 ? Math.round(done / total * 100) : 0;
       document.getElementById("bulk-bar-fill").style.width = pct + "%";
       document.getElementById("bulk-pct").textContent = `${done}/${total} (${pct}%)`;
     }
-
-    // ── Token input toggle ───────────────────────────────────────────────────
-    // Live URL preview when prefix changes
-    document.addEventListener('input', function(e) {
-      if (e.target.id === 'prof-prefix') {
-        const prefix = e.target.value.trim();
-        const liveLink = document.getElementById('coll-live-link');
-        if (prefix && currentCollection) {
-          const sampleUrl = `https://reelcall.app/${prefix}/[videoid]`;
-          document.getElementById('prof-prefix').title = sampleUrl;
-        }
-      }
-    });
-
-    
-
-    // ── Theme toggle ──────────────────────────────────────────────────────────
-    function toggleTheme() {
-      const isLight = document.body.classList.toggle('light-mode');
-      localStorage.setItem('admin-theme', isLight ? 'light' : 'dark');
-      document.getElementById('themeBtn').textContent = isLight ? '🌙 Dark' : '☀ Light';
-    }
-    // Apply saved theme on load
-    if (localStorage.getItem('admin-theme') === 'light') {
-      document.body.classList.add('light-mode');
-      document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('themeBtn');
-        if (btn) btn.textContent = '🌙 Dark';
-      });
-    }
-
-    // ── Drag-and-drop reordering ──────────────────────────────────────────────
-    let dragSrc = null;
-
-    function initDrag() {
-      document.querySelectorAll('.video-row').forEach(row => {
-        row.setAttribute('draggable', 'true');
-        row.style.cursor = 'grab';
-        row.addEventListener('dragstart', e => {
-          dragSrc = row;
-          e.dataTransfer.effectAllowed = 'move';
-          row.style.opacity = '.4';
-        });
-        row.addEventListener('dragend', () => {
-          row.style.opacity = '1';
-          document.querySelectorAll('.video-row').forEach(r => r.classList.remove('drag-over'));
-        });
-        row.addEventListener('dragover', e => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          document.querySelectorAll('.video-row').forEach(r => r.classList.remove('drag-over'));
-          row.classList.add('drag-over');
-        });
-        row.addEventListener('drop', async e => {
-          e.preventDefault();
-          if (dragSrc === row) return;
-          row.classList.remove('drag-over');
-
-          // Get IDs from row ids (vrow-{id})
-          const srcId = dragSrc.id.replace('vrow-', '');
-          const tgtId = row.id.replace('vrow-', '');
-
-          // Get current sorted order
-          const rows = [...document.querySelectorAll('.video-row')];
-          const srcIdx = rows.indexOf(dragSrc);
-          const tgtIdx = rows.indexOf(row);
-
-          // Reorder in DOM immediately for snappy feel
-          if (srcIdx < tgtIdx) {
-            row.after(dragSrc);
-          } else {
-            row.before(dragSrc);
-          }
-
-          // Save new order to DB
-          const newOrder = [...document.querySelectorAll('.video-row')].map((r, i) => ({
-            id: r.id.replace('vrow-', ''),
-            sort_order: i
-          }));
-
-          // Update local state
-          newOrder.forEach(({id, sort_order}) => {
-            const v = collVideos.find(x => x.id === id);
-            if (v) v.sort_order = sort_order;
-          });
-
-          // Batch save
-          try {
-            await Promise.all(newOrder.map(({id, sort_order}) =>
-              sbReq(`youtube_videos?id=eq.${id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ sort_order }) })
-            ));
-            collToast('Order saved ✓');
-          } catch(e) { collToast('Save error: ' + e.message); }
-        });
-      });
-    }
-
   </script>
 </body>
 </html>
