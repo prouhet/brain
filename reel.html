@@ -1060,8 +1060,8 @@ Return ONLY valid JSON (no markdown fences):
             shared: false, open_count: 0, share_count: 0,
             dateAdded: new Date().toISOString()
           };
-          const { error } = await sbAuth.from("youtube_videos").insert({ ...toDb(video), owner: OWNER });
-          if (error) throw new Error(error.message);
+          await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ ...toDb(video), owner: OWNER }) });
+          sbCacheBust();
           onSave(video);
         } catch (e) {
           setErrMsg(`Save failed: ${e.message}`);
@@ -1315,10 +1315,10 @@ Return ONLY valid JSON (no markdown fences):
               owner: OWNER,
             };
 
-            // Use auth client to respect RLS
-            const { error } = await sbAuth.from("youtube_videos").insert(videoRecord);
-            if (error) throw new Error(error.message);
+            // Use anon REST key (RLS disabled on youtube_videos)
+            await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(videoRecord) });
 
+            sbCacheBust();
             onSave(fromDb(videoRecord));
             setImportProgress((prev) => prev.map((p) => p.videoId === v.videoId ? { ...p, status: "done" } : p));
             checkMilestone("milestone_channel", 2, 0);
