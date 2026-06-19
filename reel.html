@@ -3513,12 +3513,13 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           }
           // Check not already saved
           const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
-          if (existing?.length) { setSaved(true); setSaving(false); setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1000); return; }
+          if (existing?.length) { sbCacheBust(); setSaved(true); setSaving(false); setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1000); return; }
           // Save to personal library
           const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: [], dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: NO_SHARE };
           await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(copy) });
           sessionStorage.removeItem("reelcall_return_to");
           sessionStorage.removeItem("reelcall_auto_save_share");
+          sbCacheBust();
           setSaved(true);
           setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1500);
         } catch (e) {
