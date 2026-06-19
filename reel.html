@@ -1038,8 +1038,11 @@ Return ONLY valid JSON (no markdown fences):
 
       function addTag() { const t = tagInput.trim().toLowerCase(); if (t && !tags.includes(t)) setTags([...tags, t]); setTagInput(""); }
 
+      const [saving, setSaving] = useState(false);
+
       async function save() {
-        if (!result) return;
+        if (!result || saving) return;
+        setSaving(true);
         try {
           const videoId = url ? extractVid(url) : null;
           // Strip timestamps from transcript before saving
@@ -1047,8 +1050,14 @@ Return ONLY valid JSON (no markdown fences):
             .split("\n")
             .filter(line => !line.match(/^\d+:\d+$/) && !line.match(/^\d+ (minute|hour|second)/i))
             .join(" ").replace(/\s+/g, " ").trim();
+          // Check for existing video first to prevent duplicates
+          if (videoId) {
+            const existing = await sbReq(`youtube_videos?select=id&owner=eq.${OWNER}&video_id=eq.${videoId}&limit=1`);
+            if (existing?.length) { sbCacheBust(); onSave({ id: existing[0].id, videoId, owner: OWNER, title: result.title || title }); return; }
+          }
           const video = {
             id: genId(), videoId, url: canonicalUrl(url, videoId),
+            owner: OWNER,
             title: result.title || title || "Untitled",
             channel: result.channel || channel || "",
             summary: result.summary, keyPoints: result.keyPoints || [],
@@ -1066,6 +1075,8 @@ Return ONLY valid JSON (no markdown fences):
         } catch (e) {
           setErrMsg(`Save failed: ${e.message}`);
           setStep("error");
+        } finally {
+          setSaving(false);
         }
       }
 
@@ -1634,7 +1645,9 @@ Return ONLY valid JSON (no markdown fences):
               stopTimer();
               const warn = txData?.warning || "";
               let msg = "No transcript available for this video.";
-              if (warn.includes("No English captions")) msg = "No English captions found. Try 📋 Paste Transcript if you have the text.";
+              if (warn.includes("No English captions")) msg = url.includes("/live/") || url.includes("youtube.com/live")
+                ? "Live streams don't have transcripts until after the stream ends. YouTube can take 10-30 minutes to generate captions — try again shortly, or use 📋 Paste Transcript if you have the text."
+                : "No English captions found. Try 📋 Paste Transcript if you have the text.";
               else if (warn.includes("empty")) msg = "Caption track found but it was empty. The video may not have proper captions.";
               setErrMsg(msg);
               setStep("error"); return;
@@ -1900,7 +1913,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
           {step === "done" && result && (
             <div className="rfade">
-              <button className="rbtn-p" onClick={save} style={{ width: "100%", marginBottom: 14 }}>Save to Knowledge Base</button>
+              <button className="rbtn-p" onClick={save} disabled={saving} style={{ width: "100%", marginBottom: 14, opacity: saving ? .6 : 1 }}>{saving ? "Saving..." : "Save to Knowledge Base"}</button>
               {result.whatsNew && (
                 <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Key Insight</p>
@@ -1943,7 +1956,7 @@ Return ONLY valid JSON (no markdown fences, no extra text):
                   <button className="rbtn-g" onClick={addTag}>Add</button>
                 </div>
               </div>
-              <button className="rbtn-p" onClick={save} style={{ width: "100%", marginTop: 14 }}>Save to Knowledge Base</button>
+              <button className="rbtn-p" onClick={save} disabled={saving} style={{ width: "100%", marginTop: 14, opacity: saving ? .6 : 1 }}>{saving ? "Saving..." : "Save to Knowledge Base"}</button>
             </div>
           )}
 
@@ -3586,6 +3599,8 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             const isNucDown = errText.includes("530") || errText.includes("1033") || errText.includes("502") || errText.includes("tunnel") || errText.includes("ECONNREFUSED") || errText.includes("server error 5") || errText.includes("DNS");
             setErr(isNucDown
               ? "The transcript server is temporarily offline — please try again in a few minutes, or use 📋 Paste Transcript if you have the text."
+              : errText.includes("No English captions")
+              ? "Live stream captions aren't available yet — YouTube generates them 10-30 minutes after the stream ends. Try again shortly."
               : "This video is still publishing — videos can take up to 10 minutes to generate the transcript. Please check back shortly."
             );
             setProcessing(false);
@@ -4125,7 +4140,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               // Free trial — red upgrade pill
               return (
                 <a href="/upgrade.html" style={{
-                  position: "fixed", bottom: 20, right: 20, zIndex: 999,
+                  position: "fixed", bottom: 20, left: 20, zIndex: 999,
                   background: "#E5001C", color: "#fff",
                   borderRadius: 999, padding: "10px 20px",
                   fontSize: 13, fontWeight: 700, textDecoration: "none",
@@ -4142,7 +4157,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               // Paid — renewal coming up (orange warning)
               return (
                 <div style={{
-                  position: "fixed", bottom: 20, right: 20, zIndex: 999,
+                  position: "fixed", bottom: 20, left: 20, zIndex: 999,
                   background: "rgba(251,176,64,.12)", color: "#FBB040",
                   border: "1px solid rgba(251,176,64,.3)",
                   borderRadius: 999, padding: "8px 16px",
@@ -4157,7 +4172,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
               // Paid — happy subscriber (subtle green)
               return (
                 <div style={{
-                  position: "fixed", bottom: 20, right: 20, zIndex: 999,
+                  position: "fixed", bottom: 20, left: 20, zIndex: 999,
                   background: "rgba(52,211,153,.08)", color: "#34D399",
                   border: "1px solid rgba(52,211,153,.2)",
                   borderRadius: 999, padding: "8px 16px",
