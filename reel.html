@@ -158,11 +158,16 @@ Return ONLY valid JSON (no markdown fences):
 
     async function resolveUser() {
       // Dave/Doreen — privileged, no auth needed
-      if (PRIVILEGED[userParam]) {
-        const u = PRIVILEGED[userParam];
+      // Also check localStorage for persistent privileged identity (survives share/preview URL changes)
+      const storedPrivileged = localStorage.getItem("rc_privileged_user") || "";
+      const effectiveUserParam = userParam || storedPrivileged;
+      if (PRIVILEGED[effectiveUserParam]) {
+        const u = PRIVILEGED[effectiveUserParam];
         OWNER = u.owner;
         BRAIN_MCP = { type: "url", url: `${SB_URL}/functions/v1/open-brain-mcp`, name: "studio-strong-brain", headers: { "x-brain-key": u.brainKey } };
         MEMBERSHIP = { isPrivileged: true, isPaid: true };
+        // Persist so share/preview URLs remember who's logged in
+        if (userParam) localStorage.setItem("rc_privileged_user", userParam);
         return { ok: true };
       }
 
@@ -3007,12 +3012,14 @@ Instructions:
       }, [shouldAutoSave, video, authUser]);
 
       useEffect(() => {
-        // Check auth — Supabase session OR privileged ?user= param
+        // Check auth — Supabase session OR privileged ?user= param OR persisted localStorage identity
         const urlParams = new URLSearchParams(window.location.search);
         const userParam = (urlParams.get("user") || "").toLowerCase();
+        const storedPrivileged = localStorage.getItem("rc_privileged_user") || "";
+        const effectiveUser = userParam || storedPrivileged;
         const PRIVILEGED_USERS = { dave: "dave", doreen: "doreen" };
-        if (PRIVILEGED_USERS[userParam]) {
-          setAuthUser({ id: userParam, owner: userParam, privileged: true });
+        if (PRIVILEGED_USERS[effectiveUser]) {
+          setAuthUser({ id: effectiveUser, owner: effectiveUser, privileged: true });
         } else {
           sbAuth.auth.getSession().then(({ data: { session } }) => {
             if (session) {
@@ -3063,13 +3070,15 @@ Instructions:
             ownerVal = profiles[0].owner;
           }
           const existing = await sbReq(`youtube_videos?select=id&owner=eq.${ownerVal}&video_id=eq.${video.videoId || "none"}`);
-          if (existing?.length) { setSaved(true); setSaving(false); setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1000); return; }
+          const libraryUrl = `/reel.html?user=${ownerVal}`;
+          if (existing?.length) { sbCacheBust(); setSaved(true); setSaving(false); setTimeout(() => { window.location.href = libraryUrl; }, 1000); return; }
           const copy = { ...toDb({ ...video, id: genId(), owner: ownerVal, shared: false, qa: qa, dateAdded: new Date().toISOString() }), owner: ownerVal, no_share: video.noShare || false };
           await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(copy) });
           sessionStorage.removeItem("reelcall_return_to");
           sessionStorage.removeItem("reelcall_auto_save_share");
+          sbCacheBust();
           setSaved(true);
-          setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1500);
+          setTimeout(() => { window.location.href = libraryUrl; }, 1500);
         } catch (e) {
           alert(`Save error: ${e.message}`);
         }
@@ -3474,9 +3483,11 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
       useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const userParam = (urlParams.get("user") || "").toLowerCase();
+        const storedPrivileged = localStorage.getItem("rc_privileged_user") || "";
+        const effectiveUser = userParam || storedPrivileged;
         const PRIVILEGED_USERS = { dave: "dave", doreen: "doreen" };
-        if (PRIVILEGED_USERS[userParam]) {
-          setAuthUser({ id: userParam, owner: userParam, privileged: true });
+        if (PRIVILEGED_USERS[effectiveUser]) {
+          setAuthUser({ id: effectiveUser, owner: effectiveUser, privileged: true });
         } else {
           sbAuth.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
@@ -3521,7 +3532,8 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           sessionStorage.removeItem("reelcall_auto_save_share");
           sbCacheBust();
           setSaved(true);
-          setTimeout(() => { window.location.href = `/reel.html?user=${ownerVal}`; }, 1500);
+          const libraryUrl = `/reel.html?user=${ownerVal}`;
+          setTimeout(() => { window.location.href = libraryUrl; }, 1500);
         } catch (e) {
           alert(`Could not save: ${e.message}`);
         }
