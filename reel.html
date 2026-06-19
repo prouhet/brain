@@ -300,7 +300,7 @@ Return ONLY valid JSON (no markdown fences):
     async function sbReq(path, opts = {}) {
       const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: { ...SBH, ...opts.headers } });
       if (!r.ok) throw new Error(await r.text());
-      if (r.status === 204 || r.status === 201) return null;
+      if (r.status === 204) return null;
       const text = await r.text();
       return text ? JSON.parse(text) : null;
     }
@@ -1482,8 +1482,13 @@ Return ONLY valid JSON (no markdown fences):
       const [steps, setSteps] = useState([]);
       const [elapsed, setElapsed] = useState(0);
       const timerRef = useRef(null);
-      const videoId = extractVid(url); // null for non-YouTube sites
-      const videoKey = videoId || encodeURIComponent(url); // unique key for DB lookup
+      const videoId = extractVid(url);
+      const videoKey = videoId || encodeURIComponent(url);
+
+      // Auto-save when analysis completes
+      useEffect(() => {
+        if (step === "done" && result && !saving) save();
+      }, [step, result]);
 
       useEffect(() => {
         (async () => {
@@ -1552,6 +1557,15 @@ Return ONLY valid JSON (no markdown fences):
 
       async function analyze() {
         if (!url || !url.startsWith("http")) return;
+
+        // Video limit check — free users
+        if (MEMBERSHIP && !MEMBERSHIP.isPrivileged && !MEMBERSHIP.isPaid) {
+          const capacity = MEMBERSHIP.videosCapacity || 30;
+          if (existingVideos.length >= capacity) {
+            setStep("limit");
+            return;
+          }
+        }
 
         // Check for existing video FIRST before doing any work
         const existingLocal = existingVideos.find((v) => v.videoId === videoId || v.url === url);
@@ -1778,11 +1792,23 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
       function addTag() { const t = tagInput.trim().toLowerCase(); if (t && !tags.includes(t)) setTags([...tags, t]); setTagInput(""); }
 
+      const [saving, setSaving] = useState(false);
       async function save() {
-        if (!result || !videoId) return;
-        const video = { id: genId(), videoId, url, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: result._transcript || null, duration: result._duration || null, dateAdded: new Date().toISOString() };
-        const rows = await sbInsert(toDb(video));
-        onSave(fromDb(Array.isArray(rows) ? rows[0] : rows));
+        if (!result || !videoId || saving) return;
+        setSaving(true);
+        try {
+          // Deduplication check
+          const existing = await sbReq(`youtube_videos?select=id&owner=eq.${OWNER}&video_id=eq.${videoId}&limit=1`);
+          if (existing?.length) { sbCacheBust(); onSave(await sbReq(`youtube_videos?select=*&id=eq.${existing[0].id}&limit=1`).then(r => fromDb(r?.[0]))); return; }
+          const video = { id: genId(), videoId, url, owner: OWNER, title: result.title || meta?.title || "Untitled", channel: result.channel || meta?.channel || "", summary: result.summary, keyPoints: result.keyPoints || [], pointStatus: (result.keyPoints || []).map(() => null), tags, qa: [], whatsNew: result.whatsNew || "", actionSuggestions: result.actionSuggestions || [], quotes: result.quotes || [], credibility: result.credibility || null, transcript: result._transcript || null, duration: result._duration || null, shared: false, open_count: 0, share_count: 0, dateAdded: new Date().toISOString() };
+          await sbReq("youtube_videos", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ ...toDb(video), owner: OWNER }) });
+          sbCacheBust();
+          onSave(video);
+        } catch(e) {
+          alert(`Save failed: ${e.message}`);
+        } finally {
+          setSaving(false);
+        }
       }
 
       const priorCount = meta?.channel ? existingVideos.filter((v) => v.channel?.toLowerCase() === meta.channel.toLowerCase()).length : 0;
@@ -1899,6 +1925,18 @@ Return ONLY valid JSON (no markdown fences, no extra text):
             </div>
             </>
           )}
+          {step === "limit" && (
+            <div style={{ background: "var(--s2)", border: "1px solid var(--b)", borderRadius: 14, padding: 28, textAlign: "center", margin: "20px 0" }}>
+              <p style={{ fontSize: 32, marginBottom: 12 }}>📹</p>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>You've used all your free videos</h3>
+              <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.6, maxWidth: 400, margin: "0 auto 20px" }}>
+                Your free plan includes {MEMBERSHIP?.videosCapacity || 30} videos. Upgrade for unlimited video saves, unlimited Q&A, and Research Mode.
+              </p>
+              <a href="/upgrade.html" style={{ display: "inline-block", background: "#E5001C", color: "#fff", borderRadius: 10, padding: "12px 28px", fontSize: 14, fontWeight: 700, textDecoration: "none", marginBottom: 12 }}>Upgrade for Unlimited →</a>
+              <br />
+              <button className="rbtn-g" onClick={() => setStep("idle")} style={{ fontSize: 13, marginTop: 8 }}>← Back</button>
+            </div>
+          )}
           {step === "error" && (
             <div style={{ background: "var(--red-lo)", border: "1px solid var(--red-mid)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
               <p style={{ color: "var(--red)", fontSize: 14, marginBottom: 10 }}>{errMsg}</p>
@@ -1913,7 +1951,14 @@ Return ONLY valid JSON (no markdown fences, no extra text):
 
           {step === "done" && result && (
             <div className="rfade">
-              <button className="rbtn-p" onClick={save} disabled={saving} style={{ width: "100%", marginBottom: 14, opacity: saving ? .6 : 1 }}>{saving ? "Saving..." : "Save to Knowledge Base"}</button>
+              {saving ? (
+                <div style={{ background: "var(--ok-lo)", border: "1px solid var(--ok-mid)", borderRadius: 10, padding: 14, marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 16 }}>⏳</span>
+                  <p style={{ fontSize: 14, color: "var(--ok)", fontWeight: 600 }}>Saving to your library...</p>
+                </div>
+              ) : (
+                <button className="rbtn-p" onClick={save} style={{ width: "100%", marginBottom: 14 }}>Save to Knowledge Base</button>
+              )}
               {result.whatsNew && (
                 <div style={{ background: "var(--warn-lo)", border: "1px solid var(--warn-mid)", borderRadius: 10, padding: 16, marginBottom: 14 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--warn)", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>Key Insight</p>
