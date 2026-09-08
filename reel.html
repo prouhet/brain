@@ -870,7 +870,6 @@ Return ONLY valid JSON (no markdown fences):
       );
     }
 
-
     // ─── Grid Card ───────────────────────────────────────────────────────────
     function GridCard({ video, onSelect, onDelete }) {
       const [pressTimer, setPressTimer] = useState(null);
@@ -1585,203 +1584,65 @@ Return ONLY valid JSON (no markdown fences):
         startTimer();
 
         try {
-          // ── Step 1: Check full analysis cache first ──
+          // Submit to the background pipeline — transcript, analysis, and
+          // save all run server-side via EdgeRuntime.waitUntil, so this
+          // survives the tab being backgrounded or even closed mid-way.
           setStepStatus("transcript", "active");
+          const jobRes = await fetch(`${SB_URL}/functions/v1/process-video`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            body: JSON.stringify({ videoId, owner: OWNER }),
+          });
+          const jobData = await jobRes.json();
+          if (jobData.error || !jobData.jobId) throw new Error(jobData.error || "Could not start processing");
 
-          let transcript = null, titleResolved = meta?.title || "", channelResolved = meta?.channel || "", txData = null;
-          let cachedAnalysis = null;
+          // Poll for completion — up to ~3 minutes. If the tab gets
+          // backgrounded and misses several polls, it just picks up wherever
+          // the job actually is once it resumes — no work is lost.
+          let job = null;
+          for (let i = 0; i < 90; i++) {
+            await new Promise((r) => setTimeout(r, 2000));
+            const rows = await sbReq(`video_jobs?select=*&id=eq.${jobData.jobId}&limit=1`);
+            job = rows?.[0];
+            if (!job) continue;
+            if (job.step === "analyzing") { setStepStatus("transcript", "done"); setStepStatus("analyze", "active"); }
+            if (job.status === "done" || job.status === "error") break;
+          }
 
-          try {
-            const cached = await sbReq(`youtube_videos?select=transcript,title,channel,summary,key_points,quotes,whats_new,action_suggestions,tags,duration,credibility&video_id=eq.${videoId}&transcript=not.is.null&limit=1`);
-            if (cached?.length && cached[0].transcript) {
-              transcript = cached[0].transcript;
-              titleResolved = cached[0].title || titleResolved;
-              channelResolved = cached[0].channel || channelResolved;
-              // If we have a full analysis cached, use it
-              if (cached[0].summary) {
-                cachedAnalysis = {
-                  title: cached[0].title,
-                  channel: cached[0].channel,
-                  summary: cached[0].summary,
-                  keyPoints: cached[0].key_points || [],
-                  quotes: cached[0].quotes || [],
-                  whatsNew: cached[0].whats_new || "",
-                  actionSuggestions: cached[0].action_suggestions || [],
-                  tags: cached[0].tags || [],
-                  credibility: cached[0].credibility || null,
-                  duration: cached[0].duration,
-                };
-              }
-            }
-          } catch { /* cache miss */ }
-
-          if (!transcript) {
-            // Not cached — fetch from NUC via yt-dlp (works for YouTube AND 1800+ other sites)
-            const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
-              body: JSON.stringify(videoId ? { videoId } : { url }),
-            });
-            txData = await txRes.json();
-
-            if (txData.error && !txData.transcript) {
-              setStepStatus("transcript", "error");
-              stopTimer();
-              const raw = txData.error || "";
-              let msg = `Transcript error: ${raw}`;
-              if (raw.includes("429") || raw.includes("Too Many Requests")) {
-                msg = "Servers are busy — please wait a minute and tap Retry.";
-              } else if (raw.includes("This video requires payment") || raw.includes("rental") || raw.includes("requires a purchase") || (raw.includes("payment") && raw.includes("required"))) {
-                msg = "This video requires a rental or purchase — captions can't be fetched automatically. Open on the platform, copy the transcript, then use 📋 Paste Transcript.";
-              } else if (raw.includes("Requested format is not available") || raw.includes("list-formats") || raw.includes("no subtitles") || raw.includes("No captions")) {
-                msg = "This video has no accessible captions. If you can see a transcript, copy it and use 📋 Paste Transcript instead.";
-              } else if (raw.includes("private") || raw.includes("Private")) {
-                msg = "This video is private and can't be accessed.";
-              } else if (raw.includes("unavailable") || raw.includes("not available") || raw.includes("removed")) {
-                msg = "This video is unavailable or has been removed.";
-              } else if (channelResolved?.toLowerCase() === "youtube movies") {
-                msg = "YouTube Movies content requires a rental or purchase — captions can't be fetched automatically.";
-              } else if (raw.includes("530") || raw.includes("1033") || raw.includes("502") || raw.includes("tunnel") || raw.includes("ECONNREFUSED") || raw.includes("server error 5")) {
-                msg = "The transcript server is temporarily offline — please try again in a few minutes, or use 📋 Paste Transcript if you have the text.";
-              } else if (raw.includes("530") || raw.includes("1033") || raw.includes("502") || raw.includes("tunnel") || raw.includes("DNS") || raw.includes("ECONNREFUSED") || raw.includes("server error 5")) {
-                msg = "The transcript server is temporarily offline — please try again in a few minutes, or use 📋 Paste Transcript if you have the text.";
-              }
-              setErrMsg(msg);
-              setStep("error"); return;
-            }
-
-            transcript = txData.transcript || null;
-            titleResolved = txData.title || titleResolved;
-            channelResolved = txData.channel || channelResolved;
-
-            if (!transcript) {
-              setStepStatus("transcript", "error");
-              stopTimer();
-              const warn = txData?.warning || "";
-              let msg = "No transcript available for this video.";
-              if (warn.includes("No English captions")) msg = url.includes("/live/") || url.includes("youtube.com/live")
+          if (!job || job.status !== "done") {
+            const raw = job?.error || "Processing timed out — please try again.";
+            setStepStatus(job?.step === "analyzing" ? "analyze" : "transcript", "error");
+            stopTimer();
+            let msg = `Error: ${raw}`;
+            if (raw.includes("429") || raw.includes("Too Many Requests")) {
+              msg = "Servers are busy — please wait a minute and tap Retry.";
+            } else if (raw.includes("This video requires payment") || raw.includes("rental") || raw.includes("requires a purchase")) {
+              msg = "This video requires a rental or purchase — captions can't be fetched automatically. Open on the platform, copy the transcript, then use 📋 Paste Transcript.";
+            } else if (raw.includes("No English captions") || raw.includes("No transcript")) {
+              msg = url.includes("/live/") || url.includes("youtube.com/live")
                 ? "Live streams don't have transcripts until after the stream ends. YouTube can take 10-30 minutes to generate captions — try again shortly, or use 📋 Paste Transcript if you have the text."
                 : "No English captions found. Try 📋 Paste Transcript if you have the text.";
-              else if (warn.includes("empty")) msg = "Caption track found but it was empty. The video may not have proper captions.";
-              setErrMsg(msg);
-              setStep("error"); return;
+            } else if (raw.includes("private") || raw.includes("Private")) {
+              msg = "This video is private and can't be accessed.";
+            } else if (raw.includes("unavailable") || raw.includes("not available") || raw.includes("removed")) {
+              msg = "This video is unavailable or has been removed.";
+            } else if (raw.includes("530") || raw.includes("1033") || raw.includes("502") || raw.includes("tunnel") || raw.includes("ECONNREFUSED") || raw.includes("server error 5")) {
+              msg = "The transcript server is temporarily offline — please try again in a few minutes, or use 📋 Paste Transcript if you have the text.";
             }
-          }
-
-          setStepStatus("transcript", "done");
-
-          // ── Auto-load collection config by channel match (DB-driven) ──
-          let activeCollectionCfg = COLLECTION_CONFIG;
-          if (!activeCollectionCfg && channelResolved) {
-            try {
-              // Look up channel name in collection_channels table (case-insensitive)
-              const chanRow = await sbReq(`collection_channels?select=collection_tag&channel_name=ilike.${encodeURIComponent(channelResolved)}&limit=1`);
-              if (chanRow?.[0]?.collection_tag) {
-                const collMatch = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&collection_tag=eq.${chanRow[0].collection_tag}&limit=1`);
-                if (collMatch?.[0]?.analysis_prompt) activeCollectionCfg = collMatch[0];
-              }
-            } catch {}
-          }
-
-          // ── Step 2: Claude analysis (skip if cached) ──
-          setStepStatus("analyze", "active");
-
-          let parsed;
-
-          if (cachedAnalysis) {
-            // Use cached analysis — skip Claude entirely but show steps briefly
-            setStepStatus("analyze", "active");
-            await new Promise(r => setTimeout(r, 800)); // brief pause to show tips
-            parsed = cachedAnalysis;
-            parsed._duration = cachedAnalysis.duration || null;
-            parsed._transcript = transcript;
-            setStepStatus("analyze", "done");
-            setStepStatus("save", "done");
-            stopTimer();
-            setResult(parsed); setTags(parsed.tags || []); setStep("done");
-            return;
-          }
-
-          const priorCount = existingVideos.filter((v) => channelResolved && v.channel?.toLowerCase() === channelResolved.toLowerCase()).length;
-          const channelNote = priorCount > 0 ? `\n\nNote: This is video #${priorCount + 1} from ${channelResolved} in this library.` : "";
-
-          const transcriptTruncated = transcript; // Full transcript — no truncation
-
-          // Dynamic key point count based on video duration
-          const dur = txData?.duration || cachedAnalysis?.duration || null;
-          const kpCount = activeCollectionCfg ? 28
-            : dur
-            ? dur < 600 ? 5
-            : dur < 1800 ? 9
-            : dur < 3600 ? 12
-            : dur < 5400 ? 18
-            : 22
-            : 8;
-
-          // Temporarily set COLLECTION_CONFIG for getAnalysisPrompt if channel matched
-          const prevConfig = COLLECTION_CONFIG;
-          if (activeCollectionCfg && !COLLECTION_CONFIG) window.__tempCollCfg = activeCollectionCfg;
-
-          let data;
-          try {
-            data = await callClaude({
-              system: activeCollectionCfg?.analysis_prompt
-                ? getAnalysisPrompt(titleResolved, channelResolved, kpCount)
-                : `You are analyzing a YouTube video transcript for a your video knowledge base. Use ONLY the provided transcript — do not guess or add anything not in it.${channelNote}
-
-IMPORTANT DISTINCTIONS:
-- summary: The NARRATIVE ARC — what is this video about, what argument does it make, what journey does it take the viewer on. Write as flowing prose that tells the STORY of the video. Do NOT list facts here.
-- keyPoints: SPECIFIC, QUOTABLE, ACTIONABLE facts — numbers, protocols, contrarian claims, exact recommendations, surprising statistics. Things you would underline or highlight. Each point should be something DIFFERENT from the summary narrative. Be specific — not "exercise is important" but "3 sets of 40 reps per day reduced anxiety by 60% in the study cited".
-- quotes: 2-3 SHORT direct quotes (under 20 words each) from the transcript that are punchy, memorable, or surprising. Use the speaker's exact words.
-- whatsNew: One contrarian or surprising claim from this video — what does it say that challenges conventional wisdom?
-
-Return ONLY valid JSON (no markdown fences, no extra text):
-{
-  "title": "exact video title",
-  "channel": "channel/creator name",
-  "summary": "2-3 paragraph narrative arc — tell the story of the video",
-  "keyPoints": ["specific fact with numbers/data", "...up to ` + kpCount + ` — be specific not generic"],
-  "quotes": ["short direct quote under 20 words", "another memorable quote", "optional third"],
-  "tags": ["tag1", "...up to 5, from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance"],
-  "whatsNew": "One contrarian or surprising claim from this video",
-  "actionSuggestions": ["Specific actionable step from transcript", "...up to 3"],
-  "credibility": { "score": "high|medium|low", "flags": ["list specific concerns if any"], "note": "one sentence — empty string if no concerns" }
-}`,
-              messages: [{ role: "user", content: `Video: ${url}\nTitle: "${titleResolved}"\nChannel: ${channelResolved}\n\nFULL TRANSCRIPT:\n${transcriptTruncated}` }],
-              maxTokens: activeCollectionCfg ? 5000 : 2500,
-            });
-          } catch (apiErr) {
-            setStepStatus("analyze", "error");
-            stopTimer();
-            const msg = apiErr.message || "";
-            setErrMsg(`Analysis error: ${msg}`);
+            setErrMsg(msg);
             setStep("error"); return;
           }
-
-          // Try to parse — repair truncated JSON if needed
-          const rawText = getText(data);
-          parsed = parseJSON(rawText);
-          if (!parsed?.summary) {
-            // Try to repair truncated JSON by finding last complete field
-            try {
-              const fixed = rawText.replace(/,?\s*"[^"]*":\s*[^,}\]]*$/, "").replace(/,\s*$/, "") + "}";
-              parsed = JSON.parse(fixed.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim());
-            } catch {}
-          }
-          if (!parsed?.summary) {
-            setStepStatus("analyze", "error");
-            stopTimer();
-            throw new Error("Could not parse response — please try again");
-          }
-
-          if (typeof txData !== "undefined" && txData?.warning) parsed.whatsNew = `⚠️ ${txData.warning}`;
-          parsed._duration = dur || null;
-          parsed._transcript = transcript;
 
           setStepStatus("analyze", "done");
           setStepStatus("save", "done");
           stopTimer();
-          setResult(parsed); setTags(parsed.tags || []); setStep("done");
+
+          // Already saved server-side — load it and continue exactly as a
+          // normal completed save would.
+          const savedRows = await sbReq(`youtube_videos?select=*&id=eq.${job.result_video_id}&limit=1`);
+          if (!savedRows?.length) throw new Error("Video processed but could not be loaded — check your library shortly.");
+          sbCacheBust();
+          onSave(fromDb(savedRows[0]));
 
         } catch (e) {
           stopTimer();
@@ -3622,93 +3483,45 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         setProcPct(10);
         setProcMsg("Fetching transcript...");
 
-        // Ensure collection config is loaded (fixes race condition with async top-level load)
-        let activeCfg = COLLECTION_CONFIG;
-        if (!activeCfg && collection) {
-          try {
-            const cfgRows = await sbReq(`collection_metadata?select=analysis_prompt,display_config,collection_tag&collection_tag=eq.${collection}&limit=1`);
-            if (cfgRows?.[0]?.analysis_prompt) activeCfg = cfgRows[0];
-          } catch {}
-        }
-
         try {
-          const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
+          const jobRes = await fetch(`${SB_URL}/functions/v1/process-video`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
-            body: JSON.stringify({ videoId }),
+            body: JSON.stringify({
+              videoId,
+              owner: "preview_visitor",
+              collectionTag: collection || null,
+              noShare: NO_SHARE,
+              isPartnerPreview: true,
+            }),
           });
-          const txData = await txRes.json();
+          const jobData = await jobRes.json();
+          if (jobData.error || !jobData.jobId) throw new Error(jobData.error || "Could not start processing");
 
-          if (!txData.transcript) {
-            const errText = txData.error || "";
+          // Poll for completion — background pipeline continues even if this
+          // tab gets backgrounded, so a dropped poll here just resumes on
+          // the next check rather than losing the work.
+          let job = null;
+          for (let i = 0; i < 90; i++) {
+            await new Promise((r) => setTimeout(r, 2000));
+            const rows = await sbReq(`video_jobs?select=*&id=eq.${jobData.jobId}&limit=1`);
+            job = rows?.[0];
+            if (!job) continue;
+            if (job.step === "analyzing") { setStep("transcript", "done"); setStep("analyze", "active"); setProcPct(55); setProcMsg("Analyzing content..."); }
+            if (job.status === "done" || job.status === "error") break;
+          }
+
+          if (!job || job.status !== "done") {
+            const errText = job?.error || "";
             const isNucDown = errText.includes("530") || errText.includes("1033") || errText.includes("502") || errText.includes("tunnel") || errText.includes("ECONNREFUSED") || errText.includes("server error 5") || errText.includes("DNS");
             setErr(isNucDown
               ? "The transcript server is temporarily offline — please try again in a few minutes, or use 📋 Paste Transcript if you have the text."
-              : errText.includes("No English captions")
+              : errText.includes("No English captions") || errText.includes("No transcript")
               ? "Live stream captions aren't available yet — YouTube generates them 10-30 minutes after the stream ends. Try again shortly."
               : "This video is still publishing — videos can take up to 10 minutes to generate the transcript. Please check back shortly."
             );
             setProcessing(false);
             return;
-          }
-
-          setStep("transcript", "done");
-          setStep("analyze", "active");
-          setProcPct(55);
-          setProcMsg("Analyzing content...");
-
-          const dur = txData.duration || null;
-          const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
-
-          const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-6",
-              max_tokens: activeCfg ? 5000 : 2000,
-              system: getAnalysisPrompt(txData?.title || "", txData?.channel || "", activeCfg ? 28 : kpCount, activeCfg),
-              messages: [{ role: "user", content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${txData.transcript}` }],
-            }),
-          });
-          const aData = await aRes.json();
-          const text = (aData.content || []).filter(c => c.type === "text").map(c => c.text).join("");
-          const parsed = JSON.parse(text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
-
-          if (!parsed?.summary) throw new Error("Analysis failed");
-
-          setProcPct(90);
-          setProcMsg("Saving...");
-
-          // Save to DB — wrapped separately so save errors don't override success message
-          try {
-            await sbReq("youtube_videos", {
-              method: "POST",
-              headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-              body: JSON.stringify({
-                id: genId(),
-                video_id: videoId,
-                url: `https://www.youtube.com/watch?v=${videoId}`,
-                title: parsed.title || txData.title || "Untitled",
-                channel: parsed.channel || txData.channel || "",
-                summary: parsed.summary,
-                key_points: parsed.keyPoints || [],
-                point_status: [],
-                tags: parsed.tags || [],
-                quotes: parsed.quotes || [],
-                credibility: parsed.credibility || null,
-                whats_new: parsed.whatsNew || "",
-                action_suggestions: parsed.actionSuggestions || [],
-                transcript: txData.transcript,
-                duration: dur,
-                shared: true,
-                no_share: NO_SHARE,
-                owner: "reelcall_collections",
-                collection_tag: collection || "general",
-                date_added: new Date().toISOString(),
-              }),
-            });
-          } catch(saveErr) {
-            console.warn("Save error (non-fatal):", saveErr);
           }
 
           setStep("analyze", "done");
