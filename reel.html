@@ -335,6 +335,17 @@ Return ONLY valid JSON (no markdown fences):
     const sbSaveQuery = (row) => sbReq("reel_queries", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
     const sbPatch = (id, up) => sbReq(`youtube_videos?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(up) });
     const sbDelete = (id) => sbReq(`youtube_videos?id=eq.${id}`, { method: "DELETE" });
+    const sbLoadChannelWatch = () => sbReq(`channel_watch?select=*&owner=eq.${OWNER}&order=created_at.desc`);
+    const sbInsertChannelWatch = (row) => sbReq("channel_watch", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
+    const sbDeleteChannelWatch = (id) => sbReq(`channel_watch?id=eq.${id}`, { method: "DELETE" });
+    const sbToggleChannelWatch = (id, active) => sbReq(`channel_watch?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ active }) });
+    async function sbChannelWatchMatchCounts(watchIds) {
+      if (!watchIds.length) return {};
+      const rows = await sbReq(`channel_watch_log?select=watch_id&matched=eq.true&watch_id=in.(${watchIds.join(",")})`);
+      const counts = {};
+      for (const r of rows || []) counts[r.watch_id] = (counts[r.watch_id] || 0) + 1;
+      return counts;
+    }
 
     // ─── Data mapping ─────────────────────────────────────────────────────────
     const fromDb = (r) => ({ id: r.id, videoId: r.video_id, url: r.url, title: r.title, channel: r.channel, summary: r.summary, keyPoints: r.key_points || [], pointStatus: r.point_status || [], tags: r.tags || [], qa: r.qa || [], whatsNew: r.whats_new || "", actionSuggestions: r.action_suggestions || [], quotes: r.quotes || [], credibility: r.credibility || null, transcript: r.transcript || null, shared: r.shared || false, noShare: r.no_share || false, duration: r.duration || null, dateAdded: r.date_added, openCount: r.open_count || 0, lastOpenedAt: r.last_opened_at || null, shareCount: r.share_count || 0 });
@@ -708,6 +719,7 @@ Return ONLY valid JSON (no markdown fences):
           <div style={{ display: "flex", gap: 0, marginBottom: 16, background: "var(--s2)", borderRadius: 10, padding: 4 }}>
             <button onClick={() => setTab("videos")} style={{ flex: 1, padding: "8px", textAlign: "center", fontSize: 13, fontWeight: 500, borderRadius: 8, cursor: "pointer", fontFamily: "Figtree,system-ui", border: "none", background: tab === "videos" ? "var(--s1)" : "transparent", color: tab === "videos" ? "var(--text)" : "var(--t2)", transition: "all .15s" }}>Videos ({videos.length})</button>
             <button onClick={() => setTab("queries")} style={{ flex: 1, padding: "8px", textAlign: "center", fontSize: 13, fontWeight: 500, borderRadius: 8, cursor: "pointer", fontFamily: "Figtree,system-ui", border: "none", background: tab === "queries" ? "var(--s1)" : "transparent", color: tab === "queries" ? "var(--text)" : "var(--t2)", transition: "all .15s" }}>Q&A History {queriesLoaded && queries.length > 0 ? `(${queries.length})` : ""}</button>
+            <button onClick={() => setTab("watch")} style={{ flex: 1, padding: "8px", textAlign: "center", fontSize: 13, fontWeight: 500, borderRadius: 8, cursor: "pointer", fontFamily: "Figtree,system-ui", border: "none", background: tab === "watch" ? "var(--s1)" : "transparent", color: tab === "watch" ? "var(--text)" : "var(--t2)", transition: "all .15s" }}>Channel Watch</button>
           </div>
 
           {tab === "videos" && (<>
@@ -864,6 +876,141 @@ Return ONLY valid JSON (no markdown fences):
                   </>)}
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === "watch" && <ChannelWatchView />}
+        </div>
+      );
+    }
+
+    // ─── Channel Watch ────────────────────────────────────────────────────────
+    function ChannelWatchView() {
+      const [watches, setWatches] = useState(null); // null = loading
+      const [matchCounts, setMatchCounts] = useState({});
+      const [urlInput, setUrlInput] = useState("");
+      const [keywordInput, setKeywordInput] = useState("");
+      const [notifyEnabled, setNotifyEnabled] = useState(true);
+      const [emailInput, setEmailInput] = useState(AUTH_USER?.email || "");
+      const [status, setStatus] = useState("idle"); // idle | resolving | error
+      const [errMsg, setErrMsg] = useState("");
+
+      const isPaid = MEMBERSHIP?.isPaid || MEMBERSHIP?.isPrivileged;
+
+      useEffect(() => {
+        if (!isPaid) return;
+        sbLoadChannelWatch()
+          .then(async (rows) => {
+            setWatches(rows || []);
+            const counts = await sbChannelWatchMatchCounts((rows || []).map((r) => r.id));
+            setMatchCounts(counts);
+          })
+          .catch(() => setWatches([]));
+      }, []);
+
+      async function addChannel() {
+        const url = urlInput.trim();
+        const keywords = Array.from(new Set(keywordInput.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean)));
+        if (!url || !keywords.length) return;
+        setStatus("resolving"); setErrMsg("");
+        try {
+          const res = await fetch(`${SB_URL}/functions/v1/resolve-channel`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            body: JSON.stringify({ input: url }),
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          if ((watches || []).some((w) => w.channel_id === data.channelId)) {
+            throw new Error("You're already watching this channel.");
+          }
+          const row = {
+            channel_id: data.channelId, channel_name: data.channelName, channel_handle: data.handle,
+            keywords, owner: OWNER, active: true,
+            notify_email: notifyEnabled ? (emailInput.trim() || null) : null,
+          };
+          const inserted = await sbInsertChannelWatch(row);
+          setWatches([inserted[0], ...(watches || [])]);
+          setUrlInput(""); setKeywordInput(""); setStatus("idle");
+        } catch (e) {
+          setErrMsg(e.message); setStatus("error");
+        }
+      }
+
+      async function removeWatch(id) {
+        await sbDeleteChannelWatch(id);
+        setWatches((watches || []).filter((w) => w.id !== id));
+      }
+
+      async function toggleActive(w) {
+        const next = !w.active;
+        await sbToggleChannelWatch(w.id, next);
+        setWatches((watches || []).map((x) => x.id === w.id ? { ...x, active: next } : x));
+      }
+
+      if (!isPaid) {
+        return (
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 20px" }}>
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--t2)" }}>
+              <div style={{ fontSize: 40, marginBottom: 14, opacity: .3 }}>📡</div>
+              <p style={{ fontSize: 17, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>Channel Watch is a paid feature</p>
+              <p style={{ fontSize: 14, marginBottom: 20, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+                Watch specific YouTube channels for new uploads matching a keyword you choose — get an automatic synopsis added to your library, and optionally emailed to you, the moment something matches.
+              </p>
+              <a href="/upgrade.html" style={{ display: "inline-block", background: "var(--acc)", color: "#fff", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>Upgrade to unlock →</a>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 20px" }}>
+          <div className="rcard" style={{ padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Watch a channel</p>
+            <p style={{ fontSize: 13, color: "var(--t3)", marginBottom: 14 }}>Checked once a day. New uploads whose title or description match your keyword get analyzed and added to your library automatically — no need to add them yourself.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 10 }}>
+              <input placeholder="Channel URL or @handle" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addChannel()} />
+              <input placeholder="Keywords to match (comma-separated)" value={keywordInput} onChange={(e) => setKeywordInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addChannel()} />
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--t2)", cursor: "pointer" }}>
+                <input type="checkbox" checked={notifyEnabled} onChange={(e) => setNotifyEnabled(e.target.checked)} style={{ width: "auto" }} />
+                Email me when something matches
+              </label>
+              {notifyEnabled && <input placeholder="Email address" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} style={{ maxWidth: 240 }} />}
+            </div>
+            {status === "error" && <p style={{ fontSize: 13, color: "var(--red)", marginBottom: 10 }}>{errMsg}</p>}
+            <button className="rbtn-p" onClick={addChannel} disabled={status === "resolving" || !urlInput.trim() || !keywordInput.trim()} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {status === "resolving" ? <><Spinner size={14} /> Looking up channel...</> : "＋ Add Channel"}
+            </button>
+          </div>
+
+          {watches === null ? (
+            <div style={{ textAlign: "center", padding: 32, color: "var(--t2)" }}><Spinner size={20} /></div>
+          ) : watches.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--t2)" }}>
+              <p style={{ fontSize: 14 }}>No channels watched yet — add one above.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {watches.map((w) => (
+                <div key={w.id} className="rcard" style={{ padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, opacity: w.active ? 1 : .5 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>{w.channel_name}</p>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
+                      {(w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)}
+                      {matchCounts[w.id] > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{matchCounts[w.id]} found</span>}
+                      {w.notify_email && <span style={{ fontSize: 11, color: "var(--t3)" }}>✉ {w.notify_email}</span>}
+                      {!w.active && <span style={{ fontSize: 11, color: "var(--t3)" }}>Paused</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <button onClick={() => toggleActive(w)} className="rbtn-g" style={{ fontSize: 12, padding: "5px 10px" }}>{w.active ? "Pause" : "Resume"}</button>
+                    <button onClick={() => removeWatch(w.id)} className="rbtn-d" style={{ fontSize: 12, padding: "5px 10px" }}>Remove</button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
