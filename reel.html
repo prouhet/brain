@@ -339,6 +339,7 @@ Return ONLY valid JSON (no markdown fences):
     const sbInsertChannelWatch = (row) => sbReq("channel_watch", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
     const sbDeleteChannelWatch = (id) => sbReq(`channel_watch?id=eq.${id}`, { method: "DELETE" });
     const sbToggleChannelWatch = (id, active) => sbReq(`channel_watch?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ active }) });
+    const sbUpdateChannelWatch = (id, patch) => sbReq(`channel_watch?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(patch) });
     async function sbChannelWatchMatchCounts(watchIds) {
       if (!watchIds.length) return {};
       const rows = await sbReq(`channel_watch_log?select=watch_id&matched=eq.true&watch_id=in.(${watchIds.join(",")})`);
@@ -948,6 +949,25 @@ Return ONLY valid JSON (no markdown fences):
         setWatches((watches || []).map((x) => x.id === w.id ? { ...x, active: next } : x));
       }
 
+      const [editingId, setEditingId] = useState(null);
+      const [editKeywords, setEditKeywords] = useState("");
+      const [editEmail, setEditEmail] = useState("");
+
+      function startEdit(w) {
+        setEditingId(w.id);
+        setEditKeywords((w.keywords || []).join(", "));
+        setEditEmail(w.notify_email || "");
+      }
+
+      async function saveEdit(w) {
+        const keywords = Array.from(new Set(editKeywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean)));
+        if (!keywords.length) return;
+        const patch = { keywords, notify_email: editEmail.trim() || null };
+        await sbUpdateChannelWatch(w.id, patch);
+        setWatches((watches || []).map((x) => x.id === w.id ? { ...x, ...patch } : x));
+        setEditingId(null);
+      }
+
       if (!isPaid) {
         return (
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 20px" }}>
@@ -994,21 +1014,38 @@ Return ONLY valid JSON (no markdown fences):
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {watches.map((w) => (
-                <div key={w.id} className="rcard" style={{ padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, opacity: w.active ? 1 : .5 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>{w.channel_name}</p>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
-                      {(w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)}
-                      {matchCounts[w.id] > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{matchCounts[w.id]} found</span>}
-                      {w.notify_email && <span style={{ fontSize: 11, color: "var(--t3)" }}>✉ {w.notify_email}</span>}
-                      {!w.active && <span style={{ fontSize: 11, color: "var(--t3)" }}>Paused</span>}
+                <div key={w.id} className="rcard" style={{ padding: "14px 18px", opacity: w.active ? 1 : .5 }}>
+                  {editingId === w.id ? (
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>{w.channel_name}</p>
+                      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 10 }}>
+                        <input placeholder="Keywords to match (comma-separated)" value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveEdit(w)} autoFocus />
+                        <input placeholder="Email address" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveEdit(w)} />
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => saveEdit(w)} className="rbtn-ok" style={{ fontSize: 12, padding: "5px 12px" }}>Save</button>
+                        <button onClick={() => setEditingId(null)} className="rbtn-g" style={{ fontSize: 12, padding: "5px 12px" }}>Cancel</button>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => toggleActive(w)} className="rbtn-g" style={{ fontSize: 12, padding: "5px 10px" }}>{w.active ? "Pause" : "Resume"}</button>
-                    <button onClick={() => removeWatch(w.id)} className="rbtn-d" style={{ fontSize: 12, padding: "5px 10px" }}>Remove</button>
-                  </div>
+                  ) : (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>{w.channel_name}</p>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
+                          {(w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)}
+                          {matchCounts[w.id] > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{matchCounts[w.id]} found</span>}
+                          {w.notify_email && <span style={{ fontSize: 11, color: "var(--t3)" }}>✉ {w.notify_email}</span>}
+                          {!w.active && <span style={{ fontSize: 11, color: "var(--t3)" }}>Paused</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        <button onClick={() => startEdit(w)} className="rbtn-g" style={{ fontSize: 12, padding: "5px 10px" }}>Edit</button>
+                        <button onClick={() => toggleActive(w)} className="rbtn-g" style={{ fontSize: 12, padding: "5px 10px" }}>{w.active ? "Pause" : "Resume"}</button>
+                        <button onClick={() => removeWatch(w.id)} className="rbtn-d" style={{ fontSize: 12, padding: "5px 10px" }}>Remove</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
