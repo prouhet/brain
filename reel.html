@@ -340,12 +340,18 @@ Return ONLY valid JSON (no markdown fences):
     const sbDeleteChannelWatch = (id) => sbReq(`channel_watch?id=eq.${id}`, { method: "DELETE" });
     const sbToggleChannelWatch = (id, active) => sbReq(`channel_watch?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ active }) });
     const sbUpdateChannelWatch = (id, patch) => sbReq(`channel_watch?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(patch) });
-    async function sbChannelWatchMatchCounts(watchIds) {
+    async function sbChannelWatchStats(watchIds) {
       if (!watchIds.length) return {};
-      const rows = await sbReq(`channel_watch_log?select=watch_id&matched=eq.true&watch_id=in.(${watchIds.join(",")})`);
-      const counts = {};
-      for (const r of rows || []) counts[r.watch_id] = (counts[r.watch_id] || 0) + 1;
-      return counts;
+      const rows = await sbReq(`channel_watch_log?select=watch_id,processed_at,matched&watch_id=in.(${watchIds.join(",")})&order=processed_at.desc`);
+      const stats = {};
+      for (const r of rows || []) {
+        if (!stats[r.watch_id]) stats[r.watch_id] = { count: 0, lastChecked: r.processed_at, lastAdded: null };
+        if (r.matched) {
+          stats[r.watch_id].count++;
+          if (!stats[r.watch_id].lastAdded) stats[r.watch_id].lastAdded = r.processed_at;
+        }
+      }
+      return stats;
     }
 
     // ─── Data mapping ─────────────────────────────────────────────────────────
@@ -886,9 +892,18 @@ Return ONLY valid JSON (no markdown fences):
     }
 
     // ─── Channel Watch ────────────────────────────────────────────────────────
+    function fmtLastChecked(iso) {
+      if (!iso) return null;
+      const diffHrs = (Date.now() - new Date(iso).getTime()) / 3600000;
+      if (diffHrs < 1) return "checked <1h ago";
+      if (diffHrs < 24) return `checked ${Math.floor(diffHrs)}h ago`;
+      const d = new Date(iso);
+      return `checked ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+    }
+
     function ChannelWatchView() {
       const [watches, setWatches] = useState(null); // null = loading
-      const [matchCounts, setMatchCounts] = useState({});
+      const [watchStats, setWatchStats] = useState({});
       const [urlInput, setUrlInput] = useState("");
       const [keywordInput, setKeywordInput] = useState("");
       const [notifyEnabled, setNotifyEnabled] = useState(true);
@@ -903,8 +918,8 @@ Return ONLY valid JSON (no markdown fences):
         sbLoadChannelWatch()
           .then(async (rows) => {
             setWatches(rows || []);
-            const counts = await sbChannelWatchMatchCounts((rows || []).map((r) => r.id));
-            setMatchCounts(counts);
+            const stats = await sbChannelWatchStats((rows || []).map((r) => r.id));
+            setWatchStats(stats);
           })
           .catch(() => setWatches([]));
       }, []);
@@ -1034,7 +1049,11 @@ Return ONLY valid JSON (no markdown fences):
                         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                           {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
                           {(w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)}
-                          {matchCounts[w.id] > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{matchCounts[w.id]} found</span>}
+                          {watchStats[w.id]?.count > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{watchStats[w.id].count} found{watchStats[w.id].lastAdded ? ` · latest ${fmtDate(watchStats[w.id].lastAdded)}` : ""}</span>}
+                          {watchStats[w.id]?.lastChecked
+                            ? <span style={{ fontSize: 11, color: "var(--t3)" }}>{fmtLastChecked(watchStats[w.id].lastChecked)}</span>
+                            : <span style={{ fontSize: 11, color: "var(--warn)" }}>not checked yet</span>
+                          }
                           {w.notify_email && <span style={{ fontSize: 11, color: "var(--t3)" }}>✉ {w.notify_email}</span>}
                           {!w.active && <span style={{ fontSize: 11, color: "var(--t3)" }}>Paused</span>}
                         </div>
