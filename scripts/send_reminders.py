@@ -8,6 +8,7 @@ Emails due reminders via Postmark, marks them emailed.
 
 import json
 import os
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -24,10 +25,16 @@ def get_headers(sb_key):
 
 def get_due_reminders(sb_key):
     now = datetime.now(timezone.utc).isoformat()
+    # IMPORTANT: percent-encode the timestamp before it goes in the query
+    # string. isoformat() ends in "+00:00" — an un-encoded "+" in a query
+    # string is read as a literal space by the time it reaches PostgREST,
+    # which turns the timestamp into garbage and PostgREST rejects the
+    # whole request with a 400 (error 22007, invalid_datetime_format).
+    now_q = urllib.parse.quote(now, safe="")
     params = (
         f"household_key=eq.drjampro"
         f"&done=eq.false"
-        f"&due_at=lte.{now}"
+        f"&due_at=lte.{now_q}"
         f"&select=id,text,due_at,set_by,for_member"
         f"&order=due_at.asc"
     )
