@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2b7d94">
+<title>Studio Strong — Morning Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal:#2b7d94; --teal-strong:#1f6376; --teal-dim:rgba(43,125,148,.10);
+    --bg:#f7f9fc; --surface:#fff; --surface2:#f0f4f8; --line:rgba(0,0,0,.09); --line2:rgba(0,0,0,.18);
+    --text:#1a1a1a; --dim:#5a5a5a; --faint:#9a9a9a; --done:#1a8a62; --warn:#b4532a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0e0f10; --surface:#16181a; --surface2:#1d2023; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.18);
+      --text:#e8e8e8; --dim:#9a9a9a; --faint:#666; --teal:#3a9ab5; --teal-strong:#56b3cc; --teal-dim:rgba(58,154,181,.14);
+      --done:#2fb383; --warn:#e8845a;
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+    font-size:16px; line-height:1.45; min-height:100vh;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap { max-width:680px; margin:0 auto; padding:18px 18px 120px; }
+
+  /* Header */
+  .top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; }
+  .datenav { display:flex; gap:6px; }
+  .datenav button, .datenav a {
+    font:inherit; font-size:13px; color:var(--dim); background:transparent; border:1px solid var(--line2);
+    border-radius:8px; padding:6px 10px; cursor:pointer; text-decoration:none;
+  }
+  .datenav button:hover { color:var(--teal); border-color:var(--teal); }
+  h1 { font-size:26px; font-weight:700; letter-spacing:-.01em; line-height:1.15; }
+  .headline { color:var(--dim); margin:8px 0 4px; max-width:60ch; }
+  .progress { font-size:13px; color:var(--faint); margin-bottom:18px; }
+  .progress b { color:var(--done); font-weight:600; }
+
+  h2 { font-size:15px; font-weight:600; color:var(--teal); margin:26px 0 8px; }
+  h3 { font-size:14px; font-weight:600; margin:16px 0 4px; }
+
+  /* Schedule */
+  .sched { display:grid; grid-template-columns:auto 1fr; gap:4px 16px; font-size:15px; }
+  .sched .t { color:var(--dim); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .sched .loc { color:var(--faint); }
+  .muted { color:var(--faint); font-size:14px; }
+
+  /* Items — mirrors the paper: box, number, text */
+  .item { border-bottom:1px solid var(--line); }
+  .row { display:grid; grid-template-columns:44px 1fr auto; align-items:start; padding:10px 0; }
+  .check {
+    width:44px; height:44px; margin:-10px 0 -10px -10px; display:flex; align-items:center; justify-content:center;
+    background:none; border:0; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .box {
+    width:22px; height:22px; border:2px solid var(--text); border-radius:4px; display:flex; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s;
+  }
+  .box svg { width:14px; height:14px; opacity:0; transform:scale(.6); transition:opacity .15s, transform .15s; }
+  .item.done .box { background:var(--done); border-color:var(--done); }
+  .item.done .box svg { opacity:1; transform:scale(1); }
+  .check:focus-visible .box { outline:2px solid var(--teal); outline-offset:3px; }
+  .text { padding-top:1px; min-width:0; }
+  .num { color:var(--teal); font-weight:700; margin-right:6px; font-variant-numeric:tabular-nums; }
+  .title { overflow-wrap:anywhere; }
+  .item.done .title { color:var(--faint); text-decoration:line-through; text-decoration-thickness:1px; }
+  .detail { font-size:13px; color:var(--dim); margin-top:2px; }
+  .flag { font-size:12px; color:var(--warn); margin-left:6px; }
+  .tools { display:flex; gap:2px; }
+  .tools button {
+    font:inherit; font-size:13px; color:var(--dim); background:none; border:0; padding:4px 8px; border-radius:6px; cursor:pointer;
+  }
+  .tools button:hover, .tools button:focus-visible { color:var(--teal); background:var(--teal-dim); outline:none; }
+  .notes { margin:0 0 10px 44px; display:flex; flex-direction:column; gap:4px; }
+  .note { font-size:14px; color:var(--dim); border-left:2px solid var(--teal); padding-left:8px; }
+  .note time { color:var(--faint); font-size:12px; margin-right:6px; }
+  .noteform { margin:0 0 12px 44px; display:none; gap:8px; }
+  .noteform.open { display:flex; }
+  .noteform textarea { flex:1; min-height:44px; }
+
+  /* Inputs */
+  textarea, input[type=text] {
+    font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2);
+    border-radius:8px; padding:10px 12px; resize:vertical; width:100%;
+  }
+  textarea:focus, input:focus { outline:2px solid var(--teal); outline-offset:0; border-color:transparent; }
+  .btn {
+    font:inherit; font-size:15px; font-weight:600; color:#fff; background:var(--teal); border:0; border-radius:8px;
+    padding:10px 16px; cursor:pointer; white-space:nowrap;
+  }
+  .btn:hover { background:var(--teal-strong); }
+  .btn:disabled { opacity:.5; cursor:default; }
+
+  /* Add bar, pinned to the bottom so it's always a thumb away */
+  .addbar {
+    position:fixed; left:0; right:0; bottom:0; background:var(--surface); border-top:1px solid var(--line2);
+    padding:10px 18px calc(10px + env(safe-area-inset-bottom));
+  }
+  .addbar form { max-width:680px; margin:0 auto; display:flex; gap:8px; align-items:center; }
+  .scope { display:flex; border:1px solid var(--line2); border-radius:8px; overflow:hidden; flex-shrink:0; }
+  .scope button { font:inherit; font-size:13px; padding:10px 10px; border:0; background:none; color:var(--dim); cursor:pointer; }
+  .scope button[aria-pressed=true] { background:var(--teal-dim); color:var(--teal); font-weight:600; }
+
+  #toast {
+    position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--text); color:var(--bg);
+    font-size:14px; padding:9px 14px; border-radius:8px; display:none; max-width:90vw;
+  }
+  #toast.show { display:block; }
+  .empty { padding:40px 0; color:var(--dim); }
+  .empty p + p { margin-top:8px; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="datenav">
+      <button id="prev" aria-label="Previous day">‹ Prev</button>
+      <button id="today">Today</button>
+      <button id="next" aria-label="Next day">Next ›</button>
+    </div>
+  </div>
+  <h1 id="date">Loading…</h1>
+  <p class="headline" id="headline"></p>
+  <p class="progress" id="progress"></p>
+  <main id="main"></main>
+</div>
+
+<div class="addbar">
+  <form id="addform">
+    <div class="scope" role="group" aria-label="Where this item goes">
+      <button type="button" data-scope="business" aria-pressed="true">Studio</button>
+      <button type="button" data-scope="personal" aria-pressed="false">Personal</button>
+    </div>
+    <input type="text" id="addtext" placeholder="Add an item for today" autocomplete="off" aria-label="New item">
+    <button class="btn" id="addbtn" type="submit">Add</button>
+  </form>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const FN = "https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/morning-brief";
+const params = new URLSearchParams(location.search);
+const KEY = params.get("key") || "";
+let DATE = params.get("date") || "";
+let TODAY = "";
+let scope = "business";
+let brief = null;
+
+const TIERS = {1:["🔴","Opportunity cost"],2:["🟠","Working on the business"],3:["🟡","High consequence"],4:["🔵","Working in the business"],5:["⚪","Maintenance"]};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const CHECK_SVG = '<svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function longDate(d) {
+  return new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone:"UTC", weekday:"long", month:"long", day:"numeric" });
+}
+function shiftDate(d, n) { const x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0,10); }
+function fmtNoteTime(iso) { return new Date(iso).toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit" }); }
+
+async function api(method, body) {
+  const u = `${FN}?key=${encodeURIComponent(KEY)}` + (method === "GET" ? `&date=${DATE}` : "");
+  const res = await fetch(u, method === "GET" ? {} : {
+    method, headers: { "Content-Type":"application/json" }, body: JSON.stringify({ date: DATE, ...body })
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+async function load() {
+  if (!KEY) { $("#date").textContent = "Missing key"; $("#main").innerHTML = '<div class="empty"><p>Open this page from the link or QR code in your morning email.</p></div>'; return; }
+  const { ok, status, data } = await api("GET");
+  TODAY = data.today || TODAY;
+  if (!DATE) DATE = TODAY;
+  history.replaceState(null, "", `?key=${encodeURIComponent(KEY)}&date=${DATE}`);
+  $("#date").textContent = longDate(DATE);
+  $("#next").disabled = DATE >= TODAY;
+  if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
+  if (!ok) {
+    brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
+    $("#main").innerHTML = `<div class="empty"><p>No brief for ${esc(longDate(DATE))}.</p><p>${DATE === TODAY ? "It's built at 5:30 each morning. Anything you add below still lands in your priorities." : "Briefs only exist for days the email went out."}</p></div>`;
+    return;
+  }
+  brief = data.brief;
+  render();
+}
+
+function itemHTML(it) {
+  const notes = (it.notes || []).map(n => `<div class="note"><time>${fmtNoteTime(n.at)}</time>${esc(n.text)}</div>`).join("");
+  const flag = it.missing ? '<span class="flag">removed from brain</span>' : it.pushed ? '<span class="flag">moved to tomorrow</span>' : "";
+  return `<div class="item${it.done ? " done" : ""}" data-id="${it.id}">
+    <div class="row">
+      <button class="check" aria-pressed="${it.done}" aria-label="${it.done ? "Uncheck" : "Check off"} item ${it.n}"><span class="box">${CHECK_SVG}</span></button>
+      <div class="text">
+        <span class="num">${it.n}.</span><span class="title">${esc(it.title)}${it.recurring ? " ⟳" : ""}</span>${flag}
+        ${it.detail ? `<div class="detail">${esc(it.detail)}</div>` : ""}
+      </div>
+      <div class="tools">
+        <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
+        ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>`}
+      </div>
+    </div>
+    ${notes ? `<div class="notes">${notes}</div>` : ""}
+    <form class="noteform"><textarea rows="2" placeholder="What happened?" aria-label="Note for item ${it.n}"></textarea><button class="btn" type="submit">Save note</button></form>
+  </div>`;
+}
+
+function render() {
+  const b = brief;
+  $("#headline").textContent = b.headline || "";
+  const done = b.items.filter(i => i.done).length;
+  $("#progress").innerHTML = b.items.length ? `<b>${done}</b> of ${b.items.length} done` : "";
+
+  const sched = b.appointments.length
+    ? `<div class="sched">${b.appointments.map(a => `<span class="t">${esc(a.time)}</span><span>${esc(a.title)}${a.location ? ` <span class="loc">(${esc(a.location)})</span>` : ""}</span>`).join("")}</div>`
+    : `<p class="muted">${b.calendar_ok ? "Nothing on the calendar." : "The calendar didn't load this morning."}</p>`;
+
+  const tasks = b.items.filter(i => i.section === "task" && !i.added);
+  const tierHTML = [1,2,3,4,5].map(t => {
+    const its = tasks.filter(i => i.tier === t);
+    return its.length ? `<h3>${TIERS[t][0]} ${TIERS[t][1]}</h3>${its.map(itemHTML).join("")}` : "";
+  }).join("");
+  const clients = b.items.filter(i => i.section === "client");
+  const added = b.items.filter(i => i.added);
+
+  $("#main").innerHTML = `
+    <h2>Today's schedule</h2>${sched}
+    <h2>To do</h2>${tierHTML || '<p class="muted">Nothing pressing on the list.</p>'}
+    ${clients.length ? `<h2>Client follow-ups from dids</h2>${clients.map(itemHTML).join("")}` : (b.dids_ok ? "" : '<h2>Client follow-ups from dids</h2><p class="muted">Dids data didn\'t load this morning.</p>')}
+    ${added.length ? `<h2>Added today</h2>${added.map(itemHTML).join("")}` : ""}`;
+}
+
+// Check / note / push
+$("#main").addEventListener("click", async (e) => {
+  const el = e.target.closest(".item"); if (!el) return;
+  const id = el.dataset.id; const it = brief.items.find(i => i.id === id);
+
+  if (e.target.closest(".check")) {
+    const next = !it.done; it.done = next; render();
+    const r = await api("POST", { action: next ? "check" : "uncheck", id });
+    if (!r.ok) { it.done = !next; render(); toast(r.data.error || "Couldn't save. Try again."); }
+    return;
+  }
+  const act = e.target.closest("[data-act]")?.dataset.act;
+  if (act === "note") {
+    const f = el.querySelector(".noteform"); f.classList.toggle("open");
+    if (f.classList.contains("open")) f.querySelector("textarea").focus();
+  }
+  if (act === "push") {
+    const r = await api("POST", { action: "push", id });
+    if (r.ok) { it.pushed = true; render(); toast(`Item ${it.n} moved to tomorrow`); }
+    else toast(r.data.error || "Couldn't move it. Try again.");
+  }
+});
+
+$("#main").addEventListener("submit", async (e) => {
+  if (!e.target.classList.contains("noteform")) return;
+  e.preventDefault();
+  const el = e.target.closest(".item"); const it = brief.items.find(i => i.id === el.dataset.id);
+  const ta = e.target.querySelector("textarea"); const text = ta.value.trim(); if (!text) return;
+  const btn = e.target.querySelector("button"); btn.disabled = true;
+  const r = await api("POST", { action: "note", id: it.id, text });
+  btn.disabled = false;
+  if (r.ok) { it.notes = [...(it.notes || []), { at: new Date().toISOString(), text }]; render(); toast("Note saved"); }
+  else toast(r.data.error || "Couldn't save the note.");
+});
+
+// Add
+document.querySelectorAll(".scope button").forEach(b => b.addEventListener("click", () => {
+  scope = b.dataset.scope;
+  document.querySelectorAll(".scope button").forEach(x => x.setAttribute("aria-pressed", x === b));
+}));
+$("#addform").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#addtext"); const content = input.value.trim(); if (!content) return;
+  $("#addbtn").disabled = true;
+  const r = await api("POST", { action: "add", content, scope });
+  $("#addbtn").disabled = false;
+  if (r.ok) { input.value = ""; toast("Added"); await load(); }
+  else toast(r.data.error || "Couldn't add it. Try again.");
+});
+
+// Date navigation
+$("#prev").onclick = () => { DATE = shiftDate(DATE || TODAY, -1); load(); };
+$("#next").onclick = () => { if (DATE < TODAY) { DATE = shiftDate(DATE, 1); load(); } };
+$("#today").onclick = () => { DATE = TODAY; load(); };
+
+load();
+</script>
+</body>
+</html>
