@@ -78,6 +78,16 @@
     font:inherit; font-size:13px; color:var(--dim); background:none; border:0; padding:4px 8px; border-radius:6px; cursor:pointer;
   }
   .tools button:hover, .tools button:focus-visible { color:var(--teal); background:var(--teal-dim); outline:none; }
+  @media (max-width: 520px) {
+    .row { grid-template-columns:44px 1fr; }
+    .tools { grid-column:2; margin:4px 0 0 -8px; }
+  }
+  .pick { position:relative; display:inline-flex; }
+  .pick input[type=date] {
+    position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;
+    font-size:16px; border:0; padding:0; -webkit-appearance:none; appearance:none;
+  }
+  .pick:focus-within button { color:var(--teal); background:var(--teal-dim); }
   .notes { margin:0 0 10px 44px; display:flex; flex-direction:column; gap:4px; }
   .note { font-size:14px; color:var(--dim); border-left:2px solid var(--teal); padding-left:8px; }
   .note time { color:var(--faint); font-size:12px; margin-right:6px; }
@@ -166,6 +176,9 @@ function toast(msg) {
 function longDate(d) {
   return new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone:"UTC", weekday:"long", month:"long", day:"numeric" });
 }
+function shortDate(d) {
+  return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone:"UTC", weekday:"short", month:"short", day:"numeric" }) : "a later day";
+}
 function shiftDate(d, n) { const x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0,10); }
 function fmtNoteTime(iso) { return new Date(iso).toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit" }); }
 
@@ -198,7 +211,8 @@ async function load() {
 
 function itemHTML(it) {
   const notes = (it.notes || []).map(n => `<div class="note"><time>${fmtNoteTime(n.at)}</time>${esc(n.text)}</div>`).join("");
-  const flag = it.missing ? '<span class="flag">removed from brain</span>' : it.pushed ? '<span class="flag">moved to tomorrow</span>' : "";
+  const movedLabel = it.moved_to === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(it.moved_to);
+  const flag = it.missing ? '<span class="flag">removed from brain</span>' : it.pushed ? `<span class="flag">moved to ${esc(movedLabel)}</span>` : "";
   return `<div class="item${it.done ? " done" : ""}" data-id="${it.id}">
     <div class="row">
       <button class="check" aria-pressed="${it.done}" aria-label="${it.done ? "Uncheck" : "Check off"} item ${it.n}"><span class="box">${CHECK_SVG}</span></button>
@@ -208,7 +222,8 @@ function itemHTML(it) {
       </div>
       <div class="tools">
         <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
-        ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>`}
+        ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
+        <span class="pick"><button tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
       </div>
     </div>
     ${notes ? `<div class="notes">${notes}</div>` : ""}
@@ -258,10 +273,29 @@ $("#main").addEventListener("click", async (e) => {
     if (f.classList.contains("open")) f.querySelector("textarea").focus();
   }
   if (act === "push") {
-    const r = await api("POST", { action: "push", id });
-    if (r.ok) { it.pushed = true; render(); toast(`Item ${it.n} moved to tomorrow`); }
-    else toast(r.data.error || "Couldn't move it. Try again.");
+    await moveTo(it, shiftDate(TODAY, 1));
   }
+});
+
+async function moveTo(it, to) {
+  const r = await api("POST", { action: "push", id: it.id, to });
+  if (r.ok) {
+    it.pushed = true; it.moved_to = to; render();
+    toast(`Item ${it.n} moved to ${to === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(to)}`);
+  } else toast(r.data.error || "Couldn't move it. Try again.");
+}
+
+// Pick day: a transparent date input sits over the button, so tapping opens
+// the phone's own calendar. On desktop, open the picker explicitly.
+$("#main").addEventListener("click", (e) => {
+  const input = e.target.closest(".pickdate");
+  if (input && typeof input.showPicker === "function") { try { input.showPicker(); } catch {} }
+});
+$("#main").addEventListener("change", async (e) => {
+  const input = e.target.closest(".pickdate"); if (!input || !input.value) return;
+  const it = brief.items.find(i => i.id === input.closest(".item").dataset.id);
+  if (input.value <= TODAY) { toast("Pick a day after today."); input.value = ""; return; }
+  await moveTo(it, input.value);
 });
 
 $("#main").addEventListener("submit", async (e) => {
