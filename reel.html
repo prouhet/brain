@@ -345,7 +345,7 @@ Return ONLY valid JSON (no markdown fences):
       const rows = await sbReq(`channel_watch_log?select=watch_id,processed_at,matched&watch_id=in.(${watchIds.join(",")})&order=processed_at.desc`);
       const stats = {};
       for (const r of rows || []) {
-        if (!stats[r.watch_id]) stats[r.watch_id] = { count: 0, lastChecked: r.processed_at, lastAdded: null };
+        if (!stats[r.watch_id]) stats[r.watch_id] = { count: 0, lastAdded: null };
         if (r.matched) {
           stats[r.watch_id].count++;
           if (!stats[r.watch_id].lastAdded) stats[r.watch_id].lastAdded = r.processed_at;
@@ -1050,8 +1050,8 @@ Return ONLY valid JSON (no markdown fences):
                           {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
                           {(w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)}
                           {watchStats[w.id]?.count > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{watchStats[w.id].count} found{watchStats[w.id].lastAdded ? ` · latest ${fmtDate(watchStats[w.id].lastAdded)}` : ""}</span>}
-                          {watchStats[w.id]?.lastChecked
-                            ? <span style={{ fontSize: 11, color: "var(--t3)" }}>{fmtLastChecked(watchStats[w.id].lastChecked)}</span>
+                          {w.last_checked_at
+                            ? <span style={{ fontSize: 11, color: (Date.now() - new Date(w.last_checked_at).getTime()) > 30 * 3600000 ? "var(--warn)" : "var(--t3)" }}>{fmtLastChecked(w.last_checked_at)}</span>
                             : <span style={{ fontSize: 11, color: "var(--warn)" }}>not checked yet</span>
                           }
                           {w.notify_email && <span style={{ fontSize: 11, color: "var(--t3)" }}>✉ {w.notify_email}</span>}
