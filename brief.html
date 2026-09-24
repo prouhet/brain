@@ -92,6 +92,11 @@
     font-size:16px; border:0; padding:0; -webkit-appearance:none; appearance:none;
   }
   .pick:focus-within button { color:var(--teal); background:var(--teal-dim); }
+  .moved { margin-top:26px; font-size:14px; color:var(--dim); }
+  .moved summary { cursor:pointer; padding:8px 0; color:var(--dim); }
+  .moved summary:hover { color:var(--teal); }
+  .moved-row { padding:6px 0 6px 12px; border-left:2px solid var(--line2); margin-left:4px; }
+  .moved .flag { margin-left:6px; }
   .notes { margin:0 0 10px 44px; display:flex; flex-direction:column; gap:4px; }
   .note { font-size:14px; color:var(--dim); border-left:2px solid var(--teal); padding-left:8px; }
   .note time { color:var(--faint); font-size:12px; margin-right:6px; }
@@ -253,26 +258,32 @@ function itemHTML(it) {
 function render() {
   const b = brief;
   $("#headline").textContent = b.headline || "";
-  const done = b.items.filter(i => i.done).length;
-  $("#progress").innerHTML = b.items.length ? `<b>${done}</b> of ${b.items.length} done` : "";
+  // Items given a later date leave today's list (they're collected at the bottom)
+  const today = b.items.filter(i => !i.pushed);
+  const moved = b.items.filter(i => i.pushed);
+  const done = today.filter(i => i.done).length;
+  $("#progress").innerHTML = today.length ? `<b>${done}</b> of ${today.length} done` : "";
 
   const sched = b.appointments.length
     ? `<div class="sched">${b.appointments.map(a => `<span class="t">${esc(a.time)}</span><span>${esc(a.title)}${a.location ? ` <span class="loc">(${esc(a.location)})</span>` : ""}</span>`).join("")}</div>`
     : `<p class="muted">${b.calendar_ok ? "Nothing on the calendar." : "The calendar didn't load this morning."}</p>`;
 
-  const tasks = b.items.filter(i => i.section === "task" && !i.added);
+  const tasks = today.filter(i => i.section === "task" && !i.added);
   const tierHTML = [1,2,3,4,5].map(t => {
     const its = tasks.filter(i => i.tier === t);
     return its.length ? `<h3>${TIERS[t][0]} ${TIERS[t][1]}</h3>${its.map(itemHTML).join("")}` : "";
   }).join("");
-  const clients = b.items.filter(i => i.section === "client");
-  const added = b.items.filter(i => i.added);
+  const clients = today.filter(i => i.section === "client");
+  const added = today.filter(i => i.added);
+  const movedHTML = moved.length ? `<details class="moved"><summary>${moved.length} scheduled for later day${moved.length === 1 ? "" : "s"}</summary>
+    ${moved.map(i => `<div class="moved-row"><span class="num">${i.n}.</span>${esc(i.title)} <span class="flag">${esc(shortDate(i.moved_to))}</span></div>`).join("")}</details>` : "";
 
   $("#main").innerHTML = `
     <h2>Today's schedule</h2>${sched}
     <h2>To do</h2>${tierHTML || '<p class="muted">Nothing pressing on the list.</p>'}
     ${clients.length ? `<h2>Client follow-ups from dids</h2>${clients.map(itemHTML).join("")}` : (b.dids_ok ? "" : '<h2>Client follow-ups from dids</h2><p class="muted">Dids data didn\'t load this morning.</p>')}
-    ${added.length ? `<h2>Added today</h2>${added.map(itemHTML).join("")}` : ""}`;
+    ${added.length ? `<h2>Added today</h2>${added.map(itemHTML).join("")}` : ""}
+    ${movedHTML}`;
 }
 
 // Check / note / push
