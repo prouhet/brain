@@ -81,6 +81,10 @@
   @media (max-width: 520px) {
     .row { grid-template-columns:44px 1fr; }
     .tools { grid-column:2; margin:4px 0 0 -8px; }
+    .addbar form { flex-wrap:wrap; }
+    .addbar #addtext { order:-1; flex:1 1 100%; }
+    .addbar #addbtn { margin-left:auto; }
+    .wrap { padding-bottom:160px; }
   }
   .pick { position:relative; display:inline-flex; }
   .pick input[type=date] {
@@ -91,9 +95,18 @@
   .notes { margin:0 0 10px 44px; display:flex; flex-direction:column; gap:4px; }
   .note { font-size:14px; color:var(--dim); border-left:2px solid var(--teal); padding-left:8px; }
   .note time { color:var(--faint); font-size:12px; margin-right:6px; }
-  .noteform { margin:0 0 12px 44px; display:none; gap:8px; }
-  .noteform.open { display:flex; }
+  .noteform, .editform { margin:0 0 12px 44px; display:none; gap:8px; }
+  .noteform.open, .editform.open { display:flex; }
   .noteform textarea { flex:1; min-height:44px; }
+  .editform { flex-direction:column; }
+  .editform textarea { min-height:64px; }
+  .editform .row2 { display:flex; gap:8px; }
+  .btn.quiet { background:transparent; color:var(--dim); border:1px solid var(--line2); }
+  .btn.quiet:hover { background:var(--surface2); color:var(--text); }
+  .addbar .pick button {
+    font:inherit; font-size:13px; color:var(--teal); background:var(--teal-dim); border:1px solid transparent;
+    border-radius:8px; padding:10px 10px; white-space:nowrap; cursor:pointer;
+  }
 
   /* Inputs */
   textarea, input[type=text] {
@@ -149,7 +162,8 @@
       <button type="button" data-scope="business" aria-pressed="true">Studio</button>
       <button type="button" data-scope="personal" aria-pressed="false">Personal</button>
     </div>
-    <input type="text" id="addtext" placeholder="Add an item for today" autocomplete="off" aria-label="New item">
+    <input type="text" id="addtext" placeholder="Add an item" autocomplete="off" aria-label="New item">
+    <span class="pick"><button type="button" id="adddatebtn" tabindex="-1" aria-hidden="true">Today</button><input type="date" id="adddate" aria-label="Due date for the new item (leave blank for today)"></span>
     <button class="btn" id="addbtn" type="submit">Add</button>
   </form>
 </div>
@@ -198,6 +212,7 @@ async function load() {
   if (!DATE) DATE = TODAY;
   history.replaceState(null, "", `?key=${encodeURIComponent(KEY)}&date=${DATE}`);
   $("#date").textContent = longDate(DATE);
+  $("#adddate").min = DATE;
   $("#next").disabled = DATE >= TODAY;
   if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
   if (!ok) {
@@ -212,7 +227,8 @@ async function load() {
 function itemHTML(it) {
   const notes = (it.notes || []).map(n => `<div class="note"><time>${fmtNoteTime(n.at)}</time>${esc(n.text)}</div>`).join("");
   const movedLabel = it.moved_to === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(it.moved_to);
-  const flag = it.missing ? '<span class="flag">removed from brain</span>' : it.pushed ? `<span class="flag">moved to ${esc(movedLabel)}</span>` : "";
+  const flag = it.missing ? '<span class="flag">removed from brain</span>'
+    : it.pushed ? `<span class="flag">${it.added ? "due" : "moved to"} ${esc(movedLabel)}</span>` : "";
   return `<div class="item${it.done ? " done" : ""}" data-id="${it.id}">
     <div class="row">
       <button class="check" aria-pressed="${it.done}" aria-label="${it.done ? "Uncheck" : "Check off"} item ${it.n}"><span class="box">${CHECK_SVG}</span></button>
@@ -221,12 +237,15 @@ function itemHTML(it) {
         ${it.detail ? `<div class="detail">${esc(it.detail)}</div>` : ""}
       </div>
       <div class="tools">
+        <button data-act="edit" aria-label="Edit item ${it.n}">Edit</button>
         <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
         ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
         <span class="pick"><button tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
       </div>
     </div>
     ${notes ? `<div class="notes">${notes}</div>` : ""}
+    <form class="editform"><textarea rows="3" aria-label="Edit item ${it.n}">${esc(it.full_text || it.title)}</textarea>
+      <div class="row2"><button class="btn" type="submit">Save</button><button class="btn quiet" type="button" data-act="cancel-edit">Cancel</button></div></form>
     <form class="noteform"><textarea rows="2" placeholder="What happened?" aria-label="Note for item ${it.n}"></textarea><button class="btn" type="submit">Save note</button></form>
   </div>`;
 }
@@ -268,6 +287,11 @@ $("#main").addEventListener("click", async (e) => {
     return;
   }
   const act = e.target.closest("[data-act]")?.dataset.act;
+  if (act === "edit") {
+    const f = el.querySelector(".editform"); f.classList.toggle("open");
+    if (f.classList.contains("open")) { const ta = f.querySelector("textarea"); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
+  if (act === "cancel-edit") { el.querySelector(".editform").classList.remove("open"); }
   if (act === "note") {
     const f = el.querySelector(".noteform"); f.classList.toggle("open");
     if (f.classList.contains("open")) f.querySelector("textarea").focus();
@@ -299,6 +323,17 @@ $("#main").addEventListener("change", async (e) => {
 });
 
 $("#main").addEventListener("submit", async (e) => {
+  if (e.target.classList.contains("editform")) {
+    e.preventDefault();
+    const el = e.target.closest(".item"); const it = brief.items.find(i => i.id === el.dataset.id);
+    const content = e.target.querySelector("textarea").value.trim(); if (!content) return;
+    const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
+    const r = await api("POST", { action: "edit", id: it.id, content });
+    btn.disabled = false;
+    if (r.ok) { it.title = r.data.title || content; it.full_text = content; render(); toast(`Item ${it.n} updated`); }
+    else toast(r.data.error || "Couldn't save the change.");
+    return;
+  }
   if (!e.target.classList.contains("noteform")) return;
   e.preventDefault();
   const el = e.target.closest(".item"); const it = brief.items.find(i => i.id === el.dataset.id);
@@ -319,10 +354,22 @@ $("#addform").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("#addtext"); const content = input.value.trim(); if (!content) return;
   $("#addbtn").disabled = true;
-  const r = await api("POST", { action: "add", content, scope });
+  const due = $("#adddate").value || "";
+  const r = await api("POST", { action: "add", content, scope, due });
   $("#addbtn").disabled = false;
-  if (r.ok) { input.value = ""; toast("Added"); await load(); }
+  if (r.ok) {
+    input.value = ""; $("#adddate").value = ""; $("#adddatebtn").textContent = "Today";
+    toast(due && due !== TODAY ? `Added, due ${shortDate(due)}` : "Added for today"); await load();
+  }
   else toast(r.data.error || "Couldn't add it. Try again.");
+});
+
+// Due date for new items: blank means the brief's day
+$("#adddate").addEventListener("click", (e) => { if (typeof e.target.showPicker === "function") { try { e.target.showPicker(); } catch {} } });
+$("#adddate").addEventListener("change", (e) => {
+  const v = e.target.value;
+  if (v && v < (DATE || TODAY)) { toast("Pick today or a later day."); e.target.value = ""; }
+  $("#adddatebtn").textContent = e.target.value && e.target.value !== TODAY ? shortDate(e.target.value).replace(/^\w+, /, "") : "Today";
 });
 
 // Date navigation
