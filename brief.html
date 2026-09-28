@@ -105,6 +105,23 @@
   .noteform textarea { flex:1; min-height:44px; }
   .editform { flex-direction:column; }
   .editform textarea { min-height:64px; }
+  .opts { display:flex; flex-direction:column; gap:16px; }
+  .opts .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
+  .opts .lab .cur { text-transform:none; letter-spacing:0; font-weight:400; margin-left:6px; color:var(--dim); }
+  .opts .scope { align-self:flex-start; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font:inherit; font-size:13px; min-height:36px; padding:6px 12px; border-radius:999px; border:1px solid var(--line2); background:var(--surface); color:var(--text); cursor:pointer; }
+  .chip:hover { border-color:var(--teal); }
+  .chip[aria-pressed=true] { background:var(--teal-dim); border-color:var(--teal); color:var(--teal); font-weight:600; }
+  .opts select, .opts input[type=date], .opts input[type=number] { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:8px 10px; }
+  .opts .o-cat { width:100%; }
+  .opts input[type=number] { width:76px; }
+  .customrow { display:none; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; font-size:14px; color:var(--dim); }
+  .customrow.show { display:flex; }
+  .addopts { max-width:680px; margin:0 auto 12px; max-height:58vh; overflow-y:auto; padding:2px 2px 6px; }
+  .addopts[hidden] { display:none; }
+  body.opts-open .wrap { padding-bottom:75vh; }
+  .addbar #moreopts { font-size:13px; padding:10px 12px; }
   .editform .row2 { display:flex; gap:8px; }
   .btn.quiet { background:transparent; color:var(--dim); border:1px solid var(--line2); }
   .btn.quiet:hover { background:var(--surface2); color:var(--text); }
@@ -162,13 +179,15 @@
 </div>
 
 <div class="addbar">
+  <div class="addopts" id="addopts" hidden></div>
   <form id="addform">
     <div class="scope" role="group" aria-label="Where this item goes">
-      <button type="button" data-scope="business" aria-pressed="true">Studio</button>
-      <button type="button" data-scope="personal" aria-pressed="false">Personal</button>
+      <button type="button" data-scope="business" aria-pressed="true">Business</button>
+      <button type="button" data-scope="personal" aria-pressed="false">Me</button>
     </div>
     <input type="text" id="addtext" placeholder="Add an item" autocomplete="off" aria-label="New item">
     <span class="pick"><button type="button" id="adddatebtn" tabindex="-1" aria-hidden="true">Today</button><input type="date" id="adddate" aria-label="Due date for the new item (leave blank for today)"></span>
+    <button class="btn quiet" id="moreopts" type="button" aria-expanded="false" aria-controls="addopts">More</button>
     <button class="btn" id="addbtn" type="submit">Add</button>
   </form>
 </div>
@@ -218,6 +237,7 @@ async function load() {
   history.replaceState(null, "", `?key=${encodeURIComponent(KEY)}&date=${DATE}`);
   $("#date").textContent = longDate(DATE);
   $("#adddate").min = DATE;
+  if (TODAY && !addRoot()) buildAddOpts();
   $("#next").disabled = DATE >= TODAY;
   if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
   if (!ok) {
@@ -250,6 +270,7 @@ function itemHTML(it) {
     </div>
     ${notes ? `<div class="notes">${notes}</div>` : ""}
     <form class="editform"><textarea rows="3" aria-label="Edit item ${it.n}">${esc(it.full_text || it.title)}</textarea>
+      <div class="optsmount"></div>
       <div class="row2"><button class="btn" type="submit">Save</button><button class="btn quiet" type="button" data-act="cancel-edit">Cancel</button></div></form>
     <form class="noteform"><textarea rows="2" placeholder="What happened?" aria-label="Note for item ${it.n}"></textarea><button class="btn" type="submit">Save note</button></form>
   </div>`;
@@ -286,6 +307,135 @@ function render() {
     ${movedHTML}`;
 }
 
+// ── Options: the same fields as capture.html ───────────────────
+const CATS = [["","Default (uncategorized)"],["important","⭐ Important"],["finance","Finance"],["marketing","Marketing"],["operations","Operations"],["process","Process"],["recruiting","Recruiting"],["retention","Retention"],["technical","Technical"],["automation","Automation"],["health","Health"],["home","Home"]];
+const REPEATS = [["none","None"],["daily","Daily"],["weekly","Weekly"],["biweekly","Biweekly"],["monthly","Monthly"],["custom","Custom…"]];
+const TIER_CHIPS = [[1,"T1 Opportunity"],[2,"T2 Strategy"],[3,"T3 Consequence"],[4,"T4 Operations"],[5,"T5 Maintenance"]];
+const DOW = ["Su","M","Tu","W","Th","F","Sa"];
+
+function addMonthStr(d, n) {
+  const x = new Date(d + "T12:00:00Z"); const day = x.getUTCDate();
+  x.setUTCDate(1); x.setUTCMonth(x.getUTCMonth() + n);
+  const last = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate();
+  x.setUTCDate(Math.min(day, last)); return x.toISOString().slice(0, 10);
+}
+function whenChips() {
+  const chips = [];
+  for (let i = 0; i <= 6; i++) {
+    const d = shiftDate(TODAY, i);
+    chips.push({ label: i === 0 ? "Today" : DOW[new Date(d + "T12:00:00Z").getUTCDay()], val: d, today: i === 0 });
+  }
+  chips.push({ label: "2wk", val: shiftDate(TODAY, 14) }, { label: "1mo", val: addMonthStr(TODAY, 1) }, { label: "Custom…", val: "custom" });
+  return chips;
+}
+// Repeat values are stored as a word ("weekly") or { every, unit }; read either.
+function normRepeat(r) {
+  if (!r) return { key: "none" };
+  const unitOf = (u) => /day/.test(u) ? "days" : /month/.test(u) ? "months" : /year|annual/.test(u) ? "years" : "weeks";
+  if (typeof r === "object") return { key: "custom", n: Math.max(1, Number(r.every) || 1), unit: unitOf(String(r.unit || "weeks").toLowerCase()) };
+  const w = String(r).toLowerCase();
+  if (["daily", "weekly", "biweekly", "monthly"].includes(w)) return { key: w };
+  if (/quarter/.test(w)) return { key: "custom", n: 3, unit: "months" };
+  if (/semi/.test(w)) return { key: "custom", n: 6, unit: "months" };
+  return { key: "custom", n: 1, unit: unitOf(w) };
+}
+function repeatKey(r) { const n = normRepeat(r); return n.key === "custom" ? `c:${n.n}:${n.unit}` : n.key; }
+const chipHTML = (attr, val, label, extra = "") =>
+  `<button type="button" class="chip${extra}" data-${attr}="${esc(val)}" aria-pressed="false">${esc(label)}</button>`;
+
+function optsHTML(kind, o) {
+  o = o || {};
+  const cur = kind === "edit" && o.due_date ? `<span class="cur">currently ${esc(shortDate(o.due_date))}</span>` : "";
+  const when = (kind === "edit" ? chipHTML("when", "none", "None") : "") +
+    whenChips().map(c => chipHTML("when", c.val, c.label, c.today ? " today" : "")).join("");
+  const who = kind === "edit" ? `<div class="scope" role="group" aria-label="Business or me">
+      <button type="button" data-scope="business" aria-pressed="${o.scope !== "personal"}">Business</button>
+      <button type="button" data-scope="personal" aria-pressed="${o.scope === "personal"}">Me</button></div>` : "";
+  return `<div class="opts" data-kind="${kind}">${who}
+    <div><div class="lab">When?${cur}</div><div class="chips">${when}</div>
+      <div class="customrow o-customwhen"><input type="date" class="o-date" min="${TODAY}" aria-label="Custom date"></div></div>
+    <div><div class="lab">Repeats?</div><div class="chips">${REPEATS.map(([v, l]) => chipHTML("repeat", v, l)).join("")}</div>
+      <div class="customrow o-customrepeat">Every <input type="number" class="o-n" min="1" max="365" value="2" aria-label="Repeat every">
+        <select class="o-unit" aria-label="Repeat unit"><option value="days">days</option><option value="weeks" selected>weeks</option><option value="months">months</option><option value="years">years</option></select></div></div>
+    <div><div class="lab">Priority (auto unless you pick one)</div><div class="chips">${TIER_CHIPS.map(([v, l]) => chipHTML("tier", v, l)).join("")}</div></div>
+    <div><div class="lab">Category</div><select class="o-cat" aria-label="Category">${CATS.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select></div>
+  </div>`;
+}
+function applyWhen(root, val) {
+  const btns = [...root.querySelectorAll("[data-when]")];
+  const hit = val && val !== "custom" ? btns.find(b => b.dataset.when === val) : null;
+  const custom = btns.find(b => b.dataset.when === "custom");
+  const showCustom = !hit && !!val;
+  btns.forEach(b => b.setAttribute("aria-pressed", String(b === hit || (showCustom && b === custom))));
+  const row = root.querySelector(".o-customwhen"), inp = row.querySelector(".o-date");
+  row.classList.toggle("show", showCustom);
+  if (showCustom) { if (val !== "custom") inp.value = val; else if (!inp.value) inp.value = TODAY; }
+}
+function initOpts(root, kind, o) {
+  o = o || {};
+  const rep = normRepeat(o.repeat);
+  root._orig = { repeatKey: repeatKey(o.repeat), tier: o.tier_override ?? null, category: o.category || "" };
+  root.querySelector(`[data-repeat="${rep.key}"]`).setAttribute("aria-pressed", "true");
+  if (rep.key === "custom") {
+    root.querySelector(".o-customrepeat").classList.add("show");
+    root.querySelector(".o-n").value = rep.n; root.querySelector(".o-unit").value = rep.unit;
+  }
+  if (o.tier_override) root.querySelector(`[data-tier="${o.tier_override}"]`)?.setAttribute("aria-pressed", "true");
+  const sel = root.querySelector(".o-cat");
+  if (o.category && !CATS.some(([v]) => v === o.category)) sel.insertAdjacentHTML("beforeend", `<option value="${esc(o.category)}">${esc(o.category)} (internal)</option>`);
+  sel.value = o.category || "";
+  if (kind === "add") applyWhen(root, TODAY);   // blank date always means today
+}
+function readOpts(root) {
+  const q = (s) => root.querySelector(s);
+  const wb = q('[data-when][aria-pressed="true"]');
+  let due;                                     // undefined = nothing chosen
+  if (wb) { const v = wb.dataset.when; due = v === "none" ? "" : v === "custom" ? (q(".o-date").value || undefined) : v; }
+  const rb = q('[data-repeat][aria-pressed="true"]')?.dataset.repeat || "none";
+  let repeat = null;
+  if (rb === "custom") repeat = { every: Math.max(1, Math.min(365, parseInt(q(".o-n").value) || 1)), unit: q(".o-unit").value };
+  else if (rb !== "none") repeat = rb;
+  const tb = q('[data-tier][aria-pressed="true"]');
+  return { scope: q('[data-scope][aria-pressed="true"]')?.dataset.scope || null, due, repeat, tier: tb ? Number(tb.dataset.tier) : null, category: q(".o-cat").value };
+}
+const addRoot = () => document.querySelector("#addopts .opts");
+function syncAddBar() {              // keep the bottom bar's date button in step with the When chips
+  const r = addRoot(); if (!r) return;
+  const due = readOpts(r).due, later = due && due !== TODAY;
+  $("#adddate").value = later ? due : "";
+  $("#adddatebtn").textContent = later ? shortDate(due).replace(/^\w+, /, "") : "Today";
+}
+function buildAddOpts() {
+  const box = $("#addopts"); box.innerHTML = optsHTML("add");
+  initOpts(box.querySelector(".opts"), "add"); syncAddBar();
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".opts button"); if (!b) return;
+  const root = b.closest(".opts"), kind = root.dataset.kind;
+  if (b.dataset.scope) {
+    root.querySelectorAll("[data-scope]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  } else if (b.dataset.when !== undefined) {
+    const same = b.getAttribute("aria-pressed") === "true";
+    applyWhen(root, same && kind === "edit" ? "" : b.dataset.when);   // tap again on an edit to leave the date alone
+    if (kind === "add") syncAddBar();
+  } else if (b.dataset.repeat) {
+    root.querySelectorAll("[data-repeat]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    root.querySelector(".o-customrepeat").classList.toggle("show", b.dataset.repeat === "custom");
+  } else if (b.dataset.tier) {
+    const on = b.getAttribute("aria-pressed") === "true";
+    root.querySelectorAll("[data-tier]").forEach(x => x.setAttribute("aria-pressed", String(!on && x === b)));   // tap again = auto
+  }
+});
+document.addEventListener("change", (e) => {
+  const inp = e.target.closest && e.target.closest(".o-date"); if (!inp) return;
+  const root = inp.closest(".opts");
+  if (inp.value && inp.value < TODAY) { toast("Pick today or a later day."); inp.value = ""; return; }
+  if (inp.value) {
+    root.querySelectorAll("[data-when]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.when === "custom")));
+    if (root.dataset.kind === "add") syncAddBar();
+  }
+});
+
 // Check / note / push
 $("#main").addEventListener("click", async (e) => {
   const el = e.target.closest(".item"); if (!el) return;
@@ -300,7 +450,11 @@ $("#main").addEventListener("click", async (e) => {
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (act === "edit") {
     const f = el.querySelector(".editform"); f.classList.toggle("open");
-    if (f.classList.contains("open")) { const ta = f.querySelector("textarea"); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    if (f.classList.contains("open")) {
+      const mount = f.querySelector(".optsmount");
+      if (!mount.firstElementChild) { mount.innerHTML = optsHTML("edit", it); initOpts(mount.querySelector(".opts"), "edit", it); }
+      const ta = f.querySelector("textarea"); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
   }
   if (act === "cancel-edit") { el.querySelector(".editform").classList.remove("open"); }
   if (act === "note") {
@@ -339,9 +493,28 @@ $("#main").addEventListener("submit", async (e) => {
     const el = e.target.closest(".item"); const it = brief.items.find(i => i.id === el.dataset.id);
     const content = e.target.querySelector("textarea").value.trim(); if (!content) return;
     const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
-    const r = await api("POST", { action: "edit", id: it.id, content });
+    const root = e.target.querySelector(".opts");
+    const body = { action: "edit", id: it.id, content };
+    if (root) {
+      const o = readOpts(root), orig = root._orig;
+      body.scope = o.scope || it.scope || "business";
+      if (o.due !== undefined) body.due = o.due;                                        // "" clears the date
+      if (repeatKey(o.repeat) !== orig.repeatKey) body.recurring = o.repeat;            // null clears the repeat
+      if ((o.tier ?? null) !== orig.tier) body.tier = o.tier;                           // null goes back to auto
+      if (o.category !== orig.category) body.category = o.category;
+    }
+    const r = await api("POST", body);
     btn.disabled = false;
-    if (r.ok) { it.title = r.data.title || content; it.full_text = content; render(); toast(`Item ${it.n} updated`); }
+    if (r.ok) {
+      const d = r.data;
+      it.title = d.title || content; it.full_text = content; it.scope = d.scope || it.scope;
+      if ("due_date" in d) { it.due_date = d.due_date; it.pushed = !it.done && !!d.due_date && d.due_date > DATE; it.moved_to = it.pushed ? d.due_date : undefined; }
+      if ("repeat" in d) { it.repeat = d.repeat; it.recurring = !!d.repeat; }
+      if ("tier_override" in d) { it.tier_override = d.tier_override; it.tier = d.tier_override || it.tier_auto || it.tier; }
+      if ("category" in d) it.category = d.category;
+      render();
+      toast(`Item ${it.n} updated${it.pushed ? ` · scheduled for ${shortDate(it.moved_to)}` : ""}`);
+    }
     else toast(r.data.error || "Couldn't save the change.");
     return;
   }
@@ -365,12 +538,17 @@ $("#addform").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("#addtext"); const content = input.value.trim(); if (!content) return;
   $("#addbtn").disabled = true;
-  const due = $("#adddate").value || "";
-  const r = await api("POST", { action: "add", content, scope, due });
+  const root = addRoot(); const o = root ? readOpts(root) : {};
+  const due = o.due || $("#adddate").value || "";
+  const body = { action: "add", content, scope, due };
+  if (o.repeat) body.recurring = o.repeat;
+  if (o.tier) body.tier = o.tier;
+  if (o.category) body.category = o.category;
+  const r = await api("POST", body);
   $("#addbtn").disabled = false;
   if (r.ok) {
-    input.value = ""; $("#adddate").value = ""; $("#adddatebtn").textContent = "Today";
-    toast(due && due !== TODAY ? `Added, due ${shortDate(due)}` : "Added for today"); await load();
+    input.value = ""; buildAddOpts();
+    toast((due && due !== TODAY ? `Added, due ${shortDate(due)}` : "Added for today") + (o.repeat ? " · repeats" : "")); await load();
   }
   else toast(r.data.error || "Couldn't add it. Try again.");
 });
@@ -380,7 +558,17 @@ $("#adddate").addEventListener("click", (e) => { if (typeof e.target.showPicker 
 $("#adddate").addEventListener("change", (e) => {
   const v = e.target.value;
   if (v && v < (DATE || TODAY)) { toast("Pick today or a later day."); e.target.value = ""; }
-  $("#adddatebtn").textContent = e.target.value && e.target.value !== TODAY ? shortDate(e.target.value).replace(/^\w+, /, "") : "Today";
+  const val = e.target.value, r = addRoot();
+  if (r) applyWhen(r, val || TODAY);
+  $("#adddatebtn").textContent = val && val !== TODAY ? shortDate(val).replace(/^\w+, /, "") : "Today";
+});
+
+// More options for the new item
+$("#moreopts").addEventListener("click", () => {
+  const box = $("#addopts"), open = box.hidden;
+  box.hidden = !open;
+  $("#moreopts").setAttribute("aria-expanded", String(open)); $("#moreopts").textContent = open ? "Less" : "More";
+  document.body.classList.toggle("opts-open", open);
 });
 
 // Date navigation
