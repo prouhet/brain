@@ -44,6 +44,22 @@
   .progress b { color:var(--done); font-weight:600; }
 
   h2 { font-size:15px; font-weight:600; color:var(--teal); margin:26px 0 8px; }
+  .fitcard { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 14px 12px; margin-bottom:8px; }
+  .fitrow { padding:9px 0; border-bottom:1px solid var(--line); }
+  .fitrow:last-of-type { border-bottom:0; }
+  .fitrow input { font:inherit; font-size:14px; color:var(--text); background:var(--surface2); border:1px solid var(--line2); border-radius:8px; padding:8px 8px; width:100%; box-sizing:border-box; }
+  .fit-ex { font-weight:500; font-size:15px !important; }
+  .fit-sub { display:grid; grid-template-columns:1fr 1.2fr 1.3fr; gap:6px; margin-top:6px; }
+  .fit-sub input { min-width:0; text-overflow:ellipsis; }
+  .fit-foot { display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px; }
+  .fit-saved { font-size:12px; color:var(--faint); }
+  .fit-note { font-size:13px; color:var(--dim); background:var(--teal-dim); border-radius:8px; padding:8px 10px; margin-bottom:10px; }
+  .fitcard > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:2px 0; font-size:14px; color:var(--dim); }
+  .fitcard > summary::-webkit-details-marker { display:none; }
+  .fitcard > summary .chev { display:inline-block; transition:transform .15s; color:var(--faint); margin-right:4px; }
+  .fitcard[open] > summary .chev { transform:rotate(90deg); }
+  .fitcard > summary .fit-saved { margin-left:auto; margin-right:10px; }
+  .fitbody { margin-top:10px; }
   h3 { font-size:14px; font-weight:600; margin:16px 0 4px; }
 
   /* Schedule */
@@ -175,6 +191,7 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
+  <div id="fitness"></div>
   <main id="main"></main>
 </div>
 
@@ -229,6 +246,92 @@ async function api(method, body) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// ── Workout & walk log: a personal daily record, kept separate from the ──
+// task list's render() so filling it in is never interrupted by a task
+// check-off elsewhere on the page.
+const FIT_SLOTS = 7;
+let fitness = null;
+const emptyFitness = () => ({
+  workout: Array.from({ length: FIT_SLOTS }, () => ({ exercise: "", reps: "", weight: "", time: "" })),
+  walk: { distance: "", time: "", hr: "" }, updated_at: "",
+});
+function padFitness(f) {
+  const base = emptyFitness();
+  if (!f) return base;
+  const workout = (f.workout || []).slice(0, FIT_SLOTS).map((s, i) => ({ ...base.workout[i], ...s }));
+  while (workout.length < FIT_SLOTS) workout.push({ ...base.workout[workout.length] });
+  return { workout, walk: { ...base.walk, ...(f.walk || {}) }, updated_at: f.updated_at || "" };
+}
+// Fills only BLANK boxes with the morning's suggestion — never touches
+// anything already typed, and never applies once today's log is saved.
+function applySuggestion(f, suggestion, isToday) {
+  if (!suggestion || !isToday || f.updated_at) return f;
+  const workout = f.workout.map((slot, i) => {
+    const s = suggestion.workout && suggestion.workout[i];
+    if (slot.exercise.trim() || !s || !s.exercise) return slot;
+    return { exercise: s.exercise || "", reps: s.reps || "", weight: s.weight || "", time: s.time || "" };
+  });
+  const sw = suggestion.walk || {};
+  const walk = { distance: f.walk.distance || sw.distance || "", time: f.walk.time || sw.time || "", hr: f.walk.hr || sw.hr || "" };
+  return { ...f, workout, walk, _suggested: true, _note: suggestion.note || "" };
+}
+
+function renderFitness() {
+  const f = fitness || emptyFitness();
+  const rows = f.workout.map((s, i) => `
+    <div class="fitrow" data-slot="${i}">
+      <input class="fit-ex" placeholder="Exercise ${i + 1}" value="${esc(s.exercise)}" aria-label="Exercise ${i + 1} name">
+      <div class="fit-sub">
+        <input class="fit-num" type="number" inputmode="numeric" placeholder="Reps" value="${esc(s.reps)}" aria-label="Exercise ${i + 1} reps">
+        <input class="fit-num" type="number" inputmode="decimal" step="0.5" placeholder="Weight (lb)" value="${esc(s.weight)}" aria-label="Exercise ${i + 1} weight in pounds">
+        <input class="fit-time" type="text" placeholder="mm:ss" value="${esc(s.time)}" aria-label="Exercise ${i + 1} time (minutes:seconds)">
+      </div>
+    </div>`).join("");
+  const saved = f.updated_at ? `<span class="fit-saved">Saved ${fmtNoteTime(f.updated_at)}</span>` : `<span class="fit-saved">Not saved yet</span>`;
+  const doneCount = f.workout.filter((s) => s.exercise.trim()).length;
+  const summary = doneCount ? `${doneCount} exercise${doneCount === 1 ? "" : "s"} logged` : "Log today's workout";
+  const noteHTML = f._suggested && f._note ? `<div class="fit-note">${esc(f._note)}</div>` : "";
+  const wasOpen = document.querySelector("#fitness .fitcard")?.open;
+  const openNow = wasOpen ?? !!f._suggested;
+  $("#fitness").innerHTML = `
+    <h2>Workout &amp; walk</h2>
+    <details class="fitcard">
+      <summary><span><span class="chev">\u203a</span> ${esc(summary)}</span>${saved}</summary>
+      <div class="fitbody">
+        ${noteHTML}
+        ${rows}
+        <div class="fitrow" data-walk="1">
+          <div class="fit-ex" style="font-weight:600;color:var(--dim)">Walk</div>
+          <div class="fit-sub">
+            <input class="fit-num" type="number" inputmode="decimal" step="0.1" placeholder="Miles" value="${esc(f.walk.distance)}" aria-label="Walk distance in miles">
+            <input class="fit-time" type="text" placeholder="mm:ss" value="${esc(f.walk.time)}" aria-label="Walk time (minutes:seconds)">
+            <input class="fit-num" type="number" inputmode="numeric" placeholder="Avg HR" value="${esc(f.walk.hr)}" aria-label="Walk average heart rate">
+          </div>
+        </div>
+        <div class="fit-foot"><span></span><button class="btn" id="fitsave" type="button">Save log</button></div>
+      </div>
+    </details>`;
+  document.querySelector("#fitness .fitcard").open = openNow;
+}
+function readFitness() {
+  const rows = [...document.querySelectorAll('#fitness .fitrow[data-slot]')];
+  const workout = rows.map((r) => ({
+    exercise: r.querySelector(".fit-ex").value, reps: r.querySelectorAll(".fit-num")[0].value,
+    weight: r.querySelectorAll(".fit-num")[1].value, time: r.querySelector(".fit-time").value,
+  }));
+  const w = document.querySelector('#fitness .fitrow[data-walk]');
+  const walk = { distance: w.querySelectorAll(".fit-num")[0].value, time: w.querySelector(".fit-time").value, hr: w.querySelectorAll(".fit-num")[1].value };
+  return { workout, walk };
+}
+document.addEventListener("click", async (e) => {
+  if (e.target.id !== "fitsave") return;
+  const body = readFitness(); e.target.disabled = true;
+  const r = await api("POST", { action: "save_fitness", ...body });
+  e.target.disabled = false;
+  if (r.ok) { fitness = { ...body, updated_at: r.data.updated_at }; renderFitness(); toast("Workout log saved"); }
+  else toast(r.data.error || "Couldn't save the log.");
+});
+
 async function load() {
   if (!KEY) { $("#date").textContent = "Missing key"; $("#main").innerHTML = '<div class="empty"><p>Open this page from the link or QR code in your morning email.</p></div>'; return; }
   const { ok, status, data } = await api("GET");
@@ -243,10 +346,13 @@ async function load() {
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
     $("#main").innerHTML = `<div class="empty"><p>No brief for ${esc(longDate(DATE))}.</p><p>${DATE === TODAY ? "It's built at 5:30 each morning. Anything you add below still lands in your priorities." : "Briefs only exist for days the email went out."}</p></div>`;
+    fitness = padFitness(data.fitness); renderFitness();
     return;
   }
   brief = data.brief;
+  fitness = applySuggestion(padFitness(data.fitness), brief?.fitness_suggestion, DATE === TODAY);
   render();
+  renderFitness();
 }
 
 function itemHTML(it) {
