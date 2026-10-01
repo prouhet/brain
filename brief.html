@@ -53,6 +53,7 @@
   .fit-sub input { min-width:0; text-overflow:ellipsis; }
   .fit-foot { display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px; }
   .fit-saved { font-size:12px; color:var(--faint); }
+  .fit-goal { font-size:12px; font-weight:600; color:var(--done); }
   .fit-note { font-size:13px; color:var(--dim); background:var(--teal-dim); border-radius:8px; padding:8px 10px; margin-bottom:10px; }
   .fitcard > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:2px 0; font-size:14px; color:var(--dim); }
   .fitcard > summary::-webkit-details-marker { display:none; }
@@ -253,14 +254,17 @@ const FIT_SLOTS = 7;
 let fitness = null;
 const emptyFitness = () => ({
   workout: Array.from({ length: FIT_SLOTS }, () => ({ exercise: "", reps: "", weight: "", time: "" })),
-  walk: { distance: "", time: "", hr: "" }, updated_at: "",
+  summary: { time: "", calories: "", hr: "" }, walk: { distance: "", time: "", hr: "" }, updated_at: "",
 });
 function padFitness(f) {
   const base = emptyFitness();
   if (!f) return base;
   const workout = (f.workout || []).slice(0, FIT_SLOTS).map((s, i) => ({ ...base.workout[i], ...s }));
   while (workout.length < FIT_SLOTS) workout.push({ ...base.workout[workout.length] });
-  return { workout, walk: { ...base.walk, ...(f.walk || {}) }, updated_at: f.updated_at || "" };
+  return {
+    workout, summary: { ...base.summary, ...(f.summary || {}) }, walk: { ...base.walk, ...(f.walk || {}) },
+    updated_at: f.updated_at || "",
+  };
 }
 // Fills only BLANK boxes with the morning's suggestion — never touches
 // anything already typed, and never applies once today's log is saved.
@@ -300,6 +304,14 @@ function renderFitness() {
       <div class="fitbody">
         ${noteHTML}
         ${rows}
+        <div class="fitrow" data-summary="1">
+          <div class="fit-ex" style="font-weight:600;color:var(--dim)">Workout totals <span class="fit-goal"></span></div>
+          <div class="fit-sub">
+            <input class="fit-time" type="text" placeholder="mm:ss" value="${esc(f.summary.time)}" aria-label="Total workout time (minutes:seconds)">
+            <input class="fit-num" type="number" inputmode="numeric" placeholder="Calories" value="${esc(f.summary.calories)}" aria-label="Calories burned">
+            <input class="fit-num" type="number" inputmode="numeric" placeholder="Avg HR" value="${esc(f.summary.hr)}" aria-label="Workout average heart rate">
+          </div>
+        </div>
         <div class="fitrow" data-walk="1">
           <div class="fit-ex" style="font-weight:600;color:var(--dim)">Walk</div>
           <div class="fit-sub">
@@ -312,6 +324,22 @@ function renderFitness() {
       </div>
     </details>`;
   document.querySelector("#fitness .fitcard").open = openNow;
+  updateWorkoutGoalBadge();
+}
+// Goal is 15 min of exercise a day. Parses the Workout totals time (mm:ss)
+// and shows a quiet checkmark once it's hit — no indicator otherwise, so a
+// short day never reads as a scolding.
+const WORKOUT_GOAL_SECONDS = 15 * 60;
+function parseMMSS(v) {
+  const m = String(v || "").trim().match(/^(\d+):([0-5]\d)$/);
+  return m ? (+m[1]) * 60 + (+m[2]) : null;
+}
+function updateWorkoutGoalBadge() {
+  const badge = document.querySelector("#fitness .fit-goal");
+  const input = document.querySelector('#fitness .fitrow[data-summary] .fit-time');
+  if (!badge || !input) return;
+  const secs = parseMMSS(input.value);
+  badge.textContent = secs !== null && secs >= WORKOUT_GOAL_SECONDS ? "\u2713 15 min goal met" : "";
 }
 function readFitness() {
   const rows = [...document.querySelectorAll('#fitness .fitrow[data-slot]')];
@@ -319,10 +347,15 @@ function readFitness() {
     exercise: r.querySelector(".fit-ex").value, reps: r.querySelectorAll(".fit-num")[0].value,
     weight: r.querySelectorAll(".fit-num")[1].value, time: r.querySelector(".fit-time").value,
   }));
+  const s = document.querySelector('#fitness .fitrow[data-summary]');
+  const summary = { time: s.querySelector(".fit-time").value, calories: s.querySelectorAll(".fit-num")[0].value, hr: s.querySelectorAll(".fit-num")[1].value };
   const w = document.querySelector('#fitness .fitrow[data-walk]');
   const walk = { distance: w.querySelectorAll(".fit-num")[0].value, time: w.querySelector(".fit-time").value, hr: w.querySelectorAll(".fit-num")[1].value };
-  return { workout, walk };
+  return { workout, summary, walk };
 }
+document.addEventListener("input", (e) => {
+  if (e.target.closest('#fitness .fitrow[data-summary] .fit-time')) updateWorkoutGoalBadge();
+});
 document.addEventListener("click", async (e) => {
   if (e.target.id !== "fitsave") return;
   const body = readFitness(); e.target.disabled = true;
