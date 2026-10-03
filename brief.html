@@ -403,6 +403,7 @@ function itemHTML(it) {
       <div class="tools">
         <button data-act="edit" aria-label="Edit item ${it.n}">Edit</button>
         <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
+        <button data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
         ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
         <span class="pick"><button tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
       </div>
@@ -603,6 +604,9 @@ $("#main").addEventListener("click", async (e) => {
   if (act === "push") {
     await moveTo(it, shiftDate(TODAY, 1));
   }
+  if (act === "not-task") {
+    await markNotTask(it);
+  }
 });
 
 async function moveTo(it, to) {
@@ -611,6 +615,19 @@ async function moveTo(it, to) {
     it.pushed = true; it.moved_to = to; render();
     toast(`Item ${it.n} moved to ${to === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(to)}`);
   } else toast(r.data.error || "Couldn't move it. Try again.");
+}
+
+// Mis-tagged at capture — reclassify as a note. It disappears from this
+// list entirely (not just marked done): the brain keeps the content, but
+// it won't be offered as a task here or on the priorities page again.
+async function markNotTask(it) {
+  const r = await api("POST", { action: "not_task", id: it.id });
+  if (r.ok) {
+    const label = (it.full_text || it.title || "").slice(0, 40);
+    brief.items = brief.items.filter(i => i.id !== it.id);
+    render();
+    toast(`Moved to notes: "${label}"`);
+  } else toast(r.data.error || "Couldn't update. Try again.");
 }
 
 // Pick day: a transparent date input sits over the button, so tapping opens

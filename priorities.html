@@ -94,6 +94,9 @@
     margin-bottom:6px; transition:opacity 0.3s, border-color 0.2s;
   }
   .task-item.done { opacity:0.35; pointer-events:none; }
+  /* Recurring, already done for this cycle — dimmed but still tappable to undo */
+  .task-item.recur-done { opacity:0.6; }
+  .task-item.recur-done .task-due { color:var(--green); }
   .task-item:hover { border-color:var(--border2); }
 
   /* Checkmark button */
@@ -217,6 +220,12 @@
   .popup-save-btn.show { display:block; }
   .popup-due-context { font-size:11px; color:var(--teal-light); margin-top:6px; }
   .pchip.today-chip { border-color:rgba(255,255,255,0.2); color:var(--text); }
+  /* Upcoming agenda + tickler — lighter sub-headers inside their own section */
+  .day-head { font-size:11px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-faint); margin:16px 0 6px; }
+  .day-head:first-child { margin-top:0; }
+  .day-head.overdue { color:var(--april); }
+  .day-head.today { color:var(--teal-light); }
+  .section-sub { font-size:11px; color:var(--text-faint); margin:-6px 0 12px; }
   .no-key { text-align:center; padding:60px 20px; color:var(--text-dim); }
   .no-key h2 { font-size:18px; font-weight:500; margin-bottom:8px; color:var(--text); }
   .state-msg { text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; }
@@ -563,7 +572,76 @@ function renderData(data) {
     html += `</div>`;
   }
 
+  html += buildUpcomingSection(allSections);
+  html += buildTicklerSection(cleanNoDate);
+
   document.getElementById('main-content').innerHTML = html;
+}
+
+// ── Upcoming: every one-off dated task, grouped by the exact day it's due ──
+// A second lens on the same tasks shown above (by date instead of by
+// category), so "what's due Thursday" is a straight read instead of a hunt
+// through This Week. Overdue items pin at the top and stay there, every
+// day, until they're checked off or re-dated — re-dating is the same popup
+// every task already opens, nothing new to build for that part.
+function buildUpcomingSection(allSections) {
+  const seen = new Set();
+  const dated = [];
+  for (const sec of allSections) {
+    for (const item of (sec.items || [])) {
+      if (!item.due_date || item.recurring || !item.id || seen.has(item.id)) continue;
+      seen.add(item.id);
+      dated.push(item);
+    }
+  }
+  if (!dated.length) return '';
+
+  const today = isoDate(new Date());
+  const tomorrow = isoDate(new Date(Date.now() + 86400000));
+  const groups = new Map(); // key: 'overdue' | 'YYYY-MM-DD' -> items[]
+  for (const item of dated) {
+    const key = item.due_date < today ? 'overdue' : item.due_date;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  const byTier = (a, b) => (a.tier || 5) - (b.tier || 5);
+  const dayKeys = [...groups.keys()].filter(k => k !== 'overdue').sort();
+  const orderedKeys = groups.has('overdue') ? ['overdue', ...dayKeys] : dayKeys;
+
+  let html = `<div class="section"><div class="section-head">
+    <span class="section-name">📅 Upcoming</span>
+  </div><div class="section-sub">Every dated task, day by day — stays put until you check it off or give it a new day.</div>`;
+
+  for (const key of orderedKeys) {
+    const items = groups.get(key).sort(byTier);
+    let label, cls;
+    if (key === 'overdue') { label = `Overdue (${items.length})`; cls = 'overdue'; }
+    else if (key === today) { label = 'Today'; cls = 'today'; }
+    else if (key === tomorrow) { label = 'Tomorrow'; cls = ''; }
+    else { label = new Date(key + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }); cls = ''; }
+    html += `<div class="day-head${cls ? ' ' + cls : ''}">${esc(label)}</div>`;
+    for (const item of items) html += renderTaskItem(item, false);
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ── Don't Forget: a few important undated items, surfaced as a tickler ──
+// Pure re-slice of the No Date bucket already computed above — nothing new
+// fetched. Giving one of these a date here is the same popup as everywhere
+// else, and it'll show up in Upcoming next time the page loads.
+const TICKLER_MAX = 5;
+function buildTicklerSection(cleanNoDate) {
+  const pool = (cleanNoDate?.items || []).filter(i => (i.tier || 5) <= 2 || i.category === 'important');
+  if (!pool.length) return '';
+  const picked = [...pool].sort((a, b) => (a.tier || 5) - (b.tier || 5)).slice(0, TICKLER_MAX);
+
+  let html = `<div class="section"><div class="section-head">
+    <span class="section-name">🔔 Don't Forget</span>
+  </div><div class="section-sub">Important, but no date yet — give one a day and it'll move into Upcoming.</div>`;
+  for (const item of picked) html += renderTaskItem(item, false);
+  html += `</div>`;
+  return html;
 }
 
 const CAT_LABELS = { important:'⭐ Important', finance:'Finance', marketing:'Marketing', operations:'Operations', process:'Process', recruiting:'Recruiting', retention:'Retention', technical:'Technical', automation:'Automation', health:'Health', home:'Home' };
@@ -580,7 +658,9 @@ function renderTaskItem(item, isRecurSec) {
     : (item.recurring || 'recurring')) : null;
   const recurJson = item.recurring ? JSON.stringify(item.recurring) : '';
 
-  let html = `<div class="task-item" id="${esc(rowId)}"
+  const recurDone = isRecur && !!item.done_now;
+
+  let html = `<div class="task-item${recurDone ? ' recur-done' : ''}" id="${esc(rowId)}"
     data-id="${esc(item.id||'')}"
     data-recur="${isRecur}"
     data-due-date="${esc(item.due_date||'')}"
@@ -590,19 +670,25 @@ function renderTaskItem(item, isRecurSec) {
     data-tier="${item.tier||5}"
     data-tier-overridden="${item.tier_overridden||false}"
     data-category="${esc(item.category||'')}"
-    data-type="${esc(item.type||'business')}">`;
+    data-type="${esc(item.type||'business')}"
+    data-done-now="${recurDone}"
+    data-next-due="${esc(item.next_due||'')}">`;
 
-  // Checkmark
-  html += `<button class="check-btn${isRecur?' recur':''}" title="${isRecur?'Mark done (resets)':'Mark done'}"
+  // Checkmark — for a recurring task already done this cycle, shows checked
+  // from the start (persists across reloads) and tapping it undoes instead.
+  html += `<button class="check-btn${isRecur?' recur':''}${recurDone?' checked':''}" title="${isRecur?(recurDone?'Done — tap to undo':'Mark done'):'Mark done'}"
     onclick="event.stopPropagation();handleCheck('${esc(rowId)}',this)">
     <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>`;
 
   // Body
   const detailText = item.detail && item.detail !== `⟳ ${recurLabel}` ? item.detail : '';
-  const dueDisplay = item.due_date
-    ? new Date(item.due_date + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'})
-    : (item.due && item.due !== 'no date' ? item.due : null);
+  const fmtDate = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  const dueDisplay = recurDone && item.next_due
+    ? `✓ Done · next due ${fmtDate(item.next_due)}`
+    : item.due_date
+      ? fmtDate(item.due_date)
+      : (item.due && item.due !== 'no date' ? item.due : null);
 
   html += `<div class="task-body" onclick="${hasId?`openPopup('${esc(rowId)}')`:''}">
     <div class="task-title" id="title-${esc(rowId)}">${esc(item.title)}</div>
@@ -975,12 +1061,31 @@ async function completeTask(id, titleText, rowEl, isRecur, btn) {
     const data = await res.json();
 
     if (data.recurring) {
-      showToast('✓ Done — resets next occurrence', 'success');
-      rowEl.classList.add('reset');
-      setTimeout(() => {
+      const fmt = (iso) => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+      const dueEl = rowEl.querySelector('.task-due');
+      const setDueText = (text) => {
+        if (dueEl) { dueEl.textContent = text; return; }
+        const body = rowEl.querySelector('.task-body');
+        if (body) { const div = document.createElement('div'); div.className = 'task-due'; div.textContent = text; body.appendChild(div); }
+      };
+      rowEl.dataset.doneNow = String(!!data.done_now);
+      rowEl.dataset.nextDue = data.next_due || '';
+      if (data.done_now) {
+        showToast(`✓ Done — next due ${fmt(data.next_due)}`, 'success');
+        btn.classList.add('checked');
+        btn.title = 'Done — tap to undo';
+        rowEl.classList.add('recur-done');
+        setDueText(`✓ Done · next due ${fmt(data.next_due)}`);
+      } else {
+        showToast(`Reopened — due ${fmt(data.next_due)}`, 'success');
         btn.classList.remove('checked');
-        rowEl.classList.remove('reset');
-      }, 600);
+        btn.title = 'Mark done';
+        rowEl.classList.remove('recur-done');
+        setDueText(fmt(data.next_due));
+      }
+      // Brief pulse for click feedback — doesn't affect the state set above
+      rowEl.classList.add('reset');
+      setTimeout(() => rowEl.classList.remove('reset'), 500);
     } else {
       showToast(`Done: "${titleText.slice(0,40)}"`, 'success');
       rowEl.classList.add('done');
