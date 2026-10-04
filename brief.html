@@ -68,6 +68,9 @@
   .sched .t { color:var(--dim); white-space:nowrap; font-variant-numeric:tabular-nums; }
   .sched .loc { color:var(--faint); }
   .muted { color:var(--faint); font-size:14px; }
+  .muted.small { font-size:12px; margin-top:-4px; }
+  .day-head { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:16px 0 6px; }
+  .day-head.overdue { color:var(--warn); }
 
   /* Items — mirrors the paper: box, number, text */
   .item { border-bottom:1px solid var(--line); }
@@ -113,6 +116,11 @@
   .moved summary { cursor:pointer; padding:8px 0; color:var(--dim); }
   .moved summary:hover { color:var(--teal); }
   .moved-row { padding:6px 0 6px 12px; border-left:2px solid var(--line2); margin-left:4px; }
+  .obs-group { margin:4px 0 10px; padding-left:12px; border-left:2px solid var(--line2); }
+  .obs-group-header { display:flex; align-items:baseline; gap:8px; padding:6px 0; font-size:13px; }
+  .obs-group-title { font-weight:600; color:var(--text); overflow-wrap:anywhere; }
+  .obs-progress { color:var(--faint); font-size:12px; white-space:nowrap; }
+  .obs-group .item:last-child { border-bottom:none; }
   .moved .flag { margin-left:6px; }
   .notes { margin:0 0 10px 44px; display:flex; flex-direction:column; gap:4px; }
   .note { font-size:14px; color:var(--dim); border-left:2px solid var(--teal); padding-left:8px; }
@@ -293,10 +301,15 @@ function renderFitness() {
     </div>`).join("");
   const saved = f.updated_at ? `<span class="fit-saved">Saved ${fmtNoteTime(f.updated_at)}</span>` : `<span class="fit-saved">Not saved yet</span>`;
   const doneCount = f.workout.filter((s) => s.exercise.trim()).length;
-  const summary = doneCount ? `${doneCount} exercise${doneCount === 1 ? "" : "s"} logged` : "Log today's workout";
+  // Pre-filled slots from the morning's suggestion aren't "logged" yet — say
+  // so, since the card stays collapsed and this line is all you see of it.
+  const summary = f._suggested && doneCount
+    ? `Today's plan ready · ${doneCount} exercise${doneCount === 1 ? "" : "s"}`
+    : doneCount ? `${doneCount} exercise${doneCount === 1 ? "" : "s"} logged` : "Log today's workout";
   const noteHTML = f._suggested && f._note ? `<div class="fit-note">${esc(f._note)}</div>` : "";
-  const wasOpen = document.querySelector("#fitness .fitcard")?.open;
-  const openNow = wasOpen ?? !!f._suggested;
+  // Collapsed by default; once you open it, it stays however you left it
+  // across re-renders (e.g. a task check-off elsewhere on the page).
+  const openNow = document.querySelector("#fitness .fitcard")?.open ?? false;
   $("#fitness").innerHTML = `
     <h2>Workout &amp; walk</h2>
     <details class="fitcard">
@@ -383,6 +396,21 @@ async function load() {
     return;
   }
   brief = data.brief;
+  // Upcoming + tickler are the rest of the backlog (today only, always live —
+  // not part of the day's frozen snapshot). Shaped into the same Item fields
+  // itemHTML already expects, so Edit/Note/Not a task/Tomorrow/Pick day/Check
+  // all just work on them with no new code — just tagged with `extra` so
+  // render() routes them into their own sections instead of the main list.
+  let n = brief.items.length;
+  const toItem = (x, extra) => ({
+    n: ++n, id: x.id, title: x.title, full_text: x.title, tier: x.tier, section: "task",
+    scope: x.scope, due_date: x.due_date || "", due_month: x.due_month || "", done: false, pushed: false, notes: [], extra,
+    source_observation: x.source_observation,
+  });
+  brief.items.push(
+    ...(brief.upcoming || []).map((x) => toItem(x, "upcoming")),
+    ...(brief.tickler || []).map((x) => toItem(x, "tickler")),
+  );
   fitness = applySuggestion(padFitness(data.fitness), brief?.fitness_suggestion, DATE === TODAY);
   render();
   renderFitness();
@@ -416,12 +444,110 @@ function itemHTML(it) {
   </div>`;
 }
 
+// Upcoming: everything the main list leaves out (further out than its 7-day
+// window, or overdue past the 14-day stale cutoff), grouped by the day it's
+// actually due. Grouped by moved_to when pushed, else due_date — whichever
+// is current after any edit or snooze, so re-grouping is automatic on
+// every render, no special-casing push vs. edit.
+// Sub-tasks: a note captured once can extract several linked tasks
+// (source_observation points back at it). Same rule priorities uses: only
+// personal-scope items never group, and a "group" of one is just a regular
+// item — no header for it. Scoped to whatever list is passed in, same as
+// priorities' own groups never span across its date-buckets either.
+function partitionGroups(items) {
+  const obsOrder = [];
+  const obsGroups = {};
+  const standalone = [];
+  for (const it of items) {
+    const obsId = it.source_observation;
+    if (obsId && brief.observations && brief.observations[obsId] && it.scope !== "personal") {
+      if (!obsGroups[obsId]) { obsGroups[obsId] = []; obsOrder.push(obsId); }
+      obsGroups[obsId].push(it);
+    } else standalone.push(it);
+  }
+  for (let i = obsOrder.length - 1; i >= 0; i--) {
+    const id = obsOrder[i];
+    if (obsGroups[id].length < 2) { standalone.push(...obsGroups[id]); delete obsGroups[id]; obsOrder.splice(i, 1); }
+  }
+  return { obsOrder, obsGroups, standalone };
+}
+function obsGroupHTML(obsId, items) {
+  const obs = brief.observations[obsId];
+  const remaining = Math.max(0, (obs.tasks_total || items.length) - (obs.tasks_done || 0));
+  const title = obs.content.length > 70 ? obs.content.slice(0, 70) + "…" : obs.content;
+  return `<div class="obs-group">
+    <div class="obs-group-header"><span>🧠</span><span class="obs-group-title">${esc(title)}</span><span class="obs-progress">${remaining > 0 ? `${remaining} left` : "✓ all done"}</span></div>
+    ${items.map(itemHTML).join("")}
+  </div>`;
+}
+// Render a list of items as grouped sub-tasks (first) then standalone items —
+// the one path every item list in render() goes through.
+function sectionHTML(items) {
+  const { obsOrder, obsGroups, standalone } = partitionGroups(items);
+  return obsOrder.map(id => obsGroupHTML(id, obsGroups[id].sort((a, b) => a.tier - b.tier))).join("")
+    + standalone.map(itemHTML).join("");
+}
+
+const MONTH_NAMES = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+function monthSortKey(name) {
+  const idx = MONTH_NAMES.indexOf(String(name).toLowerCase());
+  if (idx < 0) return 999;
+  const now = new Date(TODAY + "T12:00:00Z");
+  const year = idx < now.getUTCMonth() ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
+  return year * 12 + idx;
+}
+
+// Everything the main list leaves out: dated items further out than its
+// 7-day window (or overdue past STALE_DAYS), grouped by the exact day —
+// plus items given only a target month (due_month, no exact due_date),
+// grouped by month and listed after the day-specific groups.
+function buildUpcomingHTML(items) {
+  const dayItems = items.filter(it => it.moved_to || it.due_date);
+  const monthItems = items.filter(it => !(it.moved_to || it.due_date) && it.due_month);
+  if (!dayItems.length && !monthItems.length) return "";
+  let html = `<h2>📅 Upcoming</h2><p class="muted small">Everything dated that isn't already above — stays here until you check it off or give it a new day.</p>`;
+
+  if (dayItems.length) {
+    const groups = new Map();
+    for (const it of dayItems) {
+      const due = it.moved_to || it.due_date;
+      const key = due < TODAY ? "overdue" : due;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(it);
+    }
+    const tomorrow = shiftDate(TODAY, 1);
+    const dayKeys = [...groups.keys()].filter(k => k !== "overdue").sort();
+    const orderedKeys = groups.has("overdue") ? ["overdue", ...dayKeys] : dayKeys;
+    for (const key of orderedKeys) {
+      const its = groups.get(key).sort((a, b) => a.tier - b.tier);
+      const label = key === "overdue" ? `Overdue (${its.length})` : key === TODAY ? "Today" : key === tomorrow ? "Tomorrow" : shortDate(key);
+      html += `<div class="day-head${key === "overdue" ? " overdue" : ""}">${esc(label)}</div>${sectionHTML(its)}`;
+    }
+  }
+
+  if (monthItems.length) {
+    const mgroups = new Map();
+    for (const it of monthItems) {
+      if (!mgroups.has(it.due_month)) mgroups.set(it.due_month, []);
+      mgroups.get(it.due_month).push(it);
+    }
+    const mkeys = [...mgroups.keys()].sort((a, b) => monthSortKey(a) - monthSortKey(b));
+    for (const key of mkeys) {
+      const its = mgroups.get(key).sort((a, b) => a.tier - b.tier);
+      html += `<div class="day-head">Sometime in ${esc(key.charAt(0).toUpperCase() + key.slice(1))}</div>${sectionHTML(its)}`;
+    }
+  }
+  return html;
+}
+
 function render() {
   const b = brief;
   $("#headline").textContent = b.headline || "";
   // Items given a later date leave today's list (they're collected at the bottom)
-  const today = b.items.filter(i => !i.pushed);
-  const moved = b.items.filter(i => i.pushed);
+  const today = b.items.filter(i => !i.pushed && !i.extra);
+  const moved = b.items.filter(i => i.pushed && !i.extra);
+  const upcomingItems = b.items.filter(i => i.extra === "upcoming");
+  const ticklerItems = b.items.filter(i => i.extra === "tickler");
   const done = today.filter(i => i.done).length;
   $("#progress").innerHTML = today.length ? `<b>${done}</b> of ${today.length} done` : "";
 
@@ -429,22 +555,36 @@ function render() {
     ? `<div class="sched">${b.appointments.map(a => `<span class="t">${esc(a.time)}</span><span>${esc(a.title)}${a.location ? ` <span class="loc">(${esc(a.location)})</span>` : ""}</span>`).join("")}</div>`
     : `<p class="muted">${b.calendar_ok ? "Nothing on the calendar." : "The calendar didn't load this morning."}</p>`;
 
+  // Grouped once across the whole to-do list (not per tier — priorities
+  // doesn't split its own groups by tier either), then placed under
+  // whichever tier the group's most urgent member belongs to.
   const tasks = today.filter(i => i.section === "task" && !i.added);
+  const { obsOrder: taskObsOrder, obsGroups: taskObsGroups, standalone: taskStandalone } = partitionGroups(tasks);
+  const groupTier = {};
+  for (const id of taskObsOrder) groupTier[id] = Math.min(...taskObsGroups[id].map(i => i.tier));
   const tierHTML = [1,2,3,4,5].map(t => {
-    const its = tasks.filter(i => i.tier === t);
-    return its.length ? `<h3>${TIERS[t][0]} ${TIERS[t][1]}</h3>${its.map(itemHTML).join("")}` : "";
+    const its = taskStandalone.filter(i => i.tier === t);
+    const groupsHere = taskObsOrder.filter(id => groupTier[id] === t);
+    if (!its.length && !groupsHere.length) return "";
+    const groupsBlock = groupsHere.map(id => obsGroupHTML(id, taskObsGroups[id].sort((a, b) => a.tier - b.tier))).join("");
+    return `<h3>${TIERS[t][0]} ${TIERS[t][1]}</h3>${groupsBlock}${its.map(itemHTML).join("")}`;
   }).join("");
   const clients = today.filter(i => i.section === "client");
   const added = today.filter(i => i.added);
   const movedHTML = moved.length ? `<details class="moved"><summary>${moved.length} scheduled for later day${moved.length === 1 ? "" : "s"}</summary>
     ${moved.map(i => `<div class="moved-row"><span class="num">${i.n}.</span>${esc(i.title)} <span class="flag">${esc(shortDate(i.moved_to))}</span></div>`).join("")}</details>` : "";
+  const ticklerHTML = ticklerItems.length
+    ? `<h2>🔔 Don't Forget</h2><p class="muted small">Important, but no date yet — give one a day and it moves into Upcoming.</p>${sectionHTML(ticklerItems)}`
+    : "";
 
   $("#main").innerHTML = `
     <h2>Today's schedule</h2>${sched}
     <h2>To do</h2>${tierHTML || '<p class="muted">Nothing pressing on the list.</p>'}
-    ${clients.length ? `<h2>Client follow-ups from dids</h2>${clients.map(itemHTML).join("")}` : (b.dids_ok ? "" : '<h2>Client follow-ups from dids</h2><p class="muted">Dids data didn\'t load this morning.</p>')}
-    ${added.length ? `<h2>Added today</h2>${added.map(itemHTML).join("")}` : ""}
-    ${movedHTML}`;
+    ${clients.length ? `<h2>Client follow-ups from dids</h2>${sectionHTML(clients)}` : (b.dids_ok ? "" : '<h2>Client follow-ups from dids</h2><p class="muted">Dids data didn\'t load this morning.</p>')}
+    ${added.length ? `<h2>Added today</h2>${sectionHTML(added)}` : ""}
+    ${movedHTML}
+    ${buildUpcomingHTML(upcomingItems)}
+    ${ticklerHTML}`;
 }
 
 // ── Options: the same fields as capture.html ───────────────────
