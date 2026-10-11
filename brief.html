@@ -101,6 +101,12 @@
     white-space:nowrap;
   }
   .tools button:hover, .tools button:focus-visible { color:var(--teal); background:var(--teal-dim); outline:none; }
+  /* Six actions per row now (Doreen's was added): tighter side padding keeps them
+     on one line on 390–430px phones instead of pushing "Pick day" to a second line. */
+  @media (max-width: 480px) {
+    .tools { gap:0; margin-left:-4px; }
+    .tools button { padding:5px 4px; font-size:12.5px; }
+  }
   @media (max-width: 520px) {
     .addbar form { flex-wrap:wrap; }
     .addbar #addtext { order:-1; flex:1 1 100%; }
@@ -123,6 +129,16 @@
   .obs-progress { color:var(--faint); font-size:12px; white-space:nowrap; }
   .obs-group .item:last-child { border-bottom:none; }
   .moved .flag { margin-left:6px; }
+  /* Tasks set aside as Doreen's: out of the numbered list, never dropped. */
+  .doreen { margin-top:18px; font-size:14px; color:var(--dim); }
+  .doreen summary { cursor:pointer; padding:8px 0; color:var(--dim); }
+  .doreen summary:hover { color:var(--teal); }
+  .doreen-row { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:6px 0 6px 12px; border-left:2px solid var(--line2); margin-left:4px; }
+  .doreen-row .t { min-width:0; overflow-wrap:anywhere; }
+  .doreen-row button {
+    font:inherit; font-size:13px; color:var(--dim); background:none; border:0; padding:4px 8px 4px 0; border-radius:6px; cursor:pointer; white-space:nowrap;
+  }
+  .doreen-row button:hover, .doreen-row button:focus-visible { color:var(--teal); outline:none; }
   .notes { margin:0 0 10px 44px; display:flex; flex-direction:column; gap:4px; }
   .note { font-size:14px; color:var(--dim); border-left:2px solid var(--teal); padding-left:8px; }
   .note time { color:var(--faint); font-size:12px; margin-right:6px; }
@@ -411,6 +427,9 @@ async function load() {
   brief.items.push(
     ...(brief.upcoming || []).map((x) => toItem(x, "upcoming")),
     ...(brief.tickler || []).map((x) => toItem(x, "tickler")),
+    // Doreen's tasks (set aside server-side) — kept out of every list above
+    // and shown only in the collapsed "for Doreen" row at the bottom.
+    ...(brief.doreen || []).map((x) => toItem(x, "doreen")),
   );
   fitness = applySuggestion(padFitness(data.fitness), brief?.fitness_suggestion, DATE === TODAY);
   render();
@@ -433,6 +452,7 @@ function itemHTML(it) {
         <button data-act="edit" aria-label="Edit item ${it.n}">Edit</button>
         <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
         <button data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
+        ${it.section === "client" ? "" : `<button data-act="doreen" aria-label="Item ${it.n} is Doreen's — set it aside">Doreen's</button>`}
         ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
         <span class="pick"><button tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
       </div>
@@ -549,6 +569,7 @@ function render() {
   const moved = b.items.filter(i => i.pushed && !i.extra);
   const upcomingItems = b.items.filter(i => i.extra === "upcoming");
   const ticklerItems = b.items.filter(i => i.extra === "tickler");
+  const doreenItems = b.items.filter(i => i.extra === "doreen");
   const done = today.filter(i => i.done).length;
   $("#progress").innerHTML = today.length ? `<b>${done}</b> of ${today.length} done` : "";
 
@@ -578,6 +599,15 @@ function render() {
     ? `<h2>🔔 Don't Forget</h2><p class="muted small">Important, but no date yet — give one a day and it moves into Upcoming.</p>${sectionHTML(ticklerItems)}`
     : "";
 
+  // A re-render (checking something off, say) shouldn't snap this shut.
+  const doreenOpen = !!document.querySelector("#main details.doreen[open]");
+  const doreenHTML = doreenItems.length
+    ? `<details class="doreen"${doreenOpen ? " open" : ""}><summary>${doreenItems.length} set aside for Doreen</summary>
+        <p class="muted small">Kept out of your list. Tap "Mine" to bring one back.</p>
+        ${doreenItems.map(i => `<div class="doreen-row" data-id="${i.id}"><span class="t">${esc(i.title)}</span><button type="button" data-act="mine" aria-label="Bring back to my list: ${esc(i.title)}">Mine</button></div>`).join("")}
+      </details>`
+    : "";
+
   $("#main").innerHTML = `
     <h2>Today's schedule</h2>${sched}
     <h2>To do</h2>${tierHTML || '<p class="muted">Nothing pressing on the list.</p>'}
@@ -585,7 +615,8 @@ function render() {
     ${added.length ? `<h2>Added today</h2>${sectionHTML(added)}` : ""}
     ${movedHTML}
     ${buildUpcomingHTML(upcomingItems)}
-    ${ticklerHTML}`;
+    ${ticklerHTML}
+    ${doreenHTML}`;
 }
 
 // ── Options: the same fields as capture.html ───────────────────
@@ -748,6 +779,34 @@ $("#main").addEventListener("click", async (e) => {
   if (act === "not-task") {
     await markNotTask(it);
   }
+  if (act === "doreen") {
+    await setAsideForDoreen(it);
+  }
+});
+
+// Tasks in the shared business pool aren't marked with who they're for, so
+// Doreen's end up beside Dave's. This sets one aside: out of the numbered
+// list, Upcoming and Don't Forget, into the collapsed "for Doreen" row.
+// Nothing is archived or deleted — it just stops being Dave's.
+async function setAsideForDoreen(it) {
+  const r = await api("POST", { action: "assign", id: it.id, to: "doreen" });
+  if (r.ok) {
+    const label = (it.full_text || it.title || "").slice(0, 40);
+    it.extra = "doreen"; it.done = false; it.pushed = false;
+    render();
+    toast(`Set aside for Doreen: "${label}"`);
+  } else toast(r.data.error || "Couldn't update. Try again.");
+}
+// "Mine": bring one back from the Doreen row. Reload so it lands in the right
+// place (numbered list, Upcoming or Don't Forget) by its date and priority.
+$("#main").addEventListener("click", async (e) => {
+  const btn = e.target.closest('[data-act="mine"]'); if (!btn) return;
+  const id = btn.closest(".doreen-row").dataset.id;
+  const it = brief.items.find(i => i.id === id);
+  btn.disabled = true;
+  const r = await api("POST", { action: "assign", id, to: "dave" });
+  if (r.ok) { toast(`Back on your list: "${((it && it.title) || "").slice(0, 40)}"`); await load(); }
+  else { btn.disabled = false; toast(r.data.error || "Couldn't update. Try again."); }
 });
 
 async function moveTo(it, to) {
