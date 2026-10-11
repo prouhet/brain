@@ -927,7 +927,7 @@ Return ONLY valid JSON (no markdown fences):
       async function addChannel() {
         const url = urlInput.trim();
         const keywords = Array.from(new Set(keywordInput.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean)));
-        if (!url || !keywords.length) return;
+        if (!url) return; // keywords are optional: none = analyze every new upload
         setStatus("resolving"); setErrMsg("");
         try {
           const res = await fetch(`${SB_URL}/functions/v1/resolve-channel`, {
@@ -967,20 +967,25 @@ Return ONLY valid JSON (no markdown fences):
       const [editingId, setEditingId] = useState(null);
       const [editKeywords, setEditKeywords] = useState("");
       const [editEmail, setEditEmail] = useState("");
+      const [confirmClear, setConfirmClear] = useState(false); // 2-step guard when removing ALL keywords from a watch
 
       function startEdit(w) {
         setEditingId(w.id);
         setEditKeywords((w.keywords || []).join(", "));
         setEditEmail(w.notify_email || "");
+        setConfirmClear(false);
       }
 
       async function saveEdit(w) {
         const keywords = Array.from(new Set(editKeywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean)));
-        if (!keywords.length) return;
+        // Going from "some keywords" to "none" flips the watch from "only matches"
+        // to "everything" -- ask for a second click before doing that.
+        if (!keywords.length && (w.keywords || []).length && !confirmClear) { setConfirmClear(true); return; }
         const patch = { keywords, notify_email: editEmail.trim() || null };
         await sbUpdateChannelWatch(w.id, patch);
         setWatches((watches || []).map((x) => x.id === w.id ? { ...x, ...patch } : x));
         setEditingId(null);
+        setConfirmClear(false);
       }
 
       if (!isPaid) {
@@ -990,7 +995,7 @@ Return ONLY valid JSON (no markdown fences):
               <div style={{ fontSize: 40, marginBottom: 14, opacity: .3 }}>📡</div>
               <p style={{ fontSize: 17, fontFamily: "Syne", fontWeight: 700, marginBottom: 8, color: "var(--text)" }}>Channel Watch is a paid feature</p>
               <p style={{ fontSize: 14, marginBottom: 20, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
-                Watch specific YouTube channels for new uploads matching a keyword you choose — get an automatic synopsis added to your library, and optionally emailed to you, the moment something matches.
+                Watch specific YouTube channels for new uploads matching a keyword you choose (or every new upload) — get an automatic synopsis added to your library, and optionally emailed to you, the moment something matches.
               </p>
               <a href="/upgrade.html" style={{ display: "inline-block", background: "var(--acc)", color: "#fff", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>Upgrade to unlock →</a>
             </div>
@@ -1002,11 +1007,14 @@ Return ONLY valid JSON (no markdown fences):
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 20px" }}>
           <div className="rcard" style={{ padding: 20, marginBottom: 16 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--t2)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Watch a channel</p>
-            <p style={{ fontSize: 13, color: "var(--t3)", marginBottom: 14 }}>Checked once a day. New uploads whose title or description match your keyword get analyzed and added to your library automatically — no need to add them yourself.</p>
+            <p style={{ fontSize: 13, color: "var(--t3)", marginBottom: 14 }}>Checked once a day. New uploads whose title or description match your keywords get analyzed and added to your library automatically — no need to add them yourself. Leave keywords blank to analyze every new upload instead.</p>
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 10 }}>
               <input placeholder="Channel URL or @handle" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addChannel()} />
-              <input placeholder="Keywords to match (comma-separated)" value={keywordInput} onChange={(e) => setKeywordInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addChannel()} />
+              <input placeholder="Keywords (optional, comma-separated)" value={keywordInput} onChange={(e) => setKeywordInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addChannel()} />
             </div>
+            {urlInput.trim() && !keywordInput.trim() && (
+              <p style={{ fontSize: 12, color: "var(--t3)", marginTop: -4, marginBottom: 10 }}>No keywords: every new upload from this channel will be analyzed (up to 3 a day). Videos already on the channel are not added.</p>
+            )}
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--t2)", cursor: "pointer" }}>
                 <input type="checkbox" checked={notifyEnabled} onChange={(e) => setNotifyEnabled(e.target.checked)} style={{ width: "auto" }} />
@@ -1015,7 +1023,7 @@ Return ONLY valid JSON (no markdown fences):
               {notifyEnabled && <input placeholder="Email address" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} style={{ maxWidth: 240 }} />}
             </div>
             {status === "error" && <p style={{ fontSize: 13, color: "var(--red)", marginBottom: 10 }}>{errMsg}</p>}
-            <button className="rbtn-p" onClick={addChannel} disabled={status === "resolving" || !urlInput.trim() || !keywordInput.trim()} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button className="rbtn-p" onClick={addChannel} disabled={status === "resolving" || !urlInput.trim()} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {status === "resolving" ? <><Spinner size={14} /> Looking up channel...</> : "＋ Add Channel"}
             </button>
           </div>
@@ -1034,12 +1042,15 @@ Return ONLY valid JSON (no markdown fences):
                     <div>
                       <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>{w.channel_name}</p>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 10 }}>
-                        <input placeholder="Keywords to match (comma-separated)" value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveEdit(w)} autoFocus />
+                        <input placeholder="Keywords (optional, comma-separated)" value={editKeywords} onChange={(e) => { setEditKeywords(e.target.value); setConfirmClear(false); }} onKeyDown={(e) => e.key === "Enter" && saveEdit(w)} autoFocus />
                         <input placeholder="Email address" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveEdit(w)} />
                       </div>
+                      {confirmClear
+                        ? <p style={{ fontSize: 12, color: "var(--warn)", marginBottom: 10 }}>Removing every keyword means this channel will analyze <strong>every</strong> new upload (up to 3 a day), not just matches. Click Save again to confirm.</p>
+                        : !editKeywords.trim() && <p style={{ fontSize: 12, color: "var(--t3)", marginBottom: 10 }}>No keywords: every new upload from this channel will be analyzed (up to 3 a day).</p>}
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={() => saveEdit(w)} className="rbtn-ok" style={{ fontSize: 12, padding: "5px 12px" }}>Save</button>
-                        <button onClick={() => setEditingId(null)} className="rbtn-g" style={{ fontSize: 12, padding: "5px 12px" }}>Cancel</button>
+                        <button onClick={() => saveEdit(w)} className="rbtn-ok" style={{ fontSize: 12, padding: "5px 12px" }}>{confirmClear ? "Save anyway" : "Save"}</button>
+                        <button onClick={() => { setEditingId(null); setConfirmClear(false); }} className="rbtn-g" style={{ fontSize: 12, padding: "5px 12px" }}>Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -1048,7 +1059,9 @@ Return ONLY valid JSON (no markdown fences):
                         <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>{w.channel_name}</p>
                         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                           {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
-                          {(w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)}
+                          {(w.keywords || []).length
+                            ? (w.keywords || []).map((kw) => <Tag key={kw} label={kw} />)
+                            : <span style={{ fontSize: 11, fontWeight: 600, color: "var(--acc)", border: "1px solid var(--acc)", borderRadius: 10, padding: "1px 8px", opacity: .85 }}>all new videos</span>}
                           {watchStats[w.id]?.count > 0 && <span style={{ fontSize: 12, color: "var(--ok)" }}>{watchStats[w.id].count} found{watchStats[w.id].lastAdded ? ` · latest ${fmtDate(watchStats[w.id].lastAdded)}` : ""}</span>}
                           {w.last_checked_at
                             ? <span style={{ fontSize: 11, color: (Date.now() - new Date(w.last_checked_at).getTime()) > 30 * 3600000 ? "var(--warn)" : "var(--t3)" }}>{fmtLastChecked(w.last_checked_at)}</span>
