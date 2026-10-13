@@ -147,6 +147,12 @@
   .noteform textarea { flex:1; min-height:44px; }
   .editform { flex-direction:column; }
   .editform textarea { min-height:64px; }
+  /* Follow up: appears under a checked-off task; one tap on a day adds the new task. */
+  .fuform { margin:0 0 12px 44px; display:none; flex-direction:column; gap:8px; }
+  .fuform.open { display:flex; }
+  .fuform textarea { min-height:44px; }
+  .fuform .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
+  .fuform .chip:disabled { opacity:.5; cursor:default; }
   .opts { display:flex; flex-direction:column; gap:16px; }
   .opts .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
   .opts .lab .cur { text-transform:none; letter-spacing:0; font-weight:400; margin-left:6px; color:var(--dim); }
@@ -451,6 +457,7 @@ function itemHTML(it) {
       <div class="tools">
         <button data-act="edit" aria-label="Edit item ${it.n}">Edit</button>
         <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
+        ${it.done ? `<button data-act="followup" aria-label="Item ${it.n} is done — set a follow-up for it">Follow up</button>` : ""}
         <button data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
         ${it.section === "client" ? "" : `<button data-act="doreen" aria-label="Item ${it.n} is Doreen's — set it aside">Doreen's</button>`}
         ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
@@ -462,6 +469,15 @@ function itemHTML(it) {
       <div class="optsmount"></div>
       <div class="row2"><button class="btn" type="submit">Save</button><button class="btn quiet" type="button" data-act="cancel-edit">Cancel</button></div></form>
     <form class="noteform"><textarea rows="2" placeholder="What happened?" aria-label="Note for item ${it.n}"></textarea><button class="btn" type="submit">Save note</button></form>
+    ${it.done ? `<form class="fuform" onsubmit="return false"><div class="lab">Follow up on</div>
+      <textarea rows="2" aria-label="Follow-up for item ${it.n}">${esc(followText(it))}</textarea>
+      <div class="chips">
+        <button type="button" class="chip" data-fu="1">Tomorrow</button>
+        <button type="button" class="chip" data-fu="3">3 days</button>
+        <button type="button" class="chip" data-fu="7">1 week</button>
+        <button type="button" class="chip" data-fu="14">2 weeks</button>
+        <span class="pick"><button type="button" class="chip" tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="fupick" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day for the follow-up on item ${it.n}"></span>
+      </div></form>` : ""}
   </div>`;
 }
 
@@ -773,6 +789,11 @@ $("#main").addEventListener("click", async (e) => {
     const f = el.querySelector(".noteform"); f.classList.toggle("open");
     if (f.classList.contains("open")) f.querySelector("textarea").focus();
   }
+  if (act === "followup") {
+    const f = el.querySelector(".fuform"); if (!f) return;
+    f.classList.toggle("open");
+    if (f.classList.contains("open")) { const ta = f.querySelector("textarea"); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
   if (act === "push") {
     await moveTo(it, shiftDate(TODAY, 1));
   }
@@ -830,10 +851,46 @@ async function markNotTask(it) {
   } else toast(r.data.error || "Couldn't update. Try again.");
 }
 
+// Follow-up: a finished task sometimes has a next step on a later day (call the
+// electrician, he says Thursday → check back Friday). This adds a NEW dated task
+// and leaves the finished one done. For a task that isn't finished yet, "Tomorrow"
+// / "Pick day" move that same task instead.
+function followText(it) {
+  // Start from the line shown in the brief (cleaner than the raw saved text,
+  // which can carry stale wording like "after 22 Sep").
+  const t = String(it.title || it.full_text || "").trim();
+  return /follow[\s-]?up/i.test(t) ? t : `Follow up: ${t}`;
+}
+const FU_CATEGORIES = ["important","finance","marketing","operations","process","recruiting","retention","technical","automation","health"];
+async function addFollowUp(it, due, text, form) {
+  const content = String(text || "").trim();
+  if (!content) { toast("Type what to follow up on."); return; }
+  const body = { action: "add", content, scope: it.scope === "personal" ? "personal" : "business", due };
+  if (FU_CATEGORIES.includes(it.category)) body.category = it.category;
+  if (Number.isInteger(it.tier_override) && it.tier_override >= 1 && it.tier_override <= 5) body.tier = it.tier_override;
+  form.querySelectorAll("button, input").forEach(b => { b.disabled = true; });
+  const r = await api("POST", body);
+  if (r.ok) { toast(`Follow-up set for ${due === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(due)}`); await load(); }
+  else { form.querySelectorAll("button, input").forEach(b => { b.disabled = false; }); toast(r.data.error || "Couldn't set the follow-up. Try again."); }
+}
+$("#main").addEventListener("click", async (e) => {
+  const chip = e.target.closest("[data-fu]"); if (!chip) return;
+  const el = chip.closest(".item"); const it = el && brief.items.find(i => i.id === el.dataset.id); if (!it) return;
+  const form = el.querySelector(".fuform");
+  await addFollowUp(it, shiftDate(TODAY, parseInt(chip.dataset.fu, 10)), form.querySelector("textarea").value, form);
+});
+$("#main").addEventListener("change", async (e) => {
+  const input = e.target.closest(".fupick"); if (!input || !input.value) return;
+  const el = input.closest(".item"); const it = brief.items.find(i => i.id === el.dataset.id);
+  if (input.value <= TODAY) { toast("Pick a day after today."); input.value = ""; return; }
+  const form = el.querySelector(".fuform");
+  await addFollowUp(it, input.value, form.querySelector("textarea").value, form);
+});
+
 // Pick day: a transparent date input sits over the button, so tapping opens
 // the phone's own calendar. On desktop, open the picker explicitly.
 $("#main").addEventListener("click", (e) => {
-  const input = e.target.closest(".pickdate");
+  const input = e.target.closest(".pickdate, .fupick");
   if (input && typeof input.showPicker === "function") { try { input.showPicker(); } catch {} }
 });
 $("#main").addEventListener("change", async (e) => {
