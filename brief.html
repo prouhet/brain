@@ -156,8 +156,13 @@
 
   /* Ask the Brain: a question box under the date. The answer can come with
      suggested tasks; nothing is added until you tap "Add to my list". */
-  .ask { margin:6px 0 18px; }
+  .ask { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 14px 12px; margin:6px 0 8px; }
   .ask[hidden] { display:none; }
+  .ask > summary { list-style:none; cursor:pointer; display:flex; align-items:center; padding:2px 0; font-size:14px; color:var(--dim); }
+  .ask > summary::-webkit-details-marker { display:none; }
+  .ask > summary .chev { display:inline-block; transition:transform .15s; color:var(--faint); margin-right:4px; }
+  .ask[open] > summary .chev { transform:rotate(90deg); }
+  .askbody { margin-top:10px; }
   .askform { display:flex; gap:8px; }
   .askform input { flex:1; min-width:0; }
   .askex { margin-top:8px; }
@@ -171,7 +176,7 @@
   .askprop .why { font-size:12px; color:var(--dim); margin-top:-4px; }
   .askprop .aprow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
   .askprop .apdate { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:8px 10px; }
-  .askprop .apadd { margin-left:auto; }
+  .askprop .apbtns { margin-left:auto; display:flex; gap:8px; }
   .askprop.added textarea { opacity:.7; }
   .askprop .addedmsg { font-size:14px; font-weight:600; color:var(--done); }
   .opts { display:flex; flex-direction:column; gap:16px; }
@@ -244,13 +249,16 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
-  <section class="ask" id="ask" aria-label="Ask your Brain">
-    <form class="askform" id="askform">
-      <input type="text" id="askq" placeholder="Ask your Brain…" autocomplete="off" maxlength="600" aria-label="Ask your Brain a question">
-      <button class="btn" id="askbtn" type="submit">Ask</button>
-    </form>
-    <div id="askout" aria-live="polite"></div>
-  </section>
+  <details class="ask" id="ask">
+    <summary><span><span class="chev">›</span> Ask your Brain</span></summary>
+    <div class="askbody">
+      <form class="askform" id="askform">
+        <input type="text" id="askq" placeholder="Ask your Brain…" autocomplete="off" maxlength="600" aria-label="Ask your Brain a question">
+        <button class="btn" id="askbtn" type="submit">Ask</button>
+      </form>
+      <div id="askout" aria-live="polite"></div>
+    </div>
+  </details>
   <div id="fitness"></div>
   <main id="main"></main>
 </div>
@@ -425,7 +433,12 @@ document.addEventListener("click", async (e) => {
   const body = readFitness(); e.target.disabled = true;
   const r = await api("POST", { action: "save_fitness", ...body });
   e.target.disabled = false;
-  if (r.ok) { fitness = { ...body, updated_at: r.data.updated_at }; renderFitness(); toast("Workout log saved"); }
+  if (r.ok) {
+    fitness = { ...body, updated_at: r.data.updated_at }; renderFitness();
+    // Saved: roll the card back up, so the page returns to the task list
+    const fc = document.querySelector("#fitness .fitcard"); fc.open = false; fc.scrollIntoView({ block: "nearest" });
+    toast("Workout log saved");
+  }
   else toast(r.data.error || "Couldn't save the log.");
 });
 
@@ -615,7 +628,8 @@ function render() {
   const ticklerItems = b.items.filter(i => i.extra === "tickler");
   const doreenItems = b.items.filter(i => i.extra === "doreen");
   const done = today.filter(i => i.done).length;
-  $("#progress").innerHTML = today.length ? `<b>${done}</b> of ${today.length} done` : "";
+  $("#progress").innerHTML = today.length ? `<b>${done}</b> of ${today.length} checked off` : "";
+  $("#progress").title = "Items checked off on today's numbered list. Upcoming, Don't forget and Doreen's rows aren't counted, and anything you move to a later day leaves the count.";
 
   const sched = b.appointments.length
     ? `<div class="sched">${b.appointments.map(a => `<span class="t">${esc(a.time)}</span><span>${esc(a.title)}${a.location ? ` <span class="loc">(${esc(a.location)})</span>` : ""}</span>`).join("")}</div>`
@@ -1037,7 +1051,10 @@ function askPropHTML(p) {
         <button type="button" data-ascope="personal" aria-pressed="${!biz}">Me</button>
       </div>
       <input type="date" class="apdate" value="${esc(due)}" min="${esc(TODAY)}" aria-label="Due date">
-      <button type="button" class="btn apadd">Add to my list</button>
+      <div class="apbtns">
+        <button type="button" class="btn quiet apcancel">Cancel</button>
+        <button type="button" class="btn apadd">Add to my list</button>
+      </div>
     </div>
   </div>`;
 }
@@ -1074,11 +1091,15 @@ async function ask(q) {
   $("#askout").innerHTML = askCardHTML(q, r.data.answer, r.data.used, r.data.tasks);
 }
 $("#askform").addEventListener("submit", (e) => { e.preventDefault(); ask($("#askq").value); });
+// A roll-up like the workout card: closed until you want it, and it keeps whatever you last asked while closed.
+$("#ask").addEventListener("toggle", () => { if ($("#ask").open) $("#askq").focus(); });
 $("#askout").addEventListener("click", async (e) => {
   const ex = e.target.closest("[data-askq]");
   if (ex) { $("#askq").value = ex.dataset.askq; ask(ex.dataset.askq); return; }
   const sc = e.target.closest("[data-ascope]");
   if (sc) { sc.parentElement.querySelectorAll("[data-ascope]").forEach(b => b.setAttribute("aria-pressed", String(b === sc))); return; }
+  const cancel = e.target.closest(".apcancel");
+  if (cancel) { cancel.closest(".askprop").remove(); toast("Not added"); return; }   // nothing was saved, so nothing to undo
   const add = e.target.closest(".apadd"); if (!add) return;
   const card = add.closest(".askprop");
   const content = card.querySelector("textarea").value.trim();
