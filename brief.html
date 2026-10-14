@@ -153,6 +153,27 @@
   .fuform textarea { min-height:44px; }
   .fuform .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
   .fuform .chip:disabled { opacity:.5; cursor:default; }
+
+  /* Ask the Brain: a question box under the date. The answer can come with
+     suggested tasks; nothing is added until you tap "Add to my list". */
+  .ask { margin:6px 0 18px; }
+  .ask[hidden] { display:none; }
+  .askform { display:flex; gap:8px; }
+  .askform input { flex:1; min-width:0; }
+  .askex { margin-top:8px; }
+  .askcard { margin-top:10px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .askq { font-size:12px; color:var(--faint); margin-bottom:4px; overflow-wrap:anywhere; }
+  .askans { white-space:pre-wrap; overflow-wrap:anywhere; }
+  .askused { margin-top:8px; font-size:12px; color:var(--faint); overflow-wrap:anywhere; }
+  .askprop { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+  .askprop .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
+  .askprop textarea { min-height:52px; }
+  .askprop .why { font-size:12px; color:var(--dim); margin-top:-4px; }
+  .askprop .aprow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .askprop .apdate { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:8px 10px; }
+  .askprop .apadd { margin-left:auto; }
+  .askprop.added textarea { opacity:.7; }
+  .askprop .addedmsg { font-size:14px; font-weight:600; color:var(--done); }
   .opts { display:flex; flex-direction:column; gap:16px; }
   .opts .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
   .opts .lab .cur { text-transform:none; letter-spacing:0; font-weight:400; margin-left:6px; color:var(--dim); }
@@ -223,6 +244,13 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
+  <section class="ask" id="ask" aria-label="Ask your Brain">
+    <form class="askform" id="askform">
+      <input type="text" id="askq" placeholder="Ask your Brain…" autocomplete="off" maxlength="600" aria-label="Ask your Brain a question">
+      <button class="btn" id="askbtn" type="submit">Ask</button>
+    </form>
+    <div id="askout" aria-live="polite"></div>
+  </section>
   <div id="fitness"></div>
   <main id="main"></main>
 </div>
@@ -982,6 +1010,92 @@ $("#moreopts").addEventListener("click", () => {
   box.hidden = !open;
   $("#moreopts").setAttribute("aria-expanded", String(open)); $("#moreopts").textContent = open ? "Less" : "More";
   document.body.classList.toggle("opts-open", open);
+});
+
+// ── Ask the Brain ────────────────────────────────────────────
+// A question is answered from the whole Brain (tasks and notes), not just this
+// day's brief. The answer may include suggested tasks; each is editable and is
+// only added, through the normal "add" action, when you tap its button.
+const askHistory = [];   // last few exchanges, so a follow-up like "make it the 20th" makes sense
+const ASK_EXAMPLES = ["What's due this week?", "What repeats every month?", "When should I start the November newsletter?"];
+if (!KEY) $("#ask").hidden = true;
+function askExamplesHTML() {
+  return `<div class="chips askex">${ASK_EXAMPLES.map(q => `<button type="button" class="chip" data-askq="${esc(q)}">${esc(q)}</button>`).join("")}</div>`;
+}
+$("#askout").innerHTML = askExamplesHTML();
+
+function askPropHTML(p) {
+  const due = p.due && p.due >= TODAY ? p.due : TODAY;
+  const biz = p.scope !== "personal";
+  return `<div class="askprop">
+    <div class="lab">Suggested task</div>
+    <textarea rows="2" aria-label="Task text">${esc(p.content)}</textarea>
+    ${p.why ? `<div class="why">${esc(p.why)}</div>` : ""}
+    <div class="aprow">
+      <div class="scope" role="group" aria-label="Where this task goes">
+        <button type="button" data-ascope="business" aria-pressed="${biz}">Business</button>
+        <button type="button" data-ascope="personal" aria-pressed="${!biz}">Me</button>
+      </div>
+      <input type="date" class="apdate" value="${esc(due)}" min="${esc(TODAY)}" aria-label="Due date">
+      <button type="button" class="btn apadd">Add to my list</button>
+    </div>
+  </div>`;
+}
+function askCardHTML(q, answer, used, tasks) {
+  const refs = (used || []).map(u => `${esc(u.title)}${u.due ? ` (${esc(shortDate(u.due))})` : ""}`);
+  return `<div class="askcard">
+    <div class="askq">${esc(q)}</div>
+    <div class="askans">${esc(answer)}</div>
+    ${refs.length ? `<div class="askused">From the Brain: ${refs.join(" · ")}</div>` : ""}
+    ${(tasks || []).map(askPropHTML).join("")}
+  </div>`;
+}
+// Questions go to their own read-only function; "Add to my list" still uses the normal add above.
+const ASK_FN = FN.replace(/morning-brief$/, "brief-ask");
+async function askApi(body) {
+  try {
+    const res = await fetch(`${ASK_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+async function ask(q) {
+  q = String(q || "").trim(); if (!q) return;
+  const btn = $("#askbtn"), inp = $("#askq");
+  btn.disabled = true; inp.disabled = true;
+  $("#askout").innerHTML = askCardHTML(q, "Checking the Brain…", [], []);
+  const r = await askApi({ question: q, history: askHistory.slice(-3) });
+  btn.disabled = false; inp.disabled = false;
+  if (!r.ok) { $("#askout").innerHTML = askCardHTML(q, r.data.error || "Couldn't reach the Brain. Try again.", [], []); return; }
+  askHistory.push({ q, a: r.data.answer }); if (askHistory.length > 3) askHistory.shift();
+  inp.value = "";
+  $("#askout").innerHTML = askCardHTML(q, r.data.answer, r.data.used, r.data.tasks);
+}
+$("#askform").addEventListener("submit", (e) => { e.preventDefault(); ask($("#askq").value); });
+$("#askout").addEventListener("click", async (e) => {
+  const ex = e.target.closest("[data-askq]");
+  if (ex) { $("#askq").value = ex.dataset.askq; ask(ex.dataset.askq); return; }
+  const sc = e.target.closest("[data-ascope]");
+  if (sc) { sc.parentElement.querySelectorAll("[data-ascope]").forEach(b => b.setAttribute("aria-pressed", String(b === sc))); return; }
+  const add = e.target.closest(".apadd"); if (!add) return;
+  const card = add.closest(".askprop");
+  const content = card.querySelector("textarea").value.trim();
+  const due = card.querySelector(".apdate").value || TODAY;
+  if (!content) { toast("Type the task first."); return; }
+  if (due < TODAY) { toast("Pick today or a later day."); return; }
+  const where = card.querySelector('[data-ascope][aria-pressed="true"]')?.dataset.ascope === "personal" ? "personal" : "business";
+  const lock = (on) => card.querySelectorAll("button, input, textarea").forEach(x => { x.disabled = on; });
+  lock(true);
+  const r = await api("POST", { action: "add", content, scope: where, due, date: TODAY });
+  if (r.ok) {
+    const when = due === TODAY ? "today" : shortDate(due);
+    card.classList.add("added");
+    card.querySelector(".aprow").innerHTML = `<span class="addedmsg">✓ Added for ${esc(when)}</span>`;
+    toast(`Added for ${when}`);
+    await load();
+  } else { lock(false); toast(r.data.error || "Couldn't add it. Try again."); }
 });
 
 // Date navigation
