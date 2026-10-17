@@ -320,6 +320,8 @@
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/brain-priorities';
 const KEY = new URLSearchParams(window.location.search).get('key') || '';
+// Remember the key on this device so the Priorities / Capture links on the brief page can open this page
+try { if (KEY) localStorage.setItem('brain-key', KEY); } catch (e) { /* storage blocked: the brief page just asks again */ }
 
 // ── Theme ─────────────────────────────────────────────────────
 function applyTheme(dark) {

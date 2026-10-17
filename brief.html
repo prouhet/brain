@@ -31,8 +31,17 @@
   .wrap { max-width:680px; margin:0 auto; padding:18px 18px 120px; }
 
   /* Header */
-  .top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; }
+  .top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 12px; margin-bottom:6px; }
   .datenav { display:flex; gap:6px; }
+  /* Short links to the other two pages, top right */
+  .toplinks { display:flex; gap:6px; }
+  .toplinks a { font:inherit; font-size:13px; color:var(--teal); background:var(--teal-dim); border:1px solid transparent; border-radius:8px; padding:6px 10px; text-decoration:none; }
+  .toplinks a:hover, .toplinks a:focus-visible { border-color:var(--teal); outline:none; }
+  .keysetup { margin:8px 0 4px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .keysetup[hidden] { display:none; }
+  .keysetup p { font-size:13px; color:var(--dim); }
+  .keysetup .krow { display:flex; flex-wrap:wrap; gap:8px; }
+  .keysetup input { flex:1 1 200px; min-width:0; }
   .datenav button, .datenav a {
     font:inherit; font-size:13px; color:var(--dim); background:transparent; border:1px solid var(--line2);
     border-radius:8px; padding:6px 10px; cursor:pointer; text-decoration:none;
@@ -245,7 +254,19 @@
       <button id="today">Today</button>
       <button id="next" aria-label="Next day">Next ›</button>
     </div>
+    <nav class="toplinks" aria-label="Other pages">
+      <a href="priorities.html" data-page="priorities">Priorities</a>
+      <a href="capture.html" data-page="capture">Capture</a>
+    </nav>
   </div>
+  <form class="keysetup" id="keysetup" hidden>
+    <p>One-time setup: paste the key, or the whole link, for your <b id="keysetuppage">Priorities</b> page. It's saved on this device only, so the key never sits in this page's code.</p>
+    <div class="krow">
+      <input type="text" id="keyin" placeholder="Paste key or link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Page key">
+      <button class="btn" type="submit">Save &amp; open</button>
+      <button class="btn quiet" type="button" id="keycancel">Cancel</button>
+    </div>
+  </form>
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
@@ -1118,6 +1139,41 @@ $("#askout").addEventListener("click", async (e) => {
     await load();
   } else { lock(false); toast(r.data.error || "Couldn't add it. Try again."); }
 });
+
+// ── Links to the other pages ─────────────────────────────────
+// Priorities and Capture need the key in their address. This page is public (anyone can open it,
+// the key isn't needed to load it), so that key is never written into it: you paste it once, it's
+// kept in this browser's own storage, and it's added to the link when you tap. Opening the
+// priorities page with its key link also refreshes the saved copy.
+const PAGE_KEY_STORE = "brain-key";
+const getPageKey = () => { try { return localStorage.getItem(PAGE_KEY_STORE) || ""; } catch (e) { return ""; } };
+const savePageKey = (k) => { try { localStorage.setItem(PAGE_KEY_STORE, k); return true; } catch (e) { return false; } };
+let pendingPage = "";
+function keyFromPaste(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/[?&]key=([^&#\s]+)/);          // accepts the whole link or just the key
+  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
+  return /^[A-Za-z0-9_-]{16,}$/.test(k) ? k : "";
+}
+const openPage = (page, key) => { location.href = `${page}.html?key=${encodeURIComponent(key)}`; };
+document.querySelector(".toplinks").addEventListener("click", (e) => {
+  const a = e.target.closest("[data-page]"); if (!a) return;
+  e.preventDefault();
+  const key = getPageKey();
+  if (key) { openPage(a.dataset.page, key); return; }
+  pendingPage = a.dataset.page;
+  $("#keysetuppage").textContent = a.textContent;
+  $("#keysetup").hidden = false; $("#keyin").focus();
+});
+$("#keysetup").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const k = keyFromPaste($("#keyin").value);
+  if (!k) { toast("That doesn't look like a key. Paste the key or the whole link."); return; }
+  if (!savePageKey(k)) toast("This browser won't save it, so you'll be asked again next time.");
+  $("#keyin").value = ""; $("#keysetup").hidden = true;
+  openPage(pendingPage || "priorities", k);
+});
+$("#keycancel").onclick = () => { $("#keyin").value = ""; $("#keysetup").hidden = true; };
 
 // Date navigation
 $("#prev").onclick = () => { DATE = shiftDate(DATE || TODAY, -1); load(); };
