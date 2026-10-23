@@ -102,6 +102,8 @@
   .item.done .title { color:var(--faint); text-decoration:line-through; text-decoration-thickness:1px; }
   .detail { font-size:13px; color:var(--dim); margin-top:2px; }
   .flag { font-size:12px; color:var(--warn); margin-left:6px; }
+  .quick { font-size:12px; color:var(--dim); margin-left:6px; white-space:nowrap; }
+  .item.done .quick { display:none; }
   /* Actions always sit on their own line under the title — never beside it,
      where they squeeze the title into a sliver — at every screen width. */
   .tools { grid-column:2; display:flex; flex-wrap:wrap; gap:2px; margin:4px 0 0 -8px; }
@@ -513,7 +515,7 @@ function itemHTML(it) {
     <div class="row">
       <button class="check" aria-pressed="${it.done}" aria-label="${it.done ? "Uncheck" : "Check off"} item ${it.n}"><span class="box">${CHECK_SVG}</span></button>
       <div class="text">
-        <span class="num">${it.n}.</span><span class="title">${esc(it.title)}${it.recurring ? " ⟳" : ""}</span>${flag}
+        <span class="num">${it.n}.</span><span class="title">${esc(it.title)}${it.recurring ? " ⟳" : ""}</span>${it.quick ? '<span class="quick" title="About 15 minutes or less (Jev\'s read)">⚡ quick</span>' : ""}${flag}
         ${it.detail ? `<div class="detail">${esc(it.detail)}</div>` : ""}
       </div>
       <div class="tools">
