@@ -13,6 +13,9 @@ import urllib.request
 from datetime import datetime, timezone
 
 SB_URL  = "https://rzkrydqtgmuyeaipronh.supabase.co"
+# The household key is a secret (it's the only thing that unlocks the household's
+# data), so it comes from the ROSI_HOUSEHOLD_KEY GitHub secret, never this public repo.
+HOUSEHOLD_KEY = os.environ.get("ROSI_HOUSEHOLD_KEY", "").strip()
 
 
 def get_headers(sb_key):
@@ -20,6 +23,8 @@ def get_headers(sb_key):
         "apikey":        sb_key,
         "Authorization": f"Bearer {sb_key}",
         "Content-Type":  "application/json",
+        # The database only answers requests that carry the household key
+        "x-rosi-key":    HOUSEHOLD_KEY,
     }
 
 
@@ -32,7 +37,7 @@ def get_due_reminders(sb_key):
     # whole request with a 400 (error 22007, invalid_datetime_format).
     now_q = urllib.parse.quote(now, safe="")
     params = (
-        f"household_key=eq.drjampro"
+        f"household_key=eq.{urllib.parse.quote(HOUSEHOLD_KEY, safe='')}"
         f"&done=eq.false"
         f"&due_at=lte.{now_q}"
         f"&select=id,text,due_at,set_by,for_member"
@@ -112,6 +117,8 @@ def send_postmark(reminders, postmark_token, from_addr, to_addrs):
 
 
 def main():
+    if not HOUSEHOLD_KEY:
+        raise SystemExit("ROSI_HOUSEHOLD_KEY secret is not set (Settings → Secrets → Actions)")
     sb_key         = os.environ["SUPABASE_ANON_KEY"]
     postmark_token = os.environ["POSTMARK_TOKEN"]
     from_addr      = os.environ.get("POSTMARK_FROM", "connect@reformed.fit")

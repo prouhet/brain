@@ -4,6 +4,7 @@ name: Rosi Reminders
 #
 # Required GitHub Secrets (Settings → Secrets → Actions):
 #   SUPABASE_ANON_KEY   the anon/public JWT key from Supabase → Settings → API
+#   ROSI_HOUSEHOLD_KEY  the household key from the Rosi link (?key=...) — keep it out of the repo
 #   EMAIL_TO            prouhet@gmail.com,rprouhet@gmail.com
 #   POSTMARK_TOKEN      Postmark Server API Token
 #   POSTMARK_FROM       connect@reformed.fit
@@ -27,6 +28,7 @@ jobs:
         run: python scripts/send_reminders.py
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ROSI_HOUSEHOLD_KEY: ${{ secrets.ROSI_HOUSEHOLD_KEY }}
           EMAIL_TO:          ${{ secrets.EMAIL_TO }}
           POSTMARK_TOKEN:    ${{ secrets.POSTMARK_TOKEN }}
           POSTMARK_FROM:     ${{ secrets.POSTMARK_FROM }}
