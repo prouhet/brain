@@ -109,7 +109,7 @@
     <p class="card-sub">Choose a new password for your account.</p>
     <label>New Password</label>
     <div class="pw-wrap">
-      <input type="password" id="new-pass" placeholder="Min 6 characters" autocomplete="new-password">
+      <input type="password" id="new-pass" placeholder="10+ characters, letters and numbers" autocomplete="new-password">
       <button class="pw-toggle" type="button" onclick="togglePw('new-pass',this)">👁</button>
     </div>
     <label>Confirm Password</label>
@@ -215,7 +215,7 @@
     async function savePassword() {
       const pass = document.getElementById("new-pass").value;
       const confirm = document.getElementById("confirm-pass").value;
-      if (!pass || pass.length < 6) { setMsg("msg-password", "Password must be at least 6 characters.", "err"); return; }
+      if (!pass || pass.length < 10 || !/[A-Za-z]/.test(pass) || !/[0-9]/.test(pass)) { setMsg("msg-password", "Password needs at least 10 characters, with both letters and numbers.", "err"); return; }
       if (pass !== confirm) { setMsg("msg-password", "Passwords don't match.", "err"); return; }
 
       const { error } = await sb.auth.updateUser({ password: pass });
