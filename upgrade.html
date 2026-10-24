@@ -197,11 +197,14 @@
     msgEl.className = 'coupon-msg';
 
     try {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/coupon_codes?select=code,description,discount_type,price_override_cents,max_uses,uses_count,active,billing_period&code=eq.${encodeURIComponent(code)}&active=eq.true&billing_period=eq.annual&limit=1`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      );
-      const rows = await res.json();
+      // One code at a time; the coupon list itself isn't readable (Oct 2026 lock)
+      const res = await fetch(`${SB_URL}/rest/v1/rpc/reel_check_coupon`, {
+        method: 'POST',
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_code: code, p_billing_period: 'annual' }),
+      });
+      const found = await res.json();
+      const rows = found?.ok ? [found] : [];
 
       if (!rows?.length) {
         msgEl.textContent = 'Code not found or not valid for annual plans.';
@@ -247,11 +250,13 @@
   selectPlan('annual');
   (async () => {
     try {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/coupon_codes?select=uses_count,max_uses&code=eq.FOUNDERS79&active=eq.true&limit=1`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      );
-      const rows = await res.json();
+      const res = await fetch(`${SB_URL}/rest/v1/rpc/reel_check_coupon`, {
+        method: 'POST',
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_code: 'FOUNDERS79' }),
+      });
+      const found = await res.json();
+      const rows = found?.ok ? [found] : [];
       if (rows?.[0] && rows[0].uses_count < rows[0].max_uses) {
         const remaining = rows[0].max_uses - rows[0].uses_count;
         document.getElementById('coupon-input').value = 'FOUNDERS79';

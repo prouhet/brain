@@ -175,7 +175,7 @@
     collectionTag = cu.collection_tag;
 
     // Get collection metadata
-    const { data: meta } = await sb.from('collection_metadata').select('*').eq('collection_tag', collectionTag).single();
+    const { data: meta } = await sb.from('collection_metadata').select('collection_tag,name,url_prefix,page_url').eq('collection_tag', collectionTag).single();
     urlPrefix = meta?.url_prefix || collectionTag;
 
     // Update UI

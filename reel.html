@@ -277,33 +277,17 @@ Return ONLY valid JSON (no markdown fences):
     async function grantReward(action, videos, days) {
       if (!OWNER || MEMBERSHIP?.isPrivileged || MEMBERSHIP?.isPaid) return;
       try {
-        // Insert reward (UNIQUE constraint prevents duplicates for milestones)
-        await sbReq("reelcall_rewards", {
-          method: "POST",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({ owner: OWNER, action, videos_earned: videos, days_earned: days })
-        });
-        // Update user capacity and expiry
-        const profile = await sbReq(`reel_users?select=videos_capacity,qa_expires_at&owner=eq.${OWNER}`);
-        if (profile?.[0]) {
-          const newCap = (profile[0].videos_capacity || 10) + videos;
-          const base = new Date(Math.max(new Date(profile[0].qa_expires_at || Date.now()), Date.now()));
-          const newExpiry = new Date(base.getTime() + days * 86400000).toISOString();
-          await sbReq(`reel_users?owner=eq.${OWNER}`, {
-            method: "PATCH",
-            headers: { Prefer: "return=minimal" },
-            body: JSON.stringify({ videos_capacity: newCap, qa_expires_at: newExpiry })
-          });
-          if (MEMBERSHIP) {
-            MEMBERSHIP.videosCapacity = newCap;
-            MEMBERSHIP.daysLeft = Math.ceil((new Date(newExpiry) - Date.now()) / 86400000);
-          }
+        // The database checks the reward is real and decides what it's worth (Oct 2026 lock).
+        const r = await sbReq("rpc/reel_grant_reward", { method: "POST", body: JSON.stringify({ p_action: action }) });
+        if (r?.granted && MEMBERSHIP) {
+          if (r.videos_capacity) MEMBERSHIP.videosCapacity = r.videos_capacity;
+          if (r.qa_expires_at) MEMBERSHIP.daysLeft = Math.ceil((new Date(r.qa_expires_at) - Date.now()) / 86400000);
         }
       } catch (e) { /* reward already granted or error — silent */ }
     }
 
     async function checkMilestone(action, videos, days) {
-      // Only grant if not already granted
+      // Only grant if not already granted (the database also refuses duplicates)
       if (!OWNER || MEMBERSHIP?.isPrivileged || MEMBERSHIP?.isPaid) return;
       try {
         const existing = await sbReq(`reelcall_rewards?owner=eq.${OWNER}&action=eq.${action}&limit=1`);
@@ -313,8 +297,12 @@ Return ONLY valid JSON (no markdown fences):
 
     // ─── Supabase ─────────────────────────────────────────────────────────────
     const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+    // Database calls carry the signed-in user's token, so the database itself decides what
+    // each person may read or change (Oct 2026 lock). Signed-out visitors use the public key
+    // and only see shared videos and the public collections.
     async function sbReq(path, opts = {}) {
-      const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: { ...SBH, ...opts.headers } });
+      const tok = await accessToken();
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...opts, headers: { ...SBH, Authorization: `Bearer ${tok}`, ...opts.headers } });
       if (!r.ok) throw new Error(await r.text());
       if (r.status === 204) return null;
       const text = await r.text();
@@ -344,7 +332,7 @@ Return ONLY valid JSON (no markdown fences):
       try {
         const p = await sbReq(`reel_users?select=videos_added&owner=eq.${OWNER}`);
         const cur = p?.[0]?.videos_added || 0;
-        await sbReq(`reel_users?owner=eq.${OWNER}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ videos_added: cur + 1, hit_limit_at: cur + 1 >= (MEMBERSHIP?.videosCapacity || 10) ? new Date().toISOString() : null }) });
+        await sbReq(`reel_users?owner=eq.${OWNER}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ videos_added: cur + 1 }) });
         if (MEMBERSHIP) MEMBERSHIP.videosUsed = cur + 1;
       } catch {}
     }
@@ -3706,7 +3694,17 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         setProcSteps(prev => prev.map(s => s.id === id ? { ...s, status } : s));
       }
 
+      function goSignInToAdd() {
+        sessionStorage.setItem("reelcall_return_to", window.location.href);
+        window.location.href = "/signup.html";
+      }
+
       async function fetchAndAnalyze() {
+        // Adding a new video to a collection uses AI time, so it needs a ReelCall account (Oct 2026).
+        try {
+          const { data: { session } } = await sbAuth.auth.getSession();
+          if (!session) { setErr("__signin__"); return; }
+        } catch { setErr("__signin__"); return; }
         setProcessing(true);
         setProcSteps([
           { id: "transcript", label: "Fetching transcript", status: "active" },
@@ -3728,6 +3726,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             }),
           });
           const jobData = await jobRes.json();
+          if (jobRes.status === 401) { setProcessing(false); setErr("__signin__"); return; }
           if (jobData.error || !jobData.jobId) throw new Error(jobData.error || "Could not start processing");
 
           // Poll for completion — background pipeline continues even if this
@@ -3793,7 +3792,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
           .catch(() => {});
         // Fetch partner branding
         if (collection) {
-          sbReq(`collection_metadata?select=*&collection_tag=eq.${collection}&limit=1`)
+          sbReq(`collection_metadata?select=collection_tag,name,bio,website_url,logo_url,page_url,show_branding,no_share,url_prefix,display_config&collection_tag=eq.${collection}&limit=1`)
             .then((rows) => { if (rows?.[0]?.show_branding) setPartner(rows[0]); })
             .catch(() => {});
         }
@@ -3844,6 +3843,19 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
             <p style={{ color:"#fff", fontSize:17, fontWeight:700, marginBottom:8 }}>Video is ready!</p>
             <p style={{ color:"var(--t2)", fontSize:14, lineHeight:1.6, marginBottom:24 }}>Click the refresh button on your browser to view the summary.</p>
             <button onClick={() => window.location.reload()} style={{ background:"var(--acc)", color:"#fff", border:"none", borderRadius:10, padding:"12px 28px", fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"Figtree,system-ui" }}>↺ Refresh Now</button>
+          </div>
+        </div>
+      );
+
+      // ── Sign-in needed to add a new video to the collection ────────────────
+      if (err === "__signin__") return (
+        <div className={`reel${dark ? " dark" : ""}`} style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
+          <div style={{ textAlign:"center", padding:40, maxWidth:420 }}>
+            <img src="/reelcall-logo-big.png" alt="ReelCall" style={{ height:60, width:"auto", display:"block", margin:"0 auto 20px" }} />
+            <p style={{ color:"var(--text)", fontSize:17, fontWeight:700, marginBottom:8 }}>This video isn't in the collection yet</p>
+            <p style={{ color:"var(--t2)", fontSize:14, lineHeight:1.6, marginBottom:24 }}>Sign in to ReelCall (it's free) and we'll add it. It takes about a minute.</p>
+            <button onClick={goSignInToAdd} style={{ background:"var(--acc)", color:"#fff", border:"none", borderRadius:10, padding:"12px 28px", fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"Figtree,system-ui" }}>Sign in to add it →</button>
+            {collection && <p style={{ marginTop:18 }}><a href={collectionUrl} style={{ color:"var(--acc)", fontSize:14 }}>← Back to {collectionLabel}</a></p>}
           </div>
         </div>
       );
