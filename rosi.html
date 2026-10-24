@@ -427,6 +427,19 @@ const sbHeaders = {
   'Prefer': 'return=representation'
 };
 
+// Security update (Oct 2026): the database only answers requests that carry a real
+// household key, so the key rides along on every request as x-rosi-key. Without it
+// (or with a wrong one) every list simply comes back empty.
+function useHouseholdKey(k){ if(k) sbHeaders['x-rosi-key'] = k; else delete sbHeaders['x-rosi-key']; }
+async function householdKeyIsValid(){
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/rosi_household_ok`, { method: 'POST', headers: sbHeaders, body: '{}' });
+    if(!r.ok) return true; // can't tell (older database) — let the normal calls decide
+    return (await r.json()) === true;
+  } catch(e){ return true; } // offline: don't lock anyone out of the page itself
+}
+const BAD_KEY_MSG = "That household key isn't valid any more — ask for the current Rosi link.";
+
 async function sbGet(table, params = '') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, { headers: sbHeaders });
   if (!r.ok) throw new Error(`sbGet ${table}: ${r.status}`);
@@ -460,8 +473,14 @@ function getMondayOf(d=new Date()) {
 // ── GATE ─────────────────────────────────────────────────────────
 let gateStep = 'key';
 
-(function init() {
+(async function init() {
   KEY  = new URLSearchParams(location.search).get('key') || '';
+  useHouseholdKey(KEY);
+  if (KEY && !(await householdKeyIsValid())) {
+    alert(BAD_KEY_MSG);
+    KEY = ''; useHouseholdKey('');
+    const u = new URL(location.href); u.searchParams.delete('key'); u.searchParams.delete('name'); history.replaceState({}, '', u);
+  }
   USER = new URLSearchParams(location.search).get('name') || localStorage.getItem('rosi_user_'+KEY) || '';
   if (KEY && USER) { boot(); return; }
   document.getElementById('gate').style.display = 'flex';
@@ -499,10 +518,12 @@ async function showNameStep() {
   }
 }
 
-function gateNext() {
+async function gateNext() {
   if (gateStep === 'key') {
     KEY = document.getElementById('keyInput').value.trim();
     if (!KEY) { document.getElementById('keyInput').focus(); return; }
+    useHouseholdKey(KEY);
+    if (!(await householdKeyIsValid())) { alert(BAD_KEY_MSG); KEY = ''; useHouseholdKey(''); document.getElementById('keyInput').focus(); return; }
     const u = new URL(location.href); u.searchParams.set('key', KEY); history.replaceState({}, '', u);
     document.getElementById('gateKeySection').style.display = 'none';
     showNameStep();
