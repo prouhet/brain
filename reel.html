@@ -85,10 +85,11 @@
     const WEB_SEARCH = [{ type: "web_search_20250305", name: "web_search" }];
 
     // ─── User resolution ─────────────────────────────────────────────────────
-    const PRIVILEGED = {
-      dave:   { owner: "dave",   brainKey: "88a95862d645a60e54185d899a3d538bff32eebf67f8913177986c81d50b74de" },
-      doreen: { owner: "doreen", brainKey: "5ae5c4988e41e9799e4f5ef3c54053510a734bde9a030eedfb32ca3fc1e14b18" },
-    };
+    // The ?user=dave / ?user=doreen shortcut (and the brain keys that came with it) was
+    // removed in Oct 2026: anyone could add it to a link. Dave and Doreen sign in like
+    // everyone else; admin rights come from reel_users.is_admin, and the brain server is
+    // attached by claude-proxy on the server, so no brain key is ever sent to the browser.
+    const PRIVILEGED = {};
 
     const params = new URLSearchParams(window.location.search);
     const STRIPE_MONTHLY = "https://buy.stripe.com/4gM7sL5Yp3vOgl86midUY00";
@@ -149,6 +150,18 @@ Return ONLY valid JSON (no markdown fences):
     }
     const userParam = (params.get("user") || "").toLowerCase();
     const sbAuth = supabase.createClient(SB_URL, SB_KEY);
+    try { localStorage.removeItem("rc_privileged_user"); } catch {}
+
+    // The signed-in user's token for server functions (claude-proxy, get-transcript,
+    // process-video, resolve-channel). Those check who's asking, so the public key alone
+    // only gets the limited visitor tier. Refreshes automatically via supabase-js.
+    async function accessToken() {
+      try {
+        const { data: { session } } = await sbAuth.auth.getSession();
+        if (session?.access_token) return session.access_token;
+      } catch {}
+      return SB_KEY;
+    }
 
     // Determine current user — resolved async in App
     let OWNER = "guest";
@@ -234,9 +247,12 @@ Return ONLY valid JSON (no markdown fences):
 
       AUTH_USER = session.user;
       OWNER = profile.owner;
-      BRAIN_MCP = null;
+      // Admins (Dave/Doreen) get the brain features. The flag only tells claude-proxy to
+      // attach the brain server; the key stays on the server.
+      const isAdmin = !!profile.is_admin;
+      BRAIN_MCP = isAdmin ? { serverSide: true } : null;
 
-      const isPaid = !!profile.stripe_subscription_id;
+      const isPaid = !!profile.stripe_subscription_id || isAdmin;
       const videosCapacity = profile.videos_capacity || 10;
       const videosUsed = profile.videos_added || 0;
       // Note: MEMBERSHIP.videosUsed gets updated to actual library count after videos load
@@ -253,7 +269,7 @@ Return ONLY valid JSON (no markdown fences):
         referrals = (rewards || []).filter(r => r.action.startsWith('referral_')).length;
       } catch {}
 
-      MEMBERSHIP = { daysLeft, videosUsed, videosCapacity, isPaid, isPrivileged: false, expiresAt: qaExpiresAt, sharesCreated, referrals, tier: profile.tier || 1 };
+      MEMBERSHIP = { daysLeft, videosUsed, videosCapacity, isPaid, isPrivileged: isAdmin, expiresAt: qaExpiresAt, sharesCreated, referrals, tier: profile.tier || 1 };
       return { ok: true };
     }
 
@@ -393,10 +409,10 @@ Return ONLY valid JSON (no markdown fences):
     async function callClaude({ system, messages, maxTokens = 1000, tools, mcp }) {
       const body = { model: "claude-sonnet-4-6", max_tokens: maxTokens, system, messages };
       if (tools?.length) body.tools = tools;
-      if (mcp) body.mcp_servers = [mcp];
+      if (mcp) body.use_brain = true; // claude-proxy attaches the brain server for admins
       const r = await fetch("https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/claude-proxy", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await accessToken()}` },
         body: JSON.stringify(body),
       });
       if (!r.ok) {
@@ -932,7 +948,7 @@ Return ONLY valid JSON (no markdown fences):
         try {
           const res = await fetch(`${SB_URL}/functions/v1/resolve-channel`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${await accessToken()}` },
             body: JSON.stringify({ input: url }),
           });
           const data = await res.json();
@@ -1420,7 +1436,7 @@ Return ONLY valid JSON (no markdown fences):
         try {
           const res = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await accessToken()}` },
             body: JSON.stringify({ channelUrl: normalized, limit: 10, offset: newOffset }),
           });
           const data = await res.json();
@@ -1481,7 +1497,7 @@ Return ONLY valid JSON (no markdown fences):
             if (!tData) {
               const tRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await accessToken()}` },
                 body: JSON.stringify({ videoId: v.videoId }),
               });
               tData = await tRes.json();
@@ -1495,7 +1511,7 @@ Return ONLY valid JSON (no markdown fences):
               const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
               const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await accessToken()}` },
                 body: JSON.stringify({
                   model: "claude-sonnet-4-6",
                   max_tokens: 2000,
@@ -1806,7 +1822,7 @@ Return ONLY valid JSON (no markdown fences):
           setStepStatus("transcript", "active");
           const jobRes = await fetch(`${SB_URL}/functions/v1/process-video`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${await accessToken()}` },
             body: JSON.stringify({ videoId, owner: OWNER }),
           });
           const jobData = await jobRes.json();
@@ -3152,7 +3168,7 @@ Instructions:
         const userParam = (urlParams.get("user") || "").toLowerCase();
         const storedPrivileged = localStorage.getItem("rc_privileged_user") || "";
         const effectiveUser = userParam || storedPrivileged;
-        const PRIVILEGED_USERS = { dave: "dave", doreen: "doreen" };
+        const PRIVILEGED_USERS = {}; // ?user= shortcut removed Oct 2026: sign in instead
         if (PRIVILEGED_USERS[effectiveUser]) {
           setAuthUser({ id: effectiveUser, owner: effectiveUser, privileged: true });
         } else {
@@ -3620,7 +3636,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         const userParam = (urlParams.get("user") || "").toLowerCase();
         const storedPrivileged = localStorage.getItem("rc_privileged_user") || "";
         const effectiveUser = userParam || storedPrivileged;
-        const PRIVILEGED_USERS = { dave: "dave", doreen: "doreen" };
+        const PRIVILEGED_USERS = {}; // ?user= shortcut removed Oct 2026: sign in instead
         if (PRIVILEGED_USERS[effectiveUser]) {
           setAuthUser({ id: effectiveUser, owner: effectiveUser, privileged: true });
         } else {
@@ -3702,7 +3718,7 @@ ${(video.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}`,
         try {
           const jobRes = await fetch(`${SB_URL}/functions/v1/process-video`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${await accessToken()}` },
             body: JSON.stringify({
               videoId,
               owner: "preview_visitor",

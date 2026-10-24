@@ -94,7 +94,7 @@
 <body>
   <div id="gate" class="gate" style="display:none">
     <h2>Access Denied</h2>
-    <p>This page is only accessible to Dave or Doreen.</p>
+    <p>This page is only for ReelCall admins. Sign in to ReelCall with your admin account first, then come back.</p>
     <a href="/reel.html" style="color:var(--acc)">← Back to ReelCall</a>
   </div>
 
@@ -385,13 +385,29 @@
 
     let users = [], videoCounts = {};
 
-    if (!ADMINS.includes(userParam)) {
-      document.getElementById("gate").style.display = "flex";
-    } else {
-      document.getElementById("app").style.display = "";
-      document.getElementById("admin-user").textContent = `Signed in as ${userParam}`;
-      init();
+    // Admin = a signed-in ReelCall account with reel_users.is_admin (Oct 2026). The old
+    // ?user=dave check ran only in the browser, so anyone could open this page with it.
+    async function fnToken() {
+      try { const { data: { session } } = await sb.auth.getSession(); if (session?.access_token) return session.access_token; } catch (e) {}
+      return SB_KEY;
     }
+    (async () => {
+      let me = null;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+          const { data } = await sb.from("reel_users").select("owner,is_admin").eq("id", session.user.id).single();
+          me = data;
+        }
+      } catch (e) {}
+      if (!me || !me.is_admin) {
+        document.getElementById("gate").style.display = "flex";
+      } else {
+        document.getElementById("app").style.display = "";
+        document.getElementById("admin-user").textContent = `Signed in as ${me.owner}`;
+        init();
+      }
+    })();
 
     async function init() {
       const [usersRes, videosRes] = await Promise.all([
@@ -701,7 +717,7 @@
           setStep('cache', 'done'); setStep('transcript', 'active');
           document.getElementById('coll-prog-fill').style.width = '33%';
           document.getElementById('coll-prog-msg').textContent = 'Fetching transcript...';
-          const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ videoId }) });
+          const txRes = await fetch(`${SB_URL}/functions/v1/get-transcript`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await fnToken()}` }, body: JSON.stringify({ videoId }) });
           const txData = await txRes.json();
           if (txData.error && !txData.transcript) throw new Error(txData.error);
           transcript = txData.transcript;
@@ -711,7 +727,7 @@
           document.getElementById('coll-prog-msg').textContent = 'Claude analyzing...';
           const dur = txData.duration || null;
           const kpCount = dur ? dur < 600 ? 5 : dur < 1800 ? 9 : dur < 3600 ? 12 : dur < 5400 ? 18 : 22 : 8;
-          const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: `Analyze this video transcript. Return ONLY valid JSON:\n{\n  "title": "exact video title",\n  "channel": "channel name",\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote"],\n  "tags": ["up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance peptides longevity biohacking"],\n  "actionSuggestions": ["specific action", "...up to 3"],\n  "whatsNew": "one contrarian or surprising claim",\n  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }\n}`, messages: [{ role: 'user', content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${transcript}` }] }) });
+          const aRes = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await fnToken()}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, system: `Analyze this video transcript. Return ONLY valid JSON:\n{\n  "title": "exact video title",\n  "channel": "channel name",\n  "summary": "2-3 paragraph narrative arc",\n  "keyPoints": ["specific fact", "...up to ${kpCount}"],\n  "quotes": ["short direct quote"],\n  "tags": ["up to 5 from: fitness nutrition business mindset marketing training recovery lifestyle technology productivity health motivation coaching science research investment macro finance peptides longevity biohacking"],\n  "actionSuggestions": ["specific action", "...up to 3"],\n  "whatsNew": "one contrarian or surprising claim",\n  "credibility": { "score": "high|medium|low", "flags": [], "note": "" }\n}`, messages: [{ role: 'user', content: `Video: https://youtube.com/watch?v=${videoId}\n\nFULL TRANSCRIPT:\n${transcript}` }] }) });
           const aData = await aRes.json();
           const text = (aData.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
           const parsed = JSON.parse(text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim());
@@ -780,7 +796,7 @@
         const videos = await sbReq(`youtube_videos?select=id,video_id,title,channel,summary,key_points&owner=eq.${COLLECTION_OWNER}&collection_tag=eq.${collection}&order=date_added.asc`);
         if (!videos?.length) { collToast('No videos in this collection yet'); return; }
         const ctx = videos.map((v, i) => `[${i+1}] "${v.title}" — ${v.channel || 'Unknown'}\nSummary: ${v.summary || ''}\nKey Points: ${(v.key_points || []).join('; ')}`).join('\n\n---\n\n');
-        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SB_KEY}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos.\n\n${ctx}\n\nAnswer by synthesizing across all relevant videos. Cite video titles in brackets. Be specific. Use bold for key conclusions.`, messages: [{ role: 'user', content: question }] }) });
+        const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await fnToken()}` }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, system: `You are a knowledge base assistant synthesizing insights from ${videos.length} videos.\n\n${ctx}\n\nAnswer by synthesizing across all relevant videos. Cite video titles in brackets. Be specific. Use bold for key conclusions.`, messages: [{ role: 'user', content: question }] }) });
         const data = await resp.json();
         const answer = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
         demoResult = { collection, question, answer };
@@ -870,7 +886,7 @@ Return ONLY valid JSON:
 
           const resp = await fetch(`${SB_URL}/functions/v1/claude-proxy`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SB_KEY}` },
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await fnToken()}` },
             body: JSON.stringify(body)
           });
           const respData = await resp.json();
@@ -979,8 +995,8 @@ Return ONLY valid JSON:
 
     // ── Patch Missing Durations ───────────────────────────────────────────────
     let durRunning = false;
-    const NUC_URL = "https://reel.studiostrong.fit";
-    const NUC_TOKEN = "reelcall-transcript-2026";
+    // Durations come through the get-transcript function now; the transcript server's
+    // token no longer lives in this page.
 
     async function startPatchDurations() {
       if (durRunning) return;
@@ -1002,9 +1018,9 @@ Return ONLY valid JSON:
         let duration = null;
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            const res = await fetch(`${NUC_URL}/transcript`, {
+            const res = await fetch(`${SB_URL}/functions/v1/get-transcript`, {
               method: "POST",
-              headers: { "Content-Type": "application/json", "X-Transcript-Token": NUC_TOKEN },
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${await fnToken()}` },
               body: JSON.stringify({ videoId: video.video_id })
             });
             const data = await res.json();
