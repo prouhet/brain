@@ -771,7 +771,7 @@
 
       // Load metadata for all collections
       const metaRes = await fetch(
-        `${SB_URL}/rest/v1/collection_metadata?select=*`,
+        `${SB_URL}/rest/v1/collection_metadata?select=collection_tag,name,bio,website_url,logo_url,page_url,url_prefix,is_public,show_branding,display_config`,
         { headers: HEADERS }
       ).catch(() => null);
       const metadata = metaRes?.ok ? await metaRes.json() : [];

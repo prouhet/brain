@@ -171,14 +171,13 @@
       if (pass.length < 10 || !/[A-Za-z]/.test(pass) || !/[0-9]/.test(pass)) { setMsg("msg-signup", "Password needs at least 10 characters, with both letters and numbers.", "err"); return; }
       if (!usernameInput || usernameInput.length < 3) { setMsg("msg-signup", "Please choose a username — at least 3 characters.", "err"); return; }
       if (usernameInput.length > 20) { setMsg("msg-signup", "Username must be 20 characters or less.", "err"); return; }
+      if (!/^[A-Za-z0-9._-]+$/.test(usernameInput)) { setMsg("msg-signup", "Usernames can use letters, numbers, dots, dashes and underscores.", "err"); return; }
 
-      // Validate coupon code if entered
+      // Validate coupon code if entered (looked up one code at a time; codes can't be listed)
       const couponInput = (document.getElementById("coupon-code")?.value || "").trim().toUpperCase();
-      let couponData = null;
       if (couponInput) {
-        const { data: coupon, error: cErr } = await sb.from("coupon_codes")
-          .select("*").eq("code", couponInput).eq("active", true).maybeSingle();
-        if (cErr || !coupon) {
+        const { data: coupon } = await sb.rpc("reel_check_coupon", { p_code: couponInput });
+        if (!coupon?.ok) {
           setMsg("msg-signup", "That coupon code isn't valid — double-check and try again.", "err");
           setBtnLoading("btn-signup", false); return;
         }
@@ -186,7 +185,6 @@
           setMsg("msg-signup", "That coupon code is fully redeemed — no spots left.", "err");
           setBtnLoading("btn-signup", false); return;
         }
-        couponData = coupon;
         const msgEl = document.getElementById("coupon-msg");
         if (msgEl) msgEl.textContent = `✓ ${coupon.description || "Discount applied"}`;
       }
@@ -194,46 +192,40 @@
       setBtnLoading("btn-signup", true);
       try {
         // Check username is available
-        const { data: existing } = await sb.from("reel_users").select("id").eq("owner", usernameInput).maybeSingle();
-        if (existing) { setMsg("msg-signup", "That username is already taken — try another.", "err"); setBtnLoading("btn-signup", false); return; }
+        const { data: avail } = await sb.rpc("reel_username_available", { p_username: usernameInput });
+        if (avail && avail.available === false) {
+          setMsg("msg-signup", avail.reason === "invalid" ? "That username isn't allowed — try another." : "That username is already taken — try another.", "err");
+          setBtnLoading("btn-signup", false); return;
+        }
 
-        const { data, error } = await sb.auth.signUp({ email, password: pass });
-        if (error) throw error;
-        const owner = usernameInput;
-        const qaExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+        // The database creates the profile, applies the coupon and credits whoever referred
+        // them, from these details (Oct 2026 lock: the page no longer writes those itself).
         const referredBy = sessionStorage.getItem("reelcall_referred_by") || null;
         const referredVideo = sessionStorage.getItem("reelcall_referred_video") || null;
-        await sb.from("reel_users").insert({
-          id: data.user.id, email, owner,
-          trial_ends_at: qaExpiresAt, qa_expires_at: qaExpiresAt,
-          active: true, videos_capacity: 30,
-          referred_by: referredBy,
-          coupon_used: couponData?.code || null,
+        const { data, error } = await sb.auth.signUp({
+          email, password: pass,
+          options: {
+            emailRedirectTo: "https://reelcall.app/reel.html",
+            data: { username: usernameInput, coupon: couponInput || null, referred_by: referredBy, referred_video: referredVideo },
+          },
         });
-        // Increment coupon uses
-        if (couponData) {
-          await sb.from("coupon_codes").update({ uses_count: (couponData.uses_count || 0) + 1 }).eq("id", couponData.id);
-        }
-        // Credit referrer if exists
-        if (referredBy) {
-          try {
-            // Grant referrer +15 videos +15 days
-            const action = `referral_${owner}`;
-            await sb.from("reelcall_rewards").insert({ owner: referredBy, action, videos_earned: 15, days_earned: 15 });
-            const p = await sb.from("reel_users").select("videos_capacity, qa_expires_at").eq("owner", referredBy).single();
-            if (p.data) {
-              const newCap = (p.data.videos_capacity || 10) + 15;
-              const base = new Date(Math.max(new Date(p.data.qa_expires_at || Date.now()), Date.now()));
-              const newExpiry = new Date(base.getTime() + 15 * 86400000).toISOString();
-              await sb.from("reel_users").update({ videos_capacity: newCap, qa_expires_at: newExpiry }).eq("owner", referredBy);
-            }
-            // Mark share view with signup
-            if (referredVideo) {
-              await sb.from("reel_share_views").update({ signed_up_as: owner }).eq("video_id", referredVideo).eq("owner", referredBy).is("signed_up_as", null);
-            }
-          } catch(e) { console.log("referral credit error", e); }
-          sessionStorage.removeItem("reelcall_referred_by");
-          sessionStorage.removeItem("reelcall_referred_video");
+        if (error) throw error;
+        sessionStorage.removeItem("reelcall_referred_by");
+        sessionStorage.removeItem("reelcall_referred_video");
+
+        // If email confirmation is switched on, there's no session yet: ask them to check email.
+        if (!data?.session) {
+          document.getElementById("form-signup").innerHTML = `
+            <div style="text-align:center;padding:8px 0">
+              <div style="font-size:40px;margin-bottom:16px">📬</div>
+              <h3 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--ink);margin-bottom:10px">Check your email</h3>
+              <p style="font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:20px">
+                We sent a confirmation link to <strong></strong>. Click it to finish setting up your account.
+              </p>
+            </div>
+          `;
+          document.querySelector("#form-signup strong").textContent = email;
+          return;
         }
         document.getElementById("form-signup").innerHTML = `
           <div style="text-align:center;padding:8px 0">

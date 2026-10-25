@@ -198,15 +198,17 @@
       if (!username || username.length < 3) { setMsg("msg-username", "Username must be at least 3 characters.", "err"); return; }
       if (username === currentProfile?.owner) { setMsg("msg-username", "That's already your username.", "err"); return; }
 
-      // Check uniqueness
-      const { data: existing } = await sb.from("reel_users").select("id").eq("owner", username).maybeSingle();
-      if (existing && existing.id !== currentUser.id) { setMsg("msg-username", "That username is already taken — try another.", "err"); return; }
-
-      const { error } = await sb.from("reel_users").update({ owner: username }).eq("id", currentUser.id);
+      // The database renames the account and moves the whole library with it (Oct 2026 lock).
+      const { data: res, error } = await sb.rpc("reel_change_username", { p_new: username });
       if (error) { setMsg("msg-username", "Save failed: " + error.message, "err"); return; }
-
-      // Also update all their videos to new owner
-      await sb.from("youtube_videos").update({ owner: username }).eq("owner", currentProfile.owner);
+      if (!res?.ok) {
+        const why = { taken: "That username is already taken — try another.",
+                      invalid: "Usernames are 3–20 letters, numbers, dots, dashes or underscores.",
+                      same: "That's already your username.",
+                      admin_locked: "Admin usernames are tied to the Brain and can't be changed here." }[res?.error];
+        setMsg("msg-username", why || "Save failed — please try again.", "err"); return;
+      }
+      try { sessionStorage.removeItem("reel_videos_cache"); } catch {}
 
       currentProfile = { ...currentProfile, owner: username };
       setMsg("msg-username", "✓ Username updated to <strong>" + username + "</strong> — changes take effect on next library load.", "ok");
@@ -233,8 +235,8 @@
 
     async function deactivateAccount() {
       if (!confirm("Deactivate your account? Your library will be hidden but your data is kept. You can reactivate by contacting us.")) return;
-      const { error } = await sb.from("reel_users").update({ active: false }).eq("id", currentUser.id);
-      if (error) { setMsg("msg-account", "Error: " + error.message, "err"); return; }
+      const { data: res, error } = await sb.rpc("reel_close_account", { p_erase: false });
+      if (error || !res?.ok) { setMsg("msg-account", "Error: " + (error?.message || (res?.error === "admin_locked" ? "admin accounts can't be closed here" : "please try again")), "err"); return; }
       await sb.auth.signOut();
       window.location.href = "/signup.html";
     }
@@ -245,10 +247,9 @@
       const typed = prompt("Type DELETE to confirm:");
       if (typed !== "DELETE") { setMsg("msg-account", "Account not deleted — confirmation didn't match.", "err"); return; }
       try {
-        // Disassociate videos from this owner (keep in DB for cache — set owner to null)
-        await sb.from("youtube_videos").update({ owner: null, shared: false }).eq("owner", currentProfile.owner);
-        // Deactivate their profile
-        await sb.from("reel_users").update({ active: false, owner: "deleted_" + currentProfile.owner }).eq("id", currentUser.id);
+        // The database detaches the library (kept for the shared cache) and closes the account.
+        const { data: res, error } = await sb.rpc("reel_close_account", { p_erase: true });
+        if (error || !res?.ok) throw new Error(error?.message || (res?.error === "admin_locked" ? "admin accounts can't be deleted here" : "please try again"));
         await sb.auth.signOut();
         window.location.href = "/signup.html";
       } catch (e) {
