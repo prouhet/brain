@@ -238,6 +238,49 @@
   .scope button { font:inherit; font-size:13px; padding:10px 10px; border:0; background:none; color:var(--dim); cursor:pointer; }
   .scope button[aria-pressed=true] { background:var(--teal-dim); color:var(--teal); font-weight:600; }
 
+  /* Saved videos: a collapsible card like the workout log. Videos from the last few days, each with a
+     synopsis, a guess at why you saved it, and Ask / Task / App / done. */
+  .vidbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:2px; }
+  .vidbar .scope button { padding:7px 11px; }
+  .vidbar .btn { padding:7px 12px; font-size:13px; }
+  .vidstatus { font-size:12px; color:var(--faint); margin:8px 0 0; }
+  .vidday { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:16px 0 2px; }
+  .vid { border-bottom:1px solid var(--line); }
+  .vgroup .vid:last-child { border-bottom:0; }
+  .vid > .row { padding:10px 0 4px; }
+  .vtitle { font-weight:500; color:var(--text); text-decoration:none; overflow-wrap:anywhere; }
+  .vtitle:hover, .vtitle:focus-visible { color:var(--teal); text-decoration:underline; outline:none; }
+  .vmeta { font-size:12px; color:var(--faint); margin-top:1px; overflow-wrap:anywhere; }
+  .vsyn { font-size:14px; color:var(--dim); margin-top:4px; overflow-wrap:anywhere; }
+  .vwhy { font-size:14px; margin-top:8px; padding-left:8px; border-left:2px solid var(--teal); overflow-wrap:anywhere; }
+  .vwhy.pending { color:var(--faint); border-left-color:var(--line2); }
+  .vlab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-right:6px; }
+  .vconf { font-size:11px; font-weight:600; border:1px solid currentColor; border-radius:999px; padding:0 7px; white-space:nowrap; }
+  .vconf.high { color:var(--done); } .vconf.medium { color:var(--teal); } .vconf.low { color:var(--faint); }
+  .vnext { font-size:13px; color:var(--dim); margin-top:4px; overflow-wrap:anywhere; }
+  .vpanel { margin:2px 0 12px 44px; display:flex; flex-direction:column; gap:8px; }
+  .vpanel .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
+  .vpanel textarea { min-height:52px; }
+  .vpanel select { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:8px 10px; width:100%; }
+  .vpanel .aprow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .vpanel .apdate { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:8px 10px; }
+  .vpanel .apbtns { margin-left:auto; display:flex; gap:8px; }
+  .vqa { border-left:2px solid var(--line2); padding-left:10px; }
+  .vqa .askans { font-size:15px; }
+  .vid.isdone > .row { padding:8px 0; }
+  .vid.isdone .box { background:var(--done); border-color:var(--done); }
+  .vid.isdone .box svg { opacity:1; transform:scale(1); }
+  .vid.isdone .vtitle { color:var(--faint); }
+  .vtag { font-size:12px; color:var(--done); margin-left:6px; white-space:nowrap; }
+  .vdonelist { margin-top:14px; font-size:14px; color:var(--dim); }
+  .vdonelist > summary { cursor:pointer; padding:6px 0; color:var(--dim); }
+  .vdonelist > summary:hover { color:var(--teal); }
+  .vempty { padding:14px 0 6px; color:var(--dim); font-size:14px; }
+  .vwatch { margin-top:14px; font-size:14px; color:var(--dim); }
+  .vwatch > summary { cursor:pointer; padding:6px 0; color:var(--dim); }
+  .vwatch > summary:hover { color:var(--teal); }
+  .vwatchbar { margin:4px 0 0; }
+
   #toast {
     position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--text); color:var(--bg);
     font-size:14px; padding:9px 14px; border-radius:8px; display:none; max-width:90vw;
@@ -283,6 +326,7 @@
     </div>
   </details>
   <div id="fitness"></div>
+  <div id="videos"></div>
   <main id="main"></main>
 </div>
 
@@ -476,6 +520,7 @@ async function load() {
   if (TODAY && !addRoot()) buildAddOpts();
   $("#next").disabled = DATE >= TODAY;
   if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
+  videosGate();
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
     $("#main").innerHTML = `<div class="empty"><p>No brief for ${esc(longDate(DATE))}.</p><p>${DATE === TODAY ? "It's built at 5:30 each morning. Anything you add below still lands in your priorities." : "Briefs only exist for days the email went out."}</p></div>`;
@@ -1140,6 +1185,348 @@ $("#askout").addEventListener("click", async (e) => {
     toast(`Added for ${when}`);
     await load();
   } else { lock(false); toast(r.data.error || "Couldn't add it. Try again."); }
+});
+
+// ── Saved videos ─────────────────────────────────────────────
+// The videos you saved to ReelCall over the last few days, so you can catch up in one place. Each has a
+// synopsis and a guess at why you saved it (read by the brief-videos function, which keeps its own
+// record, separate from your tasks). From here you can ask a follow-up about a video (answered from
+// its transcript), turn it into a task, file it under an app, or mark it done. Tasks and app ideas go
+// through the same kind of "add" as everything else on this page, and only when you tap the button.
+const VID_FN = FN.replace(/morning-brief$/, "brief-videos");
+const V = {
+  started: false, loaded: false, err: "", days: 4, videos: [], apps: [],
+  syncing: false, run: 0,
+  open: {},          // video id → "ask" | "task" | "app": which panel is open under it
+  drafts: {},        // video id → what's typed in its open panel, kept across re-draws
+  scopeBy: {},       // video id (or id+":app") → "business" | "personal"
+  answering: {},     // video id → the question being answered right now
+  confirmAll: false,   // which "mark all" button is waiting for its second tap: "hand" | "watch"
+  dirty: false,
+};
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
+const vidById = (id) => V.videos.find((v) => v.id === id);
+const vidIsNew = (v) => v.status === "new";
+
+async function vidApi(body) {
+  try {
+    const res = await fetch(`${VID_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+
+// Shown only on today's page, and only with a key.
+function videosGate() {
+  const show = !!KEY && !!TODAY && DATE === TODAY;
+  if (!show) { V.started = false; V.run++; $("#videos").innerHTML = ""; return; }
+  if (!V.started) { V.started = true; vidsStart(); }
+}
+async function vidsStart() {
+  renderVideos();
+  await vidsRefresh();
+  vidsSync();
+}
+async function vidsRefresh(soft) {
+  const r = await vidApi({ action: "list", days: V.days });
+  if (r.ok) { V.videos = r.data.videos || []; V.apps = r.data.apps || V.apps; V.err = ""; }
+  else V.err = r.data.error || "Couldn't load your saved videos.";
+  V.loaded = true;
+  renderVideos(soft);
+}
+// Reads the videos you added by hand that haven't been read yet, a handful per pass, filling the card in as it goes.
+async function vidsSync() {
+  const run = ++V.run;
+  for (let i = 0; i < 6 && run === V.run && V.videos.some((v) => v.pending); i++) {
+    V.syncing = true; renderVideos(true);
+    const r = await vidApi({ action: "sync", days: V.days });
+    if (run !== V.run) return;
+    if (!r.ok || !r.data.analyzed) break;      // nothing more to learn right now: the card falls back to ReelCall's own summary
+    await vidsRefresh(true);
+  }
+  if (run === V.run) { V.syncing = false; renderVideos(true); }
+}
+
+const vidDayLabel = (d) => d === TODAY ? "Today" : d === shiftDate(TODAY, -1) ? "Yesterday" : shortDate(d);
+function vidTyping() {
+  const a = document.activeElement, host = $("#videos");
+  return !!(a && host && host.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+// What's typed in an open panel survives the card being re-drawn (a video getting read, another one ticked off).
+function vidCaptureDrafts() {
+  document.querySelectorAll("#videos .vid[data-vid]").forEach((el) => {
+    const id = el.dataset.vid, fields = el.querySelectorAll("[data-vfield]");
+    if (!fields.length || !V.open[id]) return;
+    const d = V.drafts[id] || (V.drafts[id] = {});
+    fields.forEach((f) => { d[f.dataset.vfield] = f.value; });
+  });
+}
+
+function vidItemHTML(v) {
+  const url = safeUrl(v.url);
+  const title = url ? `<a class="vtitle" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(v.title)}</a>` : `<span class="vtitle">${esc(v.title)}</span>`;
+  const meta = [v.channel, v.source === "watch" ? "from a channel you follow" : ""].filter(Boolean).join(" · ");
+  const confText = { high: "clear fit", medium: "possible fit", low: "weak guess" }[v.conf] || "";
+  let why = "";
+  if (v.source === "hand") {
+    if (v.why) why = `<div class="vwhy"><span class="vlab">Why you may have saved it</span>${confText ? `<span class="vconf ${esc(v.conf)}">${confText}</span>` : ""}<div>${esc(v.why)}</div></div>`;
+    else if (v.pending) why = `<div class="vwhy pending">${V.syncing ? "Reading this one…" : "Not read yet. It will be next time you open this."}</div>`;
+  }
+  const next = v.source === "hand" && v.next_step ? `<div class="vnext">Next step: ${esc(v.next_step)}</div>` : "";
+  const open = V.open[v.id] || "";
+  const on = (a) => (open === a ? ' aria-expanded="true"' : ' aria-expanded="false"');
+  return `<div class="vid" data-vid="${esc(v.id)}">
+    <div class="row">
+      <button class="check" data-vact="done" aria-pressed="false" aria-label="Mark done: ${esc(v.title)}"><span class="box">${CHECK_SVG}</span></button>
+      <div class="text">
+        ${title}
+        ${meta ? `<div class="vmeta">${esc(meta)}</div>` : ""}
+        <div class="vsyn">${esc(v.synopsis)}</div>
+        ${why}${next}
+      </div>
+      <div class="tools">
+        <button data-vact="ask"${on("ask")} aria-label="Ask a question about ${esc(v.title)}">Ask${v.qa && v.qa.length ? ` (${v.qa.length})` : ""}</button>
+        <button data-vact="task"${on("task")} aria-label="Make a task from ${esc(v.title)}">Task</button>
+        <button data-vact="app"${on("app")} aria-label="File ${esc(v.title)} under an app">App</button>
+      </div>
+    </div>
+    ${open === "ask" ? vidAskPanel(v) : open === "task" ? vidTaskPanel(v) : open === "app" ? vidAppPanel(v) : ""}
+  </div>`;
+}
+
+function vidAskPanel(v) {
+  const d = V.drafts[v.id] || {}, wait = V.answering[v.id];
+  const thread = (v.qa || []).map((x) => `<div class="vqa"><div class="askq">${esc(x.q)}</div><div class="askans">${esc(x.a)}</div></div>`).join("");
+  const pend = wait ? `<div class="vqa"><div class="askq">${esc(wait)}</div><div class="askans">Reading the transcript…</div></div>` : "";
+  const chips = !(v.qa || []).length && !wait ? `<div class="chips">${["How could I use this?", "What are the key takeaways?", "Is it worth watching in full?"]
+    .map((q) => `<button type="button" class="chip" data-vq="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : "";
+  return `<div class="vpanel" data-vp="ask">${thread}${pend}${chips}
+    <form class="askform vaskform"><input type="text" data-vfield="q" value="${esc(d.q || "")}" placeholder="Ask about this video…" maxlength="600" autocomplete="off" aria-label="Question about this video"${wait ? " disabled" : ""}>
+    <button class="btn" type="submit"${wait ? " disabled" : ""}>Ask</button></form></div>`;
+}
+function vidScopeHTML(sc) {
+  return `<div class="scope" role="group" aria-label="Where this goes">
+    <button type="button" data-vscope="business" aria-pressed="${sc !== "personal"}">Business</button>
+    <button type="button" data-vscope="personal" aria-pressed="${sc === "personal"}">Me</button></div>`;
+}
+function vidTaskPanel(v) {
+  const d = V.drafts[v.id] || {};
+  const text = d.task ?? (v.next_step || `Watch or act on: ${v.title}`).slice(0, 300);
+  const sc = V.scopeBy[v.id] || scope;     // starts on whatever the add bar at the bottom is set to
+  return `<form class="vpanel vtaskform" data-vp="task">
+    <div class="lab">New task from this video</div>
+    <textarea rows="3" data-vfield="task" maxlength="400" aria-label="Task text">${esc(text)}</textarea>
+    <div class="aprow">${vidScopeHTML(sc)}
+      <input type="date" class="apdate" data-vfield="due" value="${esc(d.due || TODAY)}" min="${esc(TODAY)}" aria-label="Due date">
+      <div class="apbtns"><button type="button" class="btn quiet" data-vact="close">Cancel</button><button class="btn" type="submit">Add task</button></div>
+    </div></form>`;
+}
+function vidAppPanel(v) {
+  const d = V.drafts[v.id] || {};
+  const apps = V.apps || [];
+  const hay = `${v.why} ${v.next_step} ${v.title}`.toLowerCase();
+  const guess = (apps.find((a) => hay.includes(a.name.toLowerCase())) || {}).name || "";
+  const sel = d.appsel ?? guess;
+  const known = apps.find((a) => a.name === sel);
+  const sc = V.scopeBy[v.id + ":app"] || (known ? known.scope : "personal");
+  const opts = [`<option value=""${sel === "" ? " selected" : ""}>Choose an app…</option>`]
+    .concat(apps.map((a) => `<option value="${esc(a.name)}"${sel === a.name ? " selected" : ""}>${esc(a.name)}</option>`))
+    .concat(`<option value="__new__"${sel === "__new__" ? " selected" : ""}>New app idea…</option>`).join("");
+  return `<form class="vpanel vappform" data-vp="app">
+    <div class="lab">File under an app</div>
+    <select data-vfield="appsel" aria-label="Which app">${opts}</select>
+    ${sel === "__new__" ? `<input type="text" data-vfield="appnew" value="${esc(d.appnew || "")}" placeholder="Name the new app" maxlength="60" autocomplete="off" aria-label="Name of the new app">` : ""}
+    <textarea rows="3" data-vfield="appnote" maxlength="250" placeholder="What should it do or change? (optional)" aria-label="Note for the app">${esc(d.appnote ?? v.next_step ?? "")}</textarea>
+    <div class="aprow">${vidScopeHTML(sc)}
+      <div class="apbtns"><button type="button" class="btn quiet" data-vact="close">Cancel</button><button class="btn" type="submit">Add to list</button></div>
+    </div></form>`;
+}
+
+function renderVideos(soft) {
+  const host = $("#videos"); if (!host || !V.started) return;
+  if (soft && vidTyping()) { V.dirty = true; return; }       // never redraw under someone who is typing
+  V.dirty = false;
+  vidCaptureDrafts();
+  const prev = host.querySelector(".vidcard"), openNow = prev ? prev.open : false;
+  const prevDone = host.querySelector(".vdonelist"), doneOpen = prevDone ? prevDone.open : false;
+  const prevWatch = host.querySelector(".vwatch"), watchOpen = prevWatch ? prevWatch.open : false;
+  const fresh = V.videos.filter(vidIsNew), done = V.videos.filter((v) => !vidIsNew(v));
+  const pending = V.videos.filter((v) => v.pending).length;
+
+  // The ones you saved yourself lead; videos the channel watch picked up sit in their own roll-up below them.
+  const freshHand = fresh.filter((v) => v.source !== "watch"), freshWatch = fresh.filter((v) => v.source === "watch");
+  let label;
+  if (!V.loaded) label = "Loading…";
+  else if (V.err && !V.videos.length) label = "Couldn't load your videos";
+  else {
+    const parts = [];
+    if (freshHand.length) parts.push(`${freshHand.length} new video${freshHand.length === 1 ? "" : "s"}`);
+    if (freshWatch.length) parts.push(`${freshWatch.length} from channels`);
+    label = `${parts.length ? parts.join(" · ") : "All caught up"} · last ${V.days} days`;
+  }
+  const right = V.syncing && pending ? `<span class="fit-saved">Reading ${pending}…</span>` : "";
+
+  let body;
+  if (!V.loaded) body = `<div class="vempty">Loading your saved videos…</div>`;
+  else if (V.err && !V.videos.length) body = `<div class="vempty">${esc(V.err)} <button class="btn quiet" data-vact="retry" type="button">Try again</button></div>`;
+  else {
+    const dayGroups = (list) => [...new Set(list.map((v) => v.day))].sort().reverse().map((d) =>
+      `<div class="vgroup"><div class="vidday">${esc(vidDayLabel(d))}</div>${list.filter((v) => v.day === d).map(vidItemHTML).join("")}</div>`).join("");
+    const allBtn = (grp, n, text) => `<button class="btn quiet" type="button" data-vact="all" data-vgroup="${grp}">${V.confirmAll === grp ? `Mark all ${n} done?` : text}</button>`;
+    const doneRows = done.map((v) => {
+      const url = safeUrl(v.url);
+      const title = url ? `<a class="vtitle" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(v.title)}</a>` : `<span class="vtitle">${esc(v.title)}</span>`;
+      const tag = v.status === "task" ? "→ task added" : v.status === "app" ? `→ ${v.app ? "app: " + esc(v.app) : "app idea"}` : "";
+      return `<div class="vid isdone" data-vid="${esc(v.id)}"><div class="row">
+        <button class="check" data-vact="undo" aria-pressed="true" aria-label="Move back to new: ${esc(v.title)}"><span class="box">${CHECK_SVG}</span></button>
+        <div class="text">${title}${tag ? `<span class="vtag">${tag}</span>` : ""}</div></div></div>`;
+    }).join("");
+    const emptyMsg = freshWatch.length ? "Nothing new that you saved yourself." : V.videos.length ? "Everything from the last " + V.days + " days is handled." : "Nothing saved in the last " + V.days + " days.";
+    body = `<div class="vidbar">
+        <div class="scope" role="group" aria-label="How far back">${[4, 7, 14].map((n) => `<button type="button" data-vdays="${n}" aria-pressed="${V.days === n}">${n} days</button>`).join("")}</div>
+        ${freshHand.length > 1 ? allBtn("hand", freshHand.length, "Mark all done") : ""}
+      </div>
+      ${V.err ? `<div class="vidstatus">${esc(V.err)}</div>` : ""}
+      ${freshHand.length ? dayGroups(freshHand) : `<div class="vempty">${esc(emptyMsg)}</div>`}
+      ${freshWatch.length ? `<details class="vwatch"><summary>From channels you follow (${freshWatch.length})</summary>
+        ${freshWatch.length > 1 ? `<div class="vidbar vwatchbar"><span></span>${allBtn("watch", freshWatch.length, "Mark these done")}</div>` : ""}
+        ${dayGroups(freshWatch)}</details>` : ""}
+      ${done.length ? `<details class="vdonelist"><summary>Done (${done.length})</summary>${doneRows}</details>` : ""}`;
+  }
+  host.innerHTML = `<h2>Saved videos</h2>
+    <details class="fitcard vidcard">
+      <summary><span><span class="chev">›</span> ${esc(label)}</span>${right}</summary>
+      <div class="fitbody">${body}</div>
+    </details>`;
+  host.querySelector(".vidcard").open = openNow;
+  const dl = host.querySelector(".vdonelist"); if (dl) dl.open = doneOpen;
+  const wl = host.querySelector(".vwatch"); if (wl) wl.open = watchOpen;
+}
+// A background update that waited for you to finish typing goes in as soon as you leave the box.
+$("#videos").addEventListener("focusout", () => { setTimeout(() => { if (V.dirty && !vidTyping()) renderVideos(); }, 700); });   // after any tap has landed
+
+function vidFocus(id, field) {
+  const el = document.querySelector(`#videos .vid[data-vid="${CSS.escape(id)}"] [data-vfield="${field}"]`);
+  if (el) { el.focus({ preventScroll: false }); }
+}
+function vidClosePanel(id) { delete V.open[id]; delete V.drafts[id]; delete V.scopeBy[id]; delete V.scopeBy[id + ":app"]; }
+
+// Ticking a video off (or back) shows at once and is undone with a message if the save fails.
+async function vidSetStatus(ids, status) {
+  const before = ids.map((id) => ({ id, status: vidById(id).status }));
+  ids.forEach((id) => { vidById(id).status = status; if (status === "done") vidClosePanel(id); });
+  renderVideos();
+  const r = await vidApi({ action: "mark", ids, status });
+  if (!r.ok) {
+    before.forEach((b) => { const v = vidById(b.id); if (v) v.status = b.status; });
+    renderVideos(); toast(r.data.error || "Couldn't save that. Try again.");
+  }
+  return r.ok;
+}
+
+async function vidAsk(id, q) {
+  q = String(q || "").trim(); if (!q) return;
+  const v = vidById(id); if (!v || V.answering[id]) return;
+  V.answering[id] = q;
+  const box = document.querySelector(`#videos .vid[data-vid="${CSS.escape(id)}"] [data-vfield="q"]`);
+  if (box) box.value = "";                       // the question moves into the thread; the box starts empty
+  renderVideos();
+  const r = await vidApi({ action: "ask", id, question: q });
+  delete V.answering[id];
+  if (r.ok) v.qa = r.data.qa || [...(v.qa || []), { q, a: r.data.answer }];
+  else toast(r.data.error || "Couldn't get an answer. Try again.");
+  renderVideos(); vidFocus(id, "q");
+  if (!r.ok) { const again = document.querySelector(`#videos .vid[data-vid="${CSS.escape(id)}"] [data-vfield="q"]`); if (again) again.value = q; }   // keep what was typed
+}
+
+async function vidAddTask(id, form) {
+  const v = vidById(id), content = form.querySelector('[data-vfield="task"]').value.trim();
+  const due = form.querySelector('[data-vfield="due"]').value || TODAY;
+  if (!content) { toast("Type the task first."); return; }
+  if (due < TODAY) { toast("Pick today or a later day."); return; }
+  const where = form.querySelector('[data-vscope][aria-pressed="true"]')?.dataset.vscope === "personal" ? "personal" : "business";
+  const lock = (on) => form.querySelectorAll("button, input, textarea").forEach((x) => { x.disabled = on; });
+  lock(true);
+  const r = await vidApi({ action: "task", id, content, scope: where, due, date: TODAY });
+  if (!r.ok) { lock(false); toast(r.data.error || "Couldn't add it. Try again."); return; }
+  v.status = "task"; v.task_id = r.data.id; vidClosePanel(id); renderVideos();
+  toast(`Task added for ${due === TODAY ? "today" : shortDate(due)}`);
+  await load();
+}
+
+async function vidAddApp(id, form) {
+  const v = vidById(id), sel = form.querySelector('[data-vfield="appsel"]').value;
+  const name = sel === "__new__" ? (form.querySelector('[data-vfield="appnew"]')?.value || "").trim() : sel;
+  if (!name) { toast(sel === "__new__" ? "Name the new app." : "Pick an app, or choose New app idea."); return; }
+  const note = form.querySelector('[data-vfield="appnote"]').value.trim();
+  const where = form.querySelector('[data-vscope][aria-pressed="true"]')?.dataset.vscope === "business" ? "business" : "personal";
+  const lock = (on) => form.querySelectorAll("button, input, textarea, select").forEach((x) => { x.disabled = on; });
+  lock(true);
+  const r = await vidApi({ action: "app", id, app: name, note, scope: where, date: TODAY });
+  if (!r.ok) { lock(false); toast(r.data.error || "Couldn't add it. Try again."); return; }
+  v.status = "app"; v.app = r.data.app || name; v.task_id = r.data.id; vidClosePanel(id); renderVideos();
+  toast(`Added to your list under ${v.app}`);
+  await load();
+}
+
+$("#videos").addEventListener("click", async (e) => {
+  const t = e.target;
+  const days = t.closest("[data-vdays]");
+  if (days) {
+    const n = Number(days.dataset.vdays); if (n === V.days) return;
+    V.days = n; V.confirmAll = false; V.run++; V.syncing = false; renderVideos();
+    await vidsRefresh(); vidsSync(); return;
+  }
+  const sc = t.closest("[data-vscope]");
+  if (sc) {
+    const form = sc.closest(".vid"), id = form.dataset.vid, key = sc.closest(".vappform") ? id + ":app" : id;
+    V.scopeBy[key] = sc.dataset.vscope;
+    sc.parentElement.querySelectorAll("[data-vscope]").forEach((b) => b.setAttribute("aria-pressed", String(b === sc)));
+    return;
+  }
+  const chip = t.closest("[data-vq]");
+  if (chip) { vidAsk(chip.closest(".vid").dataset.vid, chip.dataset.vq); return; }
+  const btn = t.closest("[data-vact]"); if (!btn) return;
+  const act = btn.dataset.vact, row = btn.closest(".vid"), id = row ? row.dataset.vid : "";
+  if (act === "retry") { V.loaded = false; renderVideos(); await vidsRefresh(); vidsSync(); return; }
+  if (act === "all") {
+    const grp = btn.dataset.vgroup === "watch" ? "watch" : "hand";
+    const ids = V.videos.filter((v) => vidIsNew(v) && (grp === "watch") === (v.source === "watch")).map((v) => v.id);
+    if (V.confirmAll !== grp) {                // one more tap to confirm; it resets itself if you don't
+      V.confirmAll = grp; renderVideos();
+      clearTimeout(vidSetStatus._t); vidSetStatus._t = setTimeout(() => { V.confirmAll = false; renderVideos(true); }, 4000);
+      return;
+    }
+    clearTimeout(vidSetStatus._t); V.confirmAll = false;
+    if (await vidSetStatus(ids, "done")) toast(`${ids.length} marked done`);
+    return;
+  }
+  if (!id || !vidById(id)) return;
+  if (act === "done") { await vidSetStatus([id], "done"); return; }
+  if (act === "undo") { await vidSetStatus([id], "new"); return; }
+  if (act === "close") { vidClosePanel(id); renderVideos(); return; }
+  if (act === "ask" || act === "task" || act === "app") {
+    vidCaptureDrafts();
+    if (V.open[id] === act) vidClosePanel(id); else V.open[id] = act;
+    renderVideos();
+    if (V.open[id]) vidFocus(id, act === "ask" ? "q" : act === "task" ? "task" : "appsel");
+  }
+});
+$("#videos").addEventListener("change", (e) => {
+  const sel = e.target.closest('[data-vfield="appsel"]'); if (!sel) return;
+  const id = sel.closest(".vid").dataset.vid;
+  delete V.scopeBy[id + ":app"];                 // the default list follows the app you pick
+  renderVideos();
+  if (sel.value === "__new__") vidFocus(id, "appnew");
+});
+$("#videos").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const form = e.target, id = form.closest(".vid").dataset.vid;
+  if (form.classList.contains("vaskform")) vidAsk(id, form.querySelector('[data-vfield="q"]').value);
+  else if (form.classList.contains("vtaskform")) vidAddTask(id, form);
+  else if (form.classList.contains("vappform")) vidAddApp(id, form);
 });
 
 // ── Links to the other pages ─────────────────────────────────
