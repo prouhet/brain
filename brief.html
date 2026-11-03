@@ -314,6 +314,57 @@
   .pddorhint { font-size:12px; color:var(--faint); margin:0 0 4px; }
   .pdtools button.drop:hover, .pdtools button.drop:focus-visible { color:var(--warn); background:transparent; }
 
+  /* Markets: the daily TSP, Hard Asset and RSOTC briefs as folded cards that open to what needs doing. */
+  .mkcard { padding:12px 14px 10px; }
+  .mkcard.mk-act { border-left:3px solid var(--warn); }
+  .mkcard > summary { align-items:flex-start; gap:10px; }
+  .mksum { min-width:0; flex:1; }
+  .mkline1 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .mktitle { font-size:15px; font-weight:600; color:var(--text); }
+  .mktag { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px; background:var(--surface2); color:var(--dim); max-width:100%; overflow-wrap:anywhere; }
+  .mktag.act { background:var(--warn); color:#fff; }
+  .mktag.quiet { background:var(--teal-dim); color:var(--teal); }
+  .mkhead { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:13px; color:var(--dim); margin:3px 0 0 14px; overflow-wrap:anywhere; }
+  .mkcard[open] > summary .mkhead { display:none; }
+  .mkwhen { white-space:nowrap; margin-left:auto; padding-top:2px; }
+  .mk-stale .mkwhen { color:var(--warn); }
+  .mkh { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:14px 0 4px; }
+  .mkh:first-child { margin-top:2px; }
+  .mkp { font-size:14px; margin:0 0 6px; overflow-wrap:anywhere; }
+  .mklist { margin:0 0 6px; padding-left:18px; font-size:14px; }
+  .mklist li { margin:0 0 5px; overflow-wrap:anywhere; }
+  .mkfull { margin-top:14px; border-top:1px solid var(--line); padding-top:8px; font-size:14px; color:var(--dim); }
+  .mkfull > summary { cursor:pointer; padding:6px 0; }
+  .mkfull > summary:hover { color:var(--teal); }
+  .mkmd { font-size:13px; color:var(--text); }
+  .mkmd p { margin:0 0 8px; overflow-wrap:anywhere; }
+  .mkmd h4 { font-size:13px; font-weight:700; margin:14px 0 6px; color:var(--teal); }
+  .mkmd ul { margin:0 0 8px; padding-left:18px; }
+  .mkmd li { margin:0 0 4px; overflow-wrap:anywhere; }
+  .mkmd hr { border:0; border-top:1px solid var(--line); margin:12px 0; }
+  .mkset { border-bottom:1px solid var(--line); }
+  .mkset:last-of-type { border-bottom:0; }
+  .mkset > summary { list-style:none; cursor:pointer; padding:9px 0 9px 16px; position:relative; }
+  .mkset > summary::-webkit-details-marker { display:none; }
+  .mkset > summary::before { content:"›"; position:absolute; left:2px; top:9px; color:var(--faint); transition:transform .15s; }
+  .mkset[open] > summary::before { transform:rotate(90deg); }
+  .mkrow1 { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .mkdir { font-size:10.5px; font-weight:700; letter-spacing:.05em; padding:1px 6px; border-radius:4px; background:var(--surface2); color:var(--dim); }
+  .mkdir.long { background:var(--teal-dim); color:var(--teal); }
+  .mkdir.short { background:rgba(180,83,42,.12); color:var(--warn); }
+  .mkdot { color:var(--teal); font-size:10px; }
+  .mkmeta { font-size:12px; color:var(--faint); }
+  .mkglance { display:block; font-size:12.5px; color:var(--dim); margin-top:2px; overflow-wrap:anywhere; }
+  .mkdetail { padding:0 0 10px 16px; font-size:13px; color:var(--text); }
+  .mkdetail p { margin:0 0 6px; overflow-wrap:anywhere; }
+  .mkdetail a, .mkp a, .pdnote a { color:var(--teal); }
+  .mktargets { display:flex; flex-wrap:wrap; gap:4px 6px; margin:4px 0 8px; }
+  .mkt { font-size:12px; padding:2px 7px; border-radius:6px; background:var(--surface2); color:var(--text); font-variant-numeric:tabular-nums; }
+  .mkt.hit { color:var(--done); text-decoration:line-through; text-decoration-thickness:1px; }
+  .mkt.pot { font-style:italic; color:var(--dim); }
+  .h2link { color:inherit; text-decoration:none; border-bottom:1px dotted currentColor; }
+  .h2link:hover, .h2link:focus-visible { border-bottom-style:solid; outline:none; }
+
   #toast {
     position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--text); color:var(--bg);
     font-size:14px; padding:9px 14px; border-radius:8px; display:none; max-width:90vw;
@@ -349,6 +400,7 @@
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
   <div id="pastdue"></div>
+  <div id="markets"></div>
   <details class="ask" id="ask">
     <summary><span><span class="chev">›</span> Ask your Brain</span></summary>
     <div class="askbody">
@@ -556,6 +608,7 @@ async function load() {
   if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
   videosGate();
   pastdueGate();
+  marketsGate();
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
     $("#main").innerHTML = `<div class="empty"><p>No brief for ${esc(longDate(DATE))}.</p><p>${DATE === TODAY ? "It's built at 5:30 each morning. Anything you add below still lands in your priorities." : "Briefs only exist for days the email went out."}</p></div>`;
@@ -776,7 +829,7 @@ function render() {
   $("#main").innerHTML = `
     <h2>Today's schedule</h2>${sched}
     <h2>To do</h2>${tierHTML || '<p class="muted">Nothing pressing on the list.</p>'}
-    ${clients.length ? `<h2>Client follow-ups from dids</h2>${sectionHTML(clients)}` : (b.dids_ok ? "" : '<h2>Client follow-ups from dids</h2><p class="muted">Dids data didn\'t load this morning.</p>')}
+    ${clients.length ? `<h2>${didsHeading()}</h2>${sectionHTML(clients)}` : (b.dids_ok ? "" : `<h2>${didsHeading()}</h2><p class="muted">Dids data didn't load this morning.</p>`)}
     ${added.length ? `<h2>Added today</h2>${sectionHTML(added)}` : ""}
     ${movedHTML}
     ${buildUpcomingHTML(upcomingItems)}
@@ -1791,6 +1844,172 @@ $("#pastdue").addEventListener("submit", (e) => {
   if (!to) { toast("Pick a day first."); return; }
   if (to < TODAY) { toast("Pick today or a later day."); return; }
   pdAct(form.dataset.pdform, "recommit", to);
+});
+
+// ── Markets ──────────────────────────────────────────────────
+// The three daily market briefs (TSP, Hard Asset, RSOTC) as folded cards, like Walk and Workout. Folded,
+// each shows its call in one line (MOVE, WAIT FOR STABILITY, 12 open setups); open, it shows what to do,
+// where you stand and your own reminders, with the whole brief folded under that. TSP and Hard Asset come
+// from the briefs themselves (copied from the Desktop files each weekday morning); RSOTC is Randy's running
+// list of setups, live. The same brief-markets call hands back the dids.today address, so the page's code
+// never holds it (this page is public). Today's page only for the cards; the link works on any day.
+const MK_FN = FN.replace(/morning-brief$/, "brief-markets");
+const MK_REFRESH_MS = 10 * 60 * 1000;
+const LINKS = { dids: "" };
+const M = { started: false, show: false, loaded: false, err: "", data: null, run: 0, at: 0, open: {}, setOpen: {}, fullOpen: {} };
+
+const DIDS_LABEL = "Client follow-ups from dids";
+function didsHeading() {
+  return LINKS.dids
+    ? `<a class="h2link" href="${esc(LINKS.dids)}" target="_blank" rel="noopener noreferrer" title="Open dids.today">${DIDS_LABEL}<span aria-hidden="true"> ↗</span></a>`
+    : DIDS_LABEL;
+}
+
+async function mkApi() {
+  try {
+    const res = await fetch(`${MK_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get" })
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+
+function marketsGate() {
+  if (!KEY) return;
+  M.show = !!TODAY && DATE === TODAY;
+  if (!M.started) { M.started = true; mkRefresh(); return; }
+  renderMarkets();
+}
+async function mkRefresh() {
+  const run = ++M.run;
+  const r = await mkApi();
+  if (run !== M.run) return;
+  M.at = Date.now();
+  if (r.ok) {
+    M.data = r.data; M.err = "";
+    const d = r.data.links && r.data.links.dids, had = LINKS.dids;
+    LINKS.dids = typeof d === "string" && /^https:\/\/dids\.today\//.test(d) ? d : "";
+    const a = document.activeElement;
+    const typing = !!(a && $("#main").contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+    if (LINKS.dids !== had && brief && !typing) render();      // the dids heading picks up its link
+  } else if (r.status !== 401) {
+    M.err = (r.data && r.data.error) || "Couldn't load the market briefs.";
+  }
+  M.loaded = true;
+  renderMarkets();
+}
+
+const mkCentral = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date(iso));
+function mkInline(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^\*(.+)\*$/, "<i>$1</i>"); }
+// The brief text is plain lines with a few ** and # marks; this shows them without pulling in a library.
+function mkMd(src) {
+  const out = []; let list = false;
+  const close = () => { if (list) { out.push("</ul>"); list = false; } };
+  for (const raw of String(src || "").split("\n")) {
+    const l = raw.trimEnd();
+    if (!l.trim()) { close(); continue; }
+    if (/^\s*---+\s*$/.test(l)) { close(); out.push("<hr>"); continue; }
+    const h = l.match(/^#{1,6}\s+(.*)$/); if (h) { close(); out.push(`<h4>${mkInline(h[1])}</h4>`); continue; }
+    const b = l.match(/^\s*[-•]\s+(.*)$/); if (b) { if (!list) { out.push("<ul>"); list = true; } out.push(`<li>${mkInline(b[1])}</li>`); continue; }
+    close(); out.push(`<p>${mkInline(l)}</p>`);
+  }
+  close(); return out.join("");
+}
+function mkLines(lines) {
+  let out = "", list = [];
+  const flush = () => { if (list.length) { out += `<ul class="mklist">${list.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`; list = []; } };
+  for (const l of lines || []) {
+    if (/^- /.test(l)) list.push(l.slice(2));
+    else { flush(); out += `<p class="mkp">${esc(l)}</p>`; }
+  }
+  flush(); return out;
+}
+
+function mkBriefBody(c) {
+  if (c.empty) return `<div class="vempty">${esc(c.headline)}</div>`;
+  const secs = (c.sections || []).map((s) => `<h3 class="mkh">${esc(s.label)}</h3>${mkLines(s.lines)}`).join("");
+  const full = c.full ? `<details class="mkfull" data-mk="${esc(c.key)}"><summary>Full brief</summary><div class="mkmd">${mkMd(c.full)}</div></details>` : "";
+  return `${secs}${full}`;
+}
+
+function mkSetupHTML(s) {
+  const nxt = (s.targets || []).find((t) => !t.hit);
+  const glance = [
+    s.entry ? `Entry ${s.entry}` : "Entry: see note",
+    `Stop ${s.stop || "none given"}`,
+    nxt ? nxt.text : ((s.targets || []).length ? "all targets hit" : ""),
+  ].filter(Boolean).join(" · ");
+  const dir = s.direction === "long" ? "long" : "short";
+  const chips = (s.targets || []).map((t) =>
+    `<span class="mkt${t.hit ? " hit" : ""}${t.potential ? " pot" : ""}"${t.hit ? ` title="Hit ${esc(shortDate(t.hit))}"` : ""}>${t.hit ? "✓ " : ""}${esc(t.text)}${t.potential ? " (potential)" : ""}</span>`).join("");
+  return `<details class="mkset" data-id="${esc(s.id)}">
+    <summary><span class="mkrow1"><span class="mkdir ${dir}">${dir.toUpperCase()}</span><b>${esc(s.ticker)}</b>${s.fresh ? `<span class="mkdot" title="Changed ${esc(shortDate(s.changed))}" aria-label="Changed recently">●</span>` : ""}<span class="mkmeta">${esc([s.tf, s.status].filter(Boolean).join(" · "))}</span></span>
+      <span class="mkglance">${esc(glance)}</span></summary>
+    <div class="mkdetail">
+      ${s.entry_note ? `<p><b>Entry.</b> ${esc(s.entry_note)}</p>` : ""}
+      ${s.stop_note ? `<p><b>Stop.</b> ${esc(s.stop_note)}</p>` : ""}
+      ${chips ? `<div class="mktargets">${chips}</div>` : ""}
+      ${s.notes ? `<p>${esc(s.notes)}</p>` : ""}
+      ${s.last_event ? `<p class="mkmeta">Last change${s.changed ? ` ${esc(shortDate(s.changed))}` : ""}: ${esc(s.last_event)}</p>` : ""}
+      ${s.link ? `<p><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">Randy's post ↗</a></p>` : ""}
+    </div></details>`;
+}
+function mkRsotcBody(c) {
+  if (c.error) return `<div class="vempty">${esc(c.error)} <button class="btn quiet" data-mkact="retry" type="button">Try again</button></div>`;
+  const list = c.setups || [];
+  if (!list.length) return `<div class="vempty">No open setups right now.</div>`;
+  const group = (name, items) => items.length
+    ? `<div class="pdhead"><span>${name}</span><span>${items.length}</span></div>${items.map(mkSetupHTML).join("")}` : "";
+  const post = c.last_post
+    ? `<p class="pdnote">Latest post${c.last_post.published_at ? ` (${esc(shortDate(mkCentral(c.last_post.published_at)))})` : ""}: ${/^https?:\/\//.test(c.last_post.link || "") ? `<a href="${esc(c.last_post.link)}" target="_blank" rel="noopener noreferrer">${esc(c.last_post.title)}</a>` : esc(c.last_post.title)}</p>` : "";
+  return `${group("Long", list.filter((s) => s.direction === "long"))}${group("Short", list.filter((s) => s.direction !== "long"))}
+    <p class="pdnote">● changed since yesterday. Randy Phinney's published calls with his levels as drawn; a summary of his posts, not advice.</p>${post}`;
+}
+
+function mkCardHTML(c) {
+  const isR = c.key === "rsotc";
+  const when = isR
+    ? (c.last_post && c.last_post.published_at ? `post ${shortDate(mkCentral(c.last_post.published_at))}` : "")
+    : (c.empty || !c.brief_date ? "" : c.stale ? `from ${shortDate(c.brief_date)}` : "today");
+  const cls = ["fitcard", "mkcard", c.tone === "act" ? "mk-act" : "", c.stale ? "mk-stale" : ""].filter(Boolean).join(" ");
+  const tag = c.tag ? `<span class="mktag ${c.tone === "act" ? "act" : c.tone === "quiet" ? "quiet" : ""}">${esc(c.tag)}</span>` : "";
+  return `<details class="${cls}" data-mk="${esc(c.key)}">
+    <summary><span class="mksum"><span class="mkline1"><span class="chev">›</span><span class="mktitle">${esc(c.title)}</span>${tag}</span>
+      <span class="mkhead">${esc(c.headline || "")}</span></span><span class="fit-saved mkwhen">${esc(when)}</span></summary>
+    <div class="fitbody">${isR ? mkRsotcBody(c) : mkBriefBody(c)}</div></details>`;
+}
+
+function renderMarkets() {
+  const host = $("#markets"); if (!host) return;
+  if (!M.show || !M.loaded) { host.innerHTML = ""; return; }
+  if (M.err && !M.data) {
+    host.innerHTML = `<h2>Markets</h2><div class="fitcard"><div class="vempty">${esc(M.err)} <button class="btn quiet" data-mkact="retry" type="button">Try again</button></div></div>`;
+    return;
+  }
+  const cards = (M.data && M.data.cards) || [];
+  if (!cards.length) { host.innerHTML = ""; return; }
+  // Read what is open right now before the redraw replaces it (a tap and a redraw can land together).
+  host.querySelectorAll("details.mkcard").forEach((d) => { M.open[d.dataset.mk] = d.open; });
+  host.querySelectorAll("details.mkset").forEach((d) => { M.setOpen[d.dataset.id] = d.open; });
+  host.querySelectorAll("details.mkfull").forEach((d) => { M.fullOpen[d.dataset.mk] = d.open; });
+  host.innerHTML = `<h2>Markets</h2>${cards.map(mkCardHTML).join("")}`;
+  host.querySelectorAll("details.mkcard").forEach((d) => { d.open = !!M.open[d.dataset.mk]; });     // folded until you open one
+  host.querySelectorAll("details.mkset").forEach((d) => { d.open = !!M.setOpen[d.dataset.id]; });
+  host.querySelectorAll("details.mkfull").forEach((d) => { d.open = !!M.fullOpen[d.dataset.mk]; });
+}
+$("#markets").addEventListener("toggle", (e) => {      // remember what you opened, so a refresh doesn't fold it back up
+  const d = e.target; if (!d || !d.classList) return;
+  if (d.classList.contains("mkcard")) M.open[d.dataset.mk] = d.open;
+  else if (d.classList.contains("mkset")) M.setOpen[d.dataset.id] = d.open;
+  else if (d.classList.contains("mkfull")) M.fullOpen[d.dataset.mk] = d.open;
+}, true);
+$("#markets").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-mkact]"); if (b && b.dataset.mkact === "retry") { M.loaded = false; mkRefresh(); }
+});
+// Coming back to the tab after a while picks up the latest brief and any new RSOTC changes.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && M.started && M.show && Date.now() - M.at > MK_REFRESH_MS) mkRefresh();
 });
 
 // ── Links to the other pages ─────────────────────────────────
