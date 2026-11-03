@@ -365,6 +365,34 @@
   .h2link { color:inherit; text-decoration:none; border-bottom:1px dotted currentColor; }
   .h2link:hover, .h2link:focus-visible { border-bottom-style:solid; outline:none; }
 
+  /* Folds: every section under the cards (schedule, To do and its groups, dids, Don't Forget, Upcoming) opens and
+     closes from its heading. A count on the right says what is inside while it is shut. Open/shut is remembered per device. */
+  .fold > summary { list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:6px; border-radius:6px; }
+  .fold > summary::-webkit-details-marker { display:none; }
+  .fold > summary::before { content:"›"; flex:none; width:12px; text-align:center; color:var(--faint); transition:transform .15s; }
+  .fold[open] > summary::before { transform:rotate(90deg); }
+  .fold > summary:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  .fold > summary > h2, .fold > summary > h3 { margin:0; min-width:0; }
+  .fold2 > summary { margin:26px 0 8px; }
+  .fold3 > summary { margin:16px 0 4px; }
+  .foldmeta { margin-left:auto; padding-left:8px; font-size:12px; font-weight:400; color:var(--faint); white-space:nowrap; }
+  .fold2 > .foldbody > .muted.small:first-child { margin-top:0; }
+
+  /* Ask your Brain gets a title like the other cards. */
+  #asktitle { margin-top:8px; }
+  #asktitle[hidden] { display:none; }
+
+  /* Markets: one fold holds the three cards. Folded, it says each call in a line. */
+  .mkall { padding:12px 14px 4px; }
+  .mkall > summary { align-items:flex-start; gap:10px; }
+  .mkallglance { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; min-width:0; flex:1; }
+  .mkg { display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--text); font-weight:600; }
+  .mkg.mk-stale .mkgwhen { color:var(--warn); }
+  .mkgwhen { font-size:12px; font-weight:400; color:var(--faint); }
+  .mkallbody { margin-top:6px; }
+  .mkall .mkcard { background:none; border:0; border-top:1px solid var(--line); border-radius:0; margin:0; padding:10px 0 8px; }
+  .mkall .mkcard.mk-act { border-left:0; box-shadow:inset 3px 0 0 var(--warn); padding-left:10px; }
+
   #toast {
     position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--text); color:var(--bg);
     font-size:14px; padding:9px 14px; border-radius:8px; display:none; max-width:90vw;
@@ -399,10 +427,9 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
-  <div id="pastdue"></div>
-  <div id="markets"></div>
+  <h2 id="asktitle">Ask your Brain</h2>
   <details class="ask" id="ask">
-    <summary><span><span class="chev">›</span> Ask your Brain</span></summary>
+    <summary><span><span class="chev">›</span> Type a question</span></summary>
     <div class="askbody">
       <form class="askform" id="askform">
         <input type="text" id="askq" placeholder="Ask your Brain…" autocomplete="off" maxlength="600" aria-label="Ask your Brain a question">
@@ -411,8 +438,10 @@
       <div id="askout" aria-live="polite"></div>
     </div>
   </details>
-  <div id="fitness"></div>
+  <div id="pastdue"></div>
+  <div id="markets"></div>
   <div id="videos"></div>
+  <div id="fitness"></div>
   <main id="main"></main>
 </div>
 
@@ -444,6 +473,30 @@ const TIERS = {1:["🔴","Opportunity cost"],2:["🟠","Working on the business"
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const CHECK_SVG = '<svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// ── Folds ────────────────────────────────────────────────────
+// Sections under the cards open and close from their heading. What you open or shut is remembered on this
+// device only (a convenience, never needed: with no storage everything simply starts open).
+const FOLD_STORE = "brief-folds";
+let FOLDS = {};
+try { const s = JSON.parse(localStorage.getItem(FOLD_STORE) || "{}"); if (s && typeof s === "object") FOLDS = s; } catch (e) { FOLDS = {}; }
+const foldOpen = (id, dflt = true) => (typeof FOLDS[id] === "boolean" ? FOLDS[id] : dflt);
+function foldSave() { try { localStorage.setItem(FOLD_STORE, JSON.stringify(FOLDS)); } catch (e) {} }
+// level 2 = a page section (h2), 3 = a group inside one (h3). `title` is HTML the caller has already made safe.
+function foldHTML(id, level, title, meta, body) {
+  const tag = level === 2 ? "h2" : "h3";
+  return `<details class="fold fold${level}" data-fold="${id}"${foldOpen(id) ? " open" : ""}>
+    <summary><${tag}>${title}</${tag}>${meta ? `<span class="foldmeta">${esc(meta)}</span>` : ""}</summary>
+    <div class="foldbody">${body}</div></details>`;
+}
+// The tap is about to flip the fold, so record the opposite of what it shows now. Taps on a link or button
+// inside a heading (the dids link) do their own thing and don't count.
+document.addEventListener("click", (e) => {
+  const s = e.target.closest && e.target.closest("details[data-fold] > summary");
+  if (!s || e.target.closest("a, button, input, select, textarea")) return;
+  FOLDS[s.parentElement.dataset.fold] = !s.parentElement.open;
+  foldSave();
+});
 
 function toast(msg) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
@@ -739,7 +792,7 @@ function buildUpcomingHTML(items) {
   const dayItems = items.filter(it => it.moved_to || it.due_date);
   const monthItems = items.filter(it => !(it.moved_to || it.due_date) && it.due_month);
   if (!dayItems.length && !monthItems.length) return "";
-  let html = `<h2>📅 Upcoming</h2><p class="muted small">Everything dated that isn't already above — stays here until you check it off or give it a new day.</p>`;
+  let html = `<p class="muted small">Everything dated that isn't already above — stays here until you check it off or give it a new day.</p>`;
 
   if (dayItems.length) {
     const groups = new Map();
@@ -775,7 +828,8 @@ function buildUpcomingHTML(items) {
       html += `<div class="day-head">Sometime in ${esc(key.charAt(0).toUpperCase() + key.slice(1))}</div>${sectionHTML(its)}`;
     }
   }
-  return html;
+  const n = dayItems.length + monthItems.length;
+  return foldHTML("upcoming", 2, "📅 Upcoming", `${n} item${n === 1 ? "" : "s"}`, html);
 }
 
 function render() {
@@ -802,19 +856,30 @@ function render() {
   const { obsOrder: taskObsOrder, obsGroups: taskObsGroups, standalone: taskStandalone } = partitionGroups(tasks);
   const groupTier = {};
   for (const id of taskObsOrder) groupTier[id] = Math.min(...taskObsGroups[id].map(i => i.tier));
-  const tierHTML = [1,2,3,4,5].map(t => {
-    const its = taskStandalone.filter(i => i.tier === t);
-    const groupsHere = taskObsOrder.filter(id => groupTier[id] === t);
+  // To do is grouped by what it is, then by whose it is: high consequence first, then the top work in the
+  // business and the top personal items (the strategy and operations tiers together), then maintenance for
+  // each. Each row keeps its number from the emailed list, so a row here is the same number on the printout.
+  const bucketOf = (tier, scope) => tier === 1 ? "opp" : tier === 3 ? "high"
+    : tier === 5 ? (scope === "personal" ? "mper" : "mbiz") : (scope === "personal" ? "per" : "biz");
+  const BUCKETS = [["opp", "🔴 Opportunity cost"], ["high", "🟡 High consequence"], ["biz", "🟠 Working in the business"],
+    ["per", "🟣 Personal"], ["mbiz", "⚪ Maintenance · business"], ["mper", "⚪ Maintenance · personal"]];
+  const leftOf = (list) => list.filter(i => !i.done).length;
+  const leftMeta = (list) => (list.length ? (leftOf(list) ? `${leftOf(list)} left` : "✓ all done") : "");
+  const todoGroups = BUCKETS.map(([bid, label]) => {
+    const its = taskStandalone.filter(i => bucketOf(i.tier, i.scope) === bid);
+    const groupsHere = taskObsOrder.filter(g => bucketOf(groupTier[g], "business") === bid);
     if (!its.length && !groupsHere.length) return "";
-    const groupsBlock = groupsHere.map(id => obsGroupHTML(id, taskObsGroups[id].sort((a, b) => a.tier - b.tier))).join("");
-    return `<h3>${TIERS[t][0]} ${TIERS[t][1]}</h3>${groupsBlock}${its.map(itemHTML).join("")}`;
+    const mine = [...its, ...groupsHere.flatMap(g => taskObsGroups[g])];
+    const groupsBlock = groupsHere.map(g => obsGroupHTML(g, taskObsGroups[g].sort((a, b) => a.tier - b.tier))).join("");
+    return foldHTML("g-" + bid, 3, esc(label), leftMeta(mine), groupsBlock + its.map(itemHTML).join(""));
   }).join("");
   const clients = today.filter(i => i.section === "client");
   const added = today.filter(i => i.added);
   const movedHTML = moved.length ? `<details class="moved"><summary>${moved.length} scheduled for later day${moved.length === 1 ? "" : "s"}</summary>
     ${moved.map(i => `<div class="moved-row"><span class="num">${i.n}.</span>${esc(i.title)} <span class="flag">${esc(shortDate(i.moved_to))}</span></div>`).join("")}</details>` : "";
   const ticklerHTML = ticklerItems.length
-    ? `<h2>🔔 Don't Forget</h2><p class="muted small">Important, but no date yet — give one a day and it moves into Upcoming.</p>${sectionHTML(ticklerItems)}`
+    ? foldHTML("tickler", 2, "🔔 Don't Forget", `${ticklerItems.length} item${ticklerItems.length === 1 ? "" : "s"}`,
+        `<p class="muted small">Important, but no date yet — give one a day and it moves into Upcoming.</p>${sectionHTML(ticklerItems)}`)
     : "";
 
   // A re-render (checking something off, say) shouldn't snap this shut.
@@ -826,14 +891,18 @@ function render() {
       </details>`
     : "";
 
+  // Order: schedule, To do (its groups), anything added today, dids, Don't Forget, later days, Upcoming, Doreen's.
+  const didsHTML = clients.length
+    ? foldHTML("dids", 2, didsHeading(), leftMeta(clients), sectionHTML(clients))
+    : (b.dids_ok ? "" : foldHTML("dids", 2, didsHeading(), "", `<p class="muted">Dids data didn't load this morning.</p>`));
   $("#main").innerHTML = `
-    <h2>Today's schedule</h2>${sched}
-    <h2>To do</h2>${tierHTML || '<p class="muted">Nothing pressing on the list.</p>'}
-    ${clients.length ? `<h2>${didsHeading()}</h2>${sectionHTML(clients)}` : (b.dids_ok ? "" : `<h2>${didsHeading()}</h2><p class="muted">Dids data didn't load this morning.</p>`)}
-    ${added.length ? `<h2>Added today</h2>${sectionHTML(added)}` : ""}
+    ${foldHTML("sched", 2, "Today's schedule", b.appointments.length ? `${b.appointments.length} today` : "", sched)}
+    ${foldHTML("todo", 2, "To do", leftMeta(tasks), todoGroups || '<p class="muted">Nothing pressing on the list.</p>')}
+    ${added.length ? foldHTML("added", 2, "Added today", leftMeta(added), sectionHTML(added)) : ""}
+    ${didsHTML}
+    ${ticklerHTML}
     ${movedHTML}
     ${buildUpcomingHTML(upcomingItems)}
-    ${ticklerHTML}
     ${doreenHTML}`;
 }
 
@@ -1192,7 +1261,7 @@ $("#moreopts").addEventListener("click", () => {
 // only added, through the normal "add" action, when you tap its button.
 const askHistory = [];   // last few exchanges, so a follow-up like "make it the 20th" makes sense
 const ASK_EXAMPLES = ["What's due this week?", "What repeats every month?", "When should I start the November newsletter?"];
-if (!KEY) $("#ask").hidden = true;
+if (!KEY) { $("#ask").hidden = true; $("#asktitle").hidden = true; }
 function askExamplesHTML() {
   return `<div class="chips askex">${ASK_EXAMPLES.map(q => `<button type="button" class="chip" data-askq="${esc(q)}">${esc(q)}</button>`).join("")}</div>`;
 }
@@ -1980,6 +2049,20 @@ function mkCardHTML(c) {
     <div class="fitbody">${isR ? mkRsotcBody(c) : mkBriefBody(c)}</div></details>`;
 }
 
+// One fold holds the three cards. Folded, it names each call in a line (a MOVE shows orange); a card from an
+// earlier day carries its date so an old call isn't read as today's.
+function mkAllHTML(cards) {
+  const glance = cards.map((c) => {
+    const text = c.tag || (c.error ? "couldn't load" : c.empty ? (c.key === "rsotc" ? "none open" : "no brief yet") : "");
+    const tag = text ? `<span class="mktag ${c.tone === "act" ? "act" : c.tone === "quiet" ? "quiet" : ""}">${esc(text)}</span>` : "";
+    const when = c.key !== "rsotc" && c.stale && c.brief_date ? `<span class="mkgwhen">${esc(shortDate(c.brief_date))}</span>` : "";
+    return `<span class="mkg${c.stale ? " mk-stale" : ""}">${esc(c.title)}${tag}${when}</span>`;
+  }).join("");
+  return `<details class="fitcard mkall" data-fold="markets"${foldOpen("markets", false) ? " open" : ""}>
+    <summary><span class="chev">›</span><span class="mkallglance">${glance}</span></summary>
+    <div class="mkallbody">${cards.map(mkCardHTML).join("")}</div></details>`;
+}
+
 function renderMarkets() {
   const host = $("#markets"); if (!host) return;
   if (!M.show || !M.loaded) { host.innerHTML = ""; return; }
@@ -1993,7 +2076,7 @@ function renderMarkets() {
   host.querySelectorAll("details.mkcard").forEach((d) => { M.open[d.dataset.mk] = d.open; });
   host.querySelectorAll("details.mkset").forEach((d) => { M.setOpen[d.dataset.id] = d.open; });
   host.querySelectorAll("details.mkfull").forEach((d) => { M.fullOpen[d.dataset.mk] = d.open; });
-  host.innerHTML = `<h2>Markets</h2>${cards.map(mkCardHTML).join("")}`;
+  host.innerHTML = `<h2>Markets</h2>${mkAllHTML(cards)}`;
   host.querySelectorAll("details.mkcard").forEach((d) => { d.open = !!M.open[d.dataset.mk]; });     // folded until you open one
   host.querySelectorAll("details.mkset").forEach((d) => { d.open = !!M.setOpen[d.dataset.id]; });
   host.querySelectorAll("details.mkfull").forEach((d) => { d.open = !!M.fullOpen[d.dataset.mk]; });
