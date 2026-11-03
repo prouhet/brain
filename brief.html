@@ -281,6 +281,33 @@
   .vwatch > summary:hover { color:var(--teal); }
   .vwatchbar { margin:4px 0 0; }
 
+  /* Past due: tasks whose day has gone by. Business first, then personal, Doreen's collapsed at the bottom.
+     Each row: a check for done, then one-tap new days, Pick day, Drop. */
+  .pdn { color:var(--warn); font-weight:600; }
+  .pdhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:18px 0 2px; }
+  .pdhead:first-child { margin-top:2px; }
+  .pd { border-bottom:1px solid var(--line); transition:opacity .15s; }
+  .pdgroup .pd:last-child { border-bottom:0; }
+  .pd > .row { padding:10px 0 4px; }
+  .pdtier { font-size:12px; margin-right:6px; }
+  .pdtitle { overflow-wrap:anywhere; }
+  .pdmeta { font-size:12px; color:var(--faint); margin-top:2px; }
+  .pdmeta .late { color:var(--warn); }
+  .pdnudge { font-size:13px; color:var(--dim); margin-top:6px; padding-left:8px; border-left:2px solid var(--warn); }
+  .pd.ghost > .row { padding:10px 0; }
+  .pd.ghost .text { color:var(--faint); }
+  .pd.ghost.pending { opacity:.6; }
+  .pdglyph { width:44px; height:44px; margin:-10px 0 -10px -10px; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .pdglyph.done { color:var(--done); } .pdglyph.move { color:var(--teal); } .pdglyph.drop { color:var(--faint); }
+  .pdlink { font:inherit; font-size:13px; color:var(--teal); background:none; border:0; padding:4px 0 4px 8px; cursor:pointer; text-decoration:underline; }
+  .pdmore { margin-top:6px; }
+  .pdnote { font-size:12px; color:var(--faint); margin:12px 0 0; }
+  .pddor { margin-top:16px; font-size:14px; color:var(--dim); }
+  .pddor > summary { cursor:pointer; padding:6px 0; color:var(--dim); }
+  .pddor > summary:hover { color:var(--teal); }
+  .pddorhint { font-size:12px; color:var(--faint); margin:0 0 4px; }
+  .pdtools button.drop:hover, .pdtools button.drop:focus-visible { color:var(--warn); background:transparent; }
+
   #toast {
     position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--text); color:var(--bg);
     font-size:14px; padding:9px 14px; border-radius:8px; display:none; max-width:90vw;
@@ -302,7 +329,6 @@
     <nav class="toplinks" aria-label="Other pages">
       <a href="priorities.html" data-page="priorities">Priorities</a>
       <a href="capture.html" data-page="capture">Capture</a>
-      <a href="notes.html" data-page="notes">Notes</a>
     </nav>
   </div>
   <form class="keysetup" id="keysetup" hidden>
@@ -316,6 +342,7 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
+  <div id="pastdue"></div>
   <details class="ask" id="ask">
     <summary><span><span class="chev">›</span> Ask your Brain</span></summary>
     <div class="askbody">
@@ -522,6 +549,7 @@ async function load() {
   $("#next").disabled = DATE >= TODAY;
   if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
   videosGate();
+  pastdueGate();
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
     $("#main").innerHTML = `<div class="empty"><p>No brief for ${esc(longDate(DATE))}.</p><p>${DATE === TODAY ? "It's built at 5:30 each morning. Anything you add below still lands in your priorities." : "Briefs only exist for days the email went out."}</p></div>`;
@@ -1528,6 +1556,231 @@ $("#videos").addEventListener("submit", (e) => {
   if (form.classList.contains("vaskform")) vidAsk(id, form.querySelector('[data-vfield="q"]').value);
   else if (form.classList.contains("vtaskform")) vidAddTask(id, form);
   else if (form.classList.contains("vappform")) vidAddApp(id, form);
+});
+
+// ── Past due ─────────────────────────────────────────────────
+// Tasks whose day has gone by, so nothing quietly piles up behind the daily list. Business first, then
+// personal, with Doreen's in a collapsed group at the bottom. Each one can go to a new day (Today,
+// Tomorrow, this Friday, next Monday, or any day you pick), be checked off, or be dropped. The brief
+// already carries anything only a day or two late on its own list, so this card is for what has actually
+// slipped. Every change shows at once with an Undo link; the brief-pastdue function counts each push, and
+// a task pushed three times is asked to be done or dropped. Today's page only, and only with a key.
+const PD_FN = FN.replace(/morning-brief$/, "brief-pastdue");
+const PD_CAP = 6;                 // rows shown per section before "Show all"
+const PD_NUDGE_AT = 3;            // pushes before the card asks for a real decision
+const PD_UNDO_MS = 25000;
+const P = {
+  started: false, loaded: false, err: "", data: null, run: 0,
+  open: null,          // null = open whenever something is past due; true/false once you've toggled it
+  showAll: {},         // section → true when "Show all" was tapped
+  pick: {},            // task id → true while its day picker is open
+  busy: {},            // task id → a save is in flight
+  gone: { business: 0, personal: 0, doreen: 0 },   // finished rows whose Undo window has closed
+  doreenOpen: false, dirty: false, setting: false,
+};
+
+async function pdApi(body) {
+  try {
+    const res = await fetch(`${PD_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+
+function pastdueGate() {
+  const show = !!KEY && !!TODAY && DATE === TODAY;
+  if (!show) { P.started = false; P.run++; $("#pastdue").innerHTML = ""; return; }
+  if (!P.started) { P.started = true; pdStart(); }
+}
+async function pdStart() { renderPastdue(); await pdRefresh(); }
+async function pdRefresh(soft) {
+  const run = ++P.run;
+  const r = await pdApi({ action: "list" });
+  if (run !== P.run) return;
+  if (r.ok) { P.data = r.data; P.err = ""; P.gone = { business: 0, personal: 0, doreen: 0 }; }
+  else P.err = r.data.error || "Couldn't load your past-due tasks.";
+  P.loaded = true;
+  renderPastdue(soft);
+}
+
+const pdList = (k) => (P.data && P.data[k]) || [];
+function pdFind(id) {
+  for (const k of ["business", "personal", "doreen"]) {
+    const list = pdList(k), i = list.findIndex((x) => x.id === id);
+    if (i >= 0) return { key: k, list, i, it: list[i] };
+  }
+  return null;
+}
+// How many are left to deal with in a section (ones just handled don't count; the server's count covers rows beyond the list).
+function pdLeft(k) {
+  const live = pdList(k).filter((x) => !x._ghost).length;
+  const total = P.data && P.data.counts ? P.data.counts[k] : live;
+  const ghosts = pdList(k).filter((x) => x._ghost).length;
+  return Math.max(live, total - P.gone[k] - ghosts);
+}
+function pdTyping() {
+  const a = document.activeElement, host = $("#pastdue");
+  return !!(a && host && host.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+function pdLateText(n) {
+  return n < 14 ? `${n} day${n === 1 ? "" : "s"} late` : n < 70 ? `${Math.round(n / 7)} weeks late` : `${Math.round(n / 30)} months late`;
+}
+// The one-tap days: today, tomorrow, this Friday (Mon–Wed only), the coming Monday.
+function pdChips() {
+  const t = TODAY, dow = new Date(t + "T12:00:00Z").getUTCDay();   // 0 = Sunday
+  const out = [{ label: "Today", date: t }, { label: "Tomorrow", date: shiftDate(t, 1) }];
+  if (dow >= 1 && dow <= 3) out.push({ label: "Fri", date: shiftDate(t, 5 - dow) });
+  const mon = shiftDate(t, (8 - dow) % 7 || 7);
+  if (!out.some((c) => c.date === mon)) out.push({ label: "Mon", date: mon });
+  return out;
+}
+
+function pdItemHTML(it, chips) {
+  const g = it._ghost;
+  if (g) {
+    const glyph = g.kind === "done" ? "✓" : g.kind === "drop" ? "✕" : "→";
+    return `<div class="pd ghost${g.pending ? " pending" : ""}" data-pd="${esc(it.id)}"><div class="row">
+      <span class="pdglyph ${esc(g.kind)}" aria-hidden="true">${glyph}</span>
+      <div class="text">${esc(g.label)}: ${esc(it.title)}${g.pending ? "" : ` <button type="button" class="pdlink" data-pact="undo">Undo</button>`}</div></div></div>`;
+  }
+  const [icon, tname] = TIERS[it.tier] || TIERS[5];
+  const meta = [it.due ? `Due ${shortDate(it.due)}` : `Planned for ${it.month}`, `<span class="late">${pdLateText(it.late)}</span>`];
+  if (it.pushes) meta.push(`pushed ${it.pushes}×`);
+  if (it.pushes && it.first_due) meta.push(`first due ${shortDate(it.first_due)}`);
+  const nudge = it.pushes >= PD_NUDGE_AT ? `<div class="pdnudge">Pushed ${it.pushes} times. Do it now, or drop it.</div>` : "";
+  const btns = chips.map((c) =>
+    `<button type="button" data-pwhen="${esc(c.date)}" title="${esc(shortDate(c.date))}" aria-label="Move to ${esc(c.label)} (${esc(shortDate(c.date))}): ${esc(it.title)}">${esc(c.label)}</button>`).join("");
+  const picker = P.pick[it.id] ? `<form class="vpanel pdpickform" data-pdform="${esc(it.id)}"><div class="aprow">
+      <input type="date" class="apdate" data-pfield="date" value="${esc(shiftDate(TODAY, 1))}" min="${esc(TODAY)}" aria-label="New day for: ${esc(it.title)}">
+      <div class="apbtns"><button type="button" class="btn quiet" data-pact="cancelpick">Cancel</button><button class="btn" type="submit">Set day</button></div></div></form>` : "";
+  return `<div class="pd" data-pd="${esc(it.id)}"><div class="row">
+      <button class="check" data-pact="done" aria-pressed="false" aria-label="Mark done: ${esc(it.title)}"><span class="box">${CHECK_SVG}</span></button>
+      <div class="text"><span class="pdtier" title="${esc(tname)}">${icon}</span><span class="pdtitle" title="${esc(it.full)}">${esc(it.title)}</span>
+        <div class="pdmeta">${meta.join(" · ")}</div>${nudge}</div>
+      <div class="tools pdtools">${btns}
+        <button type="button" data-pact="pick" aria-expanded="${!!P.pick[it.id]}" aria-label="Pick a day for: ${esc(it.title)}">Pick day</button>
+        <button type="button" class="drop" data-pact="drop" aria-label="Drop (not doing this): ${esc(it.title)}">Drop</button></div>
+    </div>${picker}</div>`;
+}
+
+function pdSectionHTML(key, heading, chips) {
+  const list = pdList(key);
+  if (!list.length) return "";
+  const left = pdLeft(key), all = !!P.showAll[key];
+  const shown = all ? list : list.slice(0, PD_CAP);
+  const hidden = list.length - shown.length;
+  return `<div class="pdhead"><span>${esc(heading)}</span><span>${left}</span></div>
+    <div class="pdgroup">${shown.map((x) => pdItemHTML(x, chips)).join("")}</div>
+    ${hidden > 0 ? `<button type="button" class="btn quiet pdmore" data-pact="more" data-psec="${key}">Show all ${list.length}</button>`
+      : all && list.length > PD_CAP ? `<button type="button" class="btn quiet pdmore" data-pact="less" data-psec="${key}">Show fewer</button>` : ""}`;
+}
+
+function renderPastdue(soft) {
+  const host = $("#pastdue"); if (!host || !P.started) return;
+  if (soft && pdTyping()) { P.dirty = true; return; }       // never redraw under someone who is typing
+  P.dirty = false;
+  const dor = host.querySelector(".pddor"); if (dor) P.doreenOpen = dor.open;
+  const nb = P.data ? pdLeft("business") : 0, np = P.data ? pdLeft("personal") : 0, nd = P.data ? pdLeft("doreen") : 0;
+  const mine = nb + np;
+  let label;
+  if (!P.loaded) label = "Loading…";
+  else if (P.err && !P.data) label = "Couldn't load past-due tasks";
+  else if (!mine) label = "Nothing past due";
+  else label = `<span class="pdn">${mine} past due</span>${nb ? ` · ${nb} business` : ""}${np ? ` · ${np} personal` : ""}`;
+  const right = P.loaded && P.data && nd ? `<span class="fit-saved">Doreen ${nd}</span>` : "";
+
+  let body;
+  if (!P.loaded) body = `<div class="vempty">Checking what has slipped…</div>`;
+  else if (P.err && !P.data) body = `<div class="vempty">${esc(P.err)} <button class="btn quiet" data-pact="retry" type="button">Try again</button></div>`;
+  else {
+    const chips = pdChips();
+    const grace = P.data.counts && P.data.counts.grace ? P.data.counts.grace : 0;
+    const dorList = pdList("doreen");
+    body = `${pdSectionHTML("business", "Business", chips)}${pdSectionHTML("personal", "Personal", chips)}
+      ${!pdList("business").length && !pdList("personal").length ? `<div class="vempty">Everything with a date is on track.</div>` : ""}
+      ${grace ? `<p class="pdnote">${grace} more ${grace === 1 ? "is" : "are"} a day or two late and still on today's list.</p>` : ""}
+      ${dorList.length ? `<details class="pddor"><summary>For Doreen (${nd})</summary>
+        <p class="pddorhint">Hers to do, but you can move or drop them here.${nd > dorList.length ? ` Showing the ${dorList.length} that have waited longest.` : ""}</p>
+        <div class="pdgroup">${dorList.map((x) => pdItemHTML(x, chips)).join("")}</div></details>` : ""}`;
+  }
+  host.innerHTML = `<h2>Past due</h2>
+    <details class="fitcard pdcard">
+      <summary><span><span class="chev">›</span> ${label}</span>${right}</summary>
+      <div class="fitbody">${body}</div>
+    </details>`;
+  const card = host.querySelector(".pdcard");
+  P.setting = true; card.open = P.open === null ? mine > 0 : P.open; setTimeout(() => { P.setting = false; }, 0);
+  const d2 = host.querySelector(".pddor"); if (d2) d2.open = P.doreenOpen;
+}
+// A background update that waited for you to finish typing goes in as soon as you leave the box.
+$("#pastdue").addEventListener("focusout", () => { setTimeout(() => { if (P.dirty && !pdTyping()) renderPastdue(); }, 700); });
+$("#pastdue").addEventListener("toggle", (e) => { if (e.target.classList && e.target.classList.contains("pdcard") && !P.setting) P.open = e.target.open; }, true);
+
+// The main list picks up the change a moment after the last tap (and waits while you're typing in it).
+function pdSchedMainReload() {
+  clearTimeout(pdSchedMainReload._t);
+  pdSchedMainReload._t = setTimeout(function again() {
+    const a = document.activeElement;
+    if (a && $("#main").contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { pdSchedMainReload._t = setTimeout(again, 3000); return; }
+    load();
+  }, 1500);
+}
+
+// A change shows at once as a "Moved to… / Done / Dropped" row with Undo, and rolls back with a message if the save fails.
+async function pdAct(id, act, to) {
+  const f = pdFind(id); if (!f || f.it._ghost || P.busy[id]) return;
+  const it = f.it; P.busy[id] = true; delete P.pick[id];
+  const kind = act === "recommit" ? "move" : act;
+  const label = act === "done" ? "Done" : act === "drop" ? "Dropped" : `Moved to ${to === TODAY ? "today" : shortDate(to)}`;
+  it._ghost = { kind, label, prev: null, pending: true, t: 0 };
+  renderPastdue();
+  const r = await pdApi(act === "recommit" ? { action: "recommit", id, to } : { action: act, id });
+  delete P.busy[id];
+  if (!r.ok) { delete it._ghost; renderPastdue(); toast(r.data.error || "Couldn't save that. Try again."); return; }
+  it._ghost.prev = r.data.prev || null; it._ghost.pending = false;
+  it._ghost.t = setTimeout(() => pdExpire(id), PD_UNDO_MS);
+  renderPastdue(true); pdSchedMainReload();
+}
+async function pdUndo(id) {
+  const f = pdFind(id); if (!f || !f.it._ghost || f.it._ghost.pending || P.busy[id]) return;
+  const g = f.it._ghost; P.busy[id] = true; clearTimeout(g.t);
+  const r = await pdApi({ action: "undo", id, prev: g.prev });
+  delete P.busy[id];
+  if (!r.ok) { g.t = setTimeout(() => pdExpire(id), PD_UNDO_MS); toast(r.data.error || "Couldn't undo that. Try again."); return; }
+  delete f.it._ghost; renderPastdue(); pdSchedMainReload(); toast("Put back");
+}
+function pdExpire(id) {
+  const f = pdFind(id); if (!f || !f.it._ghost) return;
+  f.list.splice(f.i, 1); P.gone[f.key]++;
+  renderPastdue(true);
+}
+
+$("#pastdue").addEventListener("click", async (e) => {
+  const t = e.target;
+  const when = t.closest("[data-pwhen]");
+  if (when) { pdAct(when.closest(".pd").dataset.pd, "recommit", when.dataset.pwhen); return; }
+  const btn = t.closest("[data-pact]"); if (!btn) return;
+  const act = btn.dataset.pact, row = btn.closest(".pd"), id = row ? row.dataset.pd : "";
+  if (act === "retry") { P.loaded = false; P.err = ""; renderPastdue(); await pdRefresh(); return; }
+  if (act === "more" || act === "less") { P.showAll[btn.dataset.psec] = act === "more"; renderPastdue(); return; }
+  if (!id) return;
+  if (act === "done" || act === "drop") { pdAct(id, act); return; }
+  if (act === "undo") { pdUndo(id); return; }
+  if (act === "pick" || act === "cancelpick") {
+    if (act === "pick" && !P.pick[id]) P.pick[id] = true; else delete P.pick[id];
+    renderPastdue();
+    if (P.pick[id]) { const inp = document.querySelector(`#pastdue .pd[data-pd="${CSS.escape(id)}"] [data-pfield="date"]`); if (inp) inp.focus(); }
+  }
+});
+$("#pastdue").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const form = e.target.closest("[data-pdform]"); if (!form) return;
+  const to = form.querySelector('[data-pfield="date"]').value;
+  if (!to) { toast("Pick a day first."); return; }
+  if (to < TODAY) { toast("Pick today or a later day."); return; }
+  pdAct(form.dataset.pdform, "recommit", to);
 });
 
 // ── Links to the other pages ─────────────────────────────────
