@@ -141,6 +141,12 @@
   .obs-group .item:last-child { border-bottom:none; }
   .moved .flag { margin-left:6px; }
   /* Tasks set aside as Doreen's: out of the numbered list, never dropped. */
+  /* Overdue (in Upcoming) folds up like the other cards; a re-render keeps it as you left it. */
+  .overdue-group { margin-top:16px; }
+  .overdue-group > summary { list-style:none; cursor:pointer; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--warn); padding:6px 0; }
+  .overdue-group > summary::-webkit-details-marker { display:none; }
+  .overdue-group > summary::before { content:"›"; display:inline-block; margin-right:6px; transition:transform .15s; }
+  .overdue-group[open] > summary::before { transform:rotate(90deg); }
   .doreen { margin-top:18px; font-size:14px; color:var(--dim); }
   .doreen summary { cursor:pointer; padding:8px 0; color:var(--dim); }
   .doreen summary:hover { color:var(--teal); }
@@ -691,12 +697,16 @@ function buildUpcomingHTML(items) {
       groups.get(key).push(it);
     }
     const tomorrow = shiftDate(TODAY, 1);
+    // Checking something off re-renders the page; the Overdue fold stays as it was left (closed to start with).
+    const overdueOpen = !!document.querySelector("#main details.overdue-group[open]");
     const dayKeys = [...groups.keys()].filter(k => k !== "overdue").sort();
     const orderedKeys = groups.has("overdue") ? ["overdue", ...dayKeys] : dayKeys;
     for (const key of orderedKeys) {
       const its = groups.get(key).sort((a, b) => a.tier - b.tier);
       const label = key === "overdue" ? `Overdue (${its.length})` : key === TODAY ? "Today" : key === tomorrow ? "Tomorrow" : shortDate(key);
-      html += `<div class="day-head${key === "overdue" ? " overdue" : ""}">${esc(label)}</div>${sectionHTML(its)}`;
+      html += key === "overdue"
+        ? `<details class="overdue-group"${overdueOpen ? " open" : ""}><summary>${esc(label)}</summary>${sectionHTML(its)}</details>`
+        : `<div class="day-head">${esc(label)}</div>${sectionHTML(its)}`;
     }
   }
 
@@ -1571,7 +1581,7 @@ const PD_NUDGE_AT = 3;            // pushes before the card asks for a real deci
 const PD_UNDO_MS = 25000;
 const P = {
   started: false, loaded: false, err: "", data: null, run: 0,
-  open: null,          // null = open whenever something is past due; true/false once you've toggled it
+  open: null,          // null = folded up until you open it; true/false once you've toggled it
   showAll: {},         // section → true when "Show all" was tapped
   pick: {},            // task id → true while its day picker is open
   busy: {},            // task id → a save is in flight
@@ -1711,7 +1721,7 @@ function renderPastdue(soft) {
       <div class="fitbody">${body}</div>
     </details>`;
   const card = host.querySelector(".pdcard");
-  P.setting = true; card.open = P.open === null ? mine > 0 : P.open; setTimeout(() => { P.setting = false; }, 0);
+  P.setting = true; card.open = P.open === null ? false : P.open; setTimeout(() => { P.setting = false; }, 0);   // folded to start with, like the other cards
   const d2 = host.querySelector(".pddor"); if (d2) d2.open = P.doreenOpen;
 }
 // A background update that waited for you to finish typing goes in as soon as you leave the box.
