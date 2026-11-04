@@ -362,6 +362,29 @@
   .mkt { font-size:12px; padding:2px 7px; border-radius:6px; background:var(--surface2); color:var(--text); font-variant-numeric:tabular-nums; }
   .mkt.hit { color:var(--done); text-decoration:line-through; text-decoration-thickness:1px; }
   .mkt.pot { font-style:italic; color:var(--dim); }
+
+  /* RSOTC board: the same layout the RSOTC alerts send (best RR now, needs attention, every setup with its price line). */
+  .bdnote { font-size:12px; color:var(--faint); margin:0 0 2px; }
+  .bdnote.warn { color:var(--warn); }
+  .bdtop { list-style:none; margin:4px 0 0; padding:0; counter-reset:bd; }
+  .bdtop li { counter-increment:bd; position:relative; padding:7px 0 7px 22px; border-bottom:1px solid var(--line); font-size:13.5px; overflow-wrap:anywhere; }
+  .bdtop li:last-child { border-bottom:0; }
+  .bdtop li::before { content:counter(bd) "."; position:absolute; left:0; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .bdrr { font-weight:700; color:var(--teal); white-space:nowrap; }
+  .bdsub { font-size:12px; font-style:italic; color:var(--faint); margin:6px 0 0; }
+  .bdattn { list-style:none; margin:4px 0 0; padding:0; }
+  .bdattn li { padding:5px 0; font-size:13.5px; overflow-wrap:anywhere; }
+  .bdflag { color:var(--warn); font-weight:600; }
+  div.bdset { padding:9px 0 9px 16px; }
+  .bdrest { font-size:12.5px; color:var(--dim); overflow-wrap:anywhere; }
+  .bdnow { color:var(--text); font-weight:600; }
+  .bdkey { display:flex; flex-wrap:wrap; gap:2px 12px; font-size:12.5px; color:var(--dim); margin-top:3px; }
+  .bdseg { overflow-wrap:anywhere; }
+  .bdseg.stop { color:var(--warn); }
+  .bdseg.now { color:var(--teal); font-weight:600; }
+  .bdyou { display:block; font-size:12.5px; color:var(--text); margin-top:3px; overflow-wrap:anywhere; }
+  .bdnolev { display:block; font-size:12.5px; color:var(--faint); margin-top:3px; }
+  .bdladder { display:block; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace; font-size:12px; line-height:1.35; white-space:pre; overflow-x:auto; color:var(--dim); margin-top:4px; padding-bottom:2px; }
   .h2link { color:inherit; text-decoration:none; border-bottom:1px dotted currentColor; }
   .h2link:hover, .h2link:focus-visible { border-bottom-style:solid; outline:none; }
 
@@ -2002,6 +2025,20 @@ function mkBriefBody(c) {
   return `${secs}${full}`;
 }
 
+// What opens under a setup: Randy's own words and levels (entry, stop, targets, notes, last change, his post).
+function mkSetupDetail(s) {
+  const chips = (s.targets || []).map((t) =>
+    `<span class="mkt${t.hit ? " hit" : ""}${t.potential ? " pot" : ""}"${t.hit ? ` title="Hit ${esc(shortDate(t.hit))}"` : ""}>${t.hit ? "✓ " : ""}${esc(t.text)}${t.potential ? " (potential)" : ""}</span>`).join("");
+  return `<div class="mkdetail">
+      ${s.entry_note ? `<p><b>Entry.</b> ${esc(s.entry_note)}</p>` : ""}
+      ${s.stop_note ? `<p><b>Stop.</b> ${esc(s.stop_note)}</p>` : ""}
+      ${chips ? `<div class="mktargets">${chips}</div>` : ""}
+      ${s.notes ? `<p>${esc(s.notes)}</p>` : ""}
+      ${s.last_event ? `<p class="mkmeta">Last change${s.changed ? ` ${esc(shortDate(s.changed))}` : ""}: ${esc(s.last_event)}</p>` : ""}
+      ${s.link ? `<p><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">Randy's post ↗</a></p>` : ""}
+    </div>`;
+}
+// The plain list, used when the board can't be drawn (the Markets function sends `board: null`).
 function mkSetupHTML(s) {
   const nxt = (s.targets || []).find((t) => !t.hit);
   const glance = [
@@ -2010,28 +2047,71 @@ function mkSetupHTML(s) {
     nxt ? nxt.text : ((s.targets || []).length ? "all targets hit" : ""),
   ].filter(Boolean).join(" · ");
   const dir = s.direction === "long" ? "long" : "short";
-  const chips = (s.targets || []).map((t) =>
-    `<span class="mkt${t.hit ? " hit" : ""}${t.potential ? " pot" : ""}"${t.hit ? ` title="Hit ${esc(shortDate(t.hit))}"` : ""}>${t.hit ? "✓ " : ""}${esc(t.text)}${t.potential ? " (potential)" : ""}</span>`).join("");
   return `<details class="mkset" data-id="${esc(s.id)}">
     <summary><span class="mkrow1"><span class="mkdir ${dir}">${dir.toUpperCase()}</span><b>${esc(s.ticker)}</b>${s.fresh ? `<span class="mkdot" title="Changed ${esc(shortDate(s.changed))}" aria-label="Changed recently">●</span>` : ""}<span class="mkmeta">${esc([s.tf, s.status].filter(Boolean).join(" · "))}</span></span>
       <span class="mkglance">${esc(glance)}</span></summary>
-    <div class="mkdetail">
-      ${s.entry_note ? `<p><b>Entry.</b> ${esc(s.entry_note)}</p>` : ""}
-      ${s.stop_note ? `<p><b>Stop.</b> ${esc(s.stop_note)}</p>` : ""}
-      ${chips ? `<div class="mktargets">${chips}</div>` : ""}
-      ${s.notes ? `<p>${esc(s.notes)}</p>` : ""}
-      ${s.last_event ? `<p class="mkmeta">Last change${s.changed ? ` ${esc(shortDate(s.changed))}` : ""}: ${esc(s.last_event)}</p>` : ""}
-      ${s.link ? `<p><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">Randy's post ↗</a></p>` : ""}
-    </div></details>`;
+    ${mkSetupDetail(s)}</details>`;
 }
+
+// ── The RSOTC board ──────────────────────────────────────────
+// Every line is the board's own text (the SQL function the alerts task uses); this only lays it out: bold marks,
+// the RR numbers picked out, flags tinted, the price line in a fixed-width box. Nothing is re-ranked or re-worded.
+const bdRR = (h) => h.replace(/(now RR [\d.]+\/[\d.]+)/, '<span class="bdrr">$1</span>');
+const bdFlag = (h) => h.replace(/((?:⚠|⚑)[^<]*)$/, '<span class="bdflag">$1</span>');
+const bdGlyph = (h) => h.replace(/^(⚠|⚑|★)/, '<span class="bdflag">$1</span>');
+function bdKeyLine(l) {
+  return `<span class="bdkey">${String(l).trim().split(/\s{2,}/).filter(Boolean).map((seg) => {
+    const k = seg.startsWith("✕") ? " stop" : seg.startsWith("◆") ? " now" : "";
+    return `<span class="bdseg${k}">${esc(seg)}</span>`;
+  }).join("")}</span>`;
+}
+function bdItemHTML(it, byId) {
+  const dir = it.direction === "long" ? "long" : "short";
+  const rest = String(it.head || "").replace(/^\*\*.+?\*\*\s*(·\s*)?/, "");
+  const restHTML = bdFlag(mkInline(rest).replace(/(now [\d.]+\/[\d.]+)/, '<b class="bdnow">$1</b>'));
+  const lines = (it.lines || []).map((l) => {
+    if (/^★/.test(l)) return `<span class="bdyou">${mkInline(l)}</span>`;
+    if (/^[✕◆▼]/.test(l) || /\s{2,}/.test(l)) return bdKeyLine(l);
+    return `<span class="bdnolev">${esc(l)}</span>`;
+  }).join("");
+  const ladder = it.ladder ? `<span class="bdladder" aria-label="Price line, stop on the left, targets on the right">${esc(it.ladder)}</span>` : "";
+  const sum = `<span class="mkrow1"><span class="mkdir ${dir}">${dir.toUpperCase()}</span><b>${esc(it.ticker)}</b><span class="bdrest">${restHTML}</span></span>${lines}${ladder}`;
+  const s = it.id ? byId[it.id] : null;
+  if (!s) return `<div class="mkset bdset">${sum}</div>`;
+  return `<details class="mkset bdset" data-id="${esc(s.id)}"><summary>${sum}</summary>${mkSetupDetail(s)}</details>`;
+}
+function mkBoardBody(c) {
+  const b = c.board, byId = {};
+  (c.setups || []).forEach((s) => { byId[s.id] = s; });
+  const head = (name, n) => `<div class="pdhead"><span>${esc(name)}</span><span>${n}</span></div>`;
+  const note = b.prices_ok === false
+    ? `<p class="bdnote warn">${esc(b.note || "Prices unavailable right now")}: levels only, no RR ranking.</p>`
+    : (b.note ? `<p class="bdnote">${esc(b.note.charAt(0).toUpperCase() + b.note.slice(1))}</p>` : "");
+  const top = (b.top || []).length
+    ? `${head("Top RR now", b.top.length)}<ol class="bdtop">${b.top.map((t) => `<li>${bdRR(mkInline(t.line))}</li>`).join("")}</ol>${b.top_note ? `<p class="bdsub">${esc(b.top_note)}</p>` : ""}` : "";
+  const attn = (b.attention || []).length
+    ? `${head("Needs attention", b.attention.length)}<ul class="bdattn">${b.attention.map((l) => `<li>${bdGlyph(mkInline(l))}</li>`).join("")}</ul>` : "";
+  const groups = (b.groups || []).filter((g) => g.items && g.items.length)
+    .map((g) => `${head(g.title, g.items.length)}${g.items.map((it) => bdItemHTML(it, byId)).join("")}`).join("");
+  const mine = (b.mine || []).map((m) => `${head(m.title, m.lines.length)}${m.lines.map((l) => `<p class="mkp">${mkInline(l)}</p>`).join("")}`).join("");
+  const legend = b.legend
+    ? `<details class="mkfull" data-mk="rsotc-legend"><summary>How to read a line</summary><div class="mkmd"><p>${esc(String(b.legend).replace(/^How to read a line:\s*/, ""))}</p></div></details>` : "";
+  return `${note}${top}${attn}${groups}${mine}${legend}`;
+}
+const mkBoardUsable = (c) => !!(c.board && (c.board.groups || []).some((g) => g.items && g.items.length));
+
 function mkRsotcBody(c) {
   if (c.error) return `<div class="vempty">${esc(c.error)} <button class="btn quiet" data-mkact="retry" type="button">Try again</button></div>`;
   const list = c.setups || [];
   if (!list.length) return `<div class="vempty">No open setups right now.</div>`;
-  const group = (name, items) => items.length
-    ? `<div class="pdhead"><span>${name}</span><span>${items.length}</span></div>${items.map(mkSetupHTML).join("")}` : "";
   const post = c.last_post
     ? `<p class="pdnote">Latest post${c.last_post.published_at ? ` (${esc(shortDate(mkCentral(c.last_post.published_at)))})` : ""}: ${/^https?:\/\//.test(c.last_post.link || "") ? `<a href="${esc(c.last_post.link)}" target="_blank" rel="noopener noreferrer">${esc(c.last_post.title)}</a>` : esc(c.last_post.title)}</p>` : "";
+  if (mkBoardUsable(c)) {
+    return `${mkBoardBody(c)}
+    <p class="pdnote">Tap a setup for Randy's notes, targets and a link to his post. Randy Phinney's published calls with his levels as drawn; a summary of his posts, not advice.</p>${post}`;
+  }
+  const group = (name, items) => items.length
+    ? `<div class="pdhead"><span>${name}</span><span>${items.length}</span></div>${items.map(mkSetupHTML).join("")}` : "";
   return `${group("Long", list.filter((s) => s.direction === "long"))}${group("Short", list.filter((s) => s.direction !== "long"))}
     <p class="pdnote">● changed since yesterday. Randy Phinney's published calls with his levels as drawn; a summary of his posts, not advice.</p>${post}`;
 }
