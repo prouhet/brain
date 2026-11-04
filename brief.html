@@ -353,6 +353,10 @@
   .fdform .btn { min-height:40px; }
   .fd.ghost { padding:6px 0; }
   .fd.ghost.pending { opacity:.6; }
+  .fd .more { grid-column:auto; margin:0 0 0 auto; }
+  .fdact { align-items:center; }
+  .fdform select { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:10px 10px; width:100%; min-height:44px; }
+  .pdglyph.merge { color:var(--teal); }
   .fdghost { display:flex; align-items:center; gap:2px; color:var(--faint); }
   .fdghost .pdglyph { flex:none; margin:0 0 0 -10px; }
   .fdghost .text { min-width:0; overflow-wrap:anywhere; }
@@ -1143,7 +1147,7 @@ document.addEventListener("keydown", (e) => {
   const open = document.querySelector(".more.open"); if (!open) return;
   if (e.key === "Escape") { const tg = open.querySelector(".moretoggle"); closeMenus(); tg.focus(); return; }
   if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-    const btns = [...open.querySelectorAll(".menu button[data-act]")]; if (!btns.length) return;
+    const btns = [...open.querySelectorAll(".menu button[data-act], .menu button[data-fact]")]; if (!btns.length) return;
     const i = btns.indexOf(document.activeElement);
     btns[(i + (e.key === "ArrowDown" ? 1 : -1) + btns.length) % btns.length].focus(); e.preventDefault();
   }
@@ -2039,10 +2043,11 @@ const FD_UNDO_MS = 25000;
 const FD_REFRESH_MS = 5 * 60 * 1000;
 const FD = {
   started: false, loaded: false, err: "", items: [], run: 0, at: 0,
-  open: null,             // null = open until you fold it
+  open: null,             // folded up until you open it, like Past due
   showAll: false,
   panel: null,            // { id, kind } while one row's day picker / push back / edit box is open
   busy: {}, dirty: false, hideKey: "",
+  dead: new Set(),        // dropped or merged away this visit: never put back on the main list
 };
 
 async function fdApi(body) {
@@ -2075,6 +2080,7 @@ function fdHideSet() {
   const s = new Set();
   if (!FD.loaded) return s;
   for (const x of FD.items) if (!x._ghost || !x._ghost.shown) s.add(x.id);
+  for (const id of FD.dead) s.add(id);
   return s;
 }
 const fdKey = (set) => [...set].sort().join(",");
@@ -2098,6 +2104,7 @@ function fdAfterAct() {
   }, 1200);
 }
 
+const fdClip = (s, n) => (s.length <= n ? s : s.slice(0, n - 1).replace(/\s+\S*$/, "") + "…");
 const fdAge = (n) => n <= 0 ? "today" : n === 1 ? "yesterday" : n < 14 ? `${n} days ago` : n < 70 ? `${Math.round(n / 7)} weeks ago` : `${Math.round(n / 30)} months ago`;
 const fdDay = (d) => d === TODAY ? "today" : d === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(d);
 function fdTyping() {
@@ -2125,6 +2132,20 @@ function fdPanelHTML(it, kind) {
       <div class="fdchips"><button type="button" data-freason="Not mine">Not mine</button><button type="button" data-freason="Need more info">Need more info</button><button type="button" data-freason="Not now">Not now</button></div>
       <div class="aprow"><div class="apbtns"><button type="button" class="btn quiet" data-fact="cancel">Cancel</button><button class="btn" type="submit">Send back to Doreen</button></div></div></form>`;
   }
+  if (kind === "merge") {
+    const sim = (FD.panel && FD.panel.sim) || null;
+    const simIds = new Set((sim || []).map((x) => x.id));
+    const opt = (id, title, tag) => `<option value="${esc(id)}" data-title="${esc(title)}">${esc(fdClip(title, 80))}${tag}</option>`;
+    const others = FD.items.filter((x) => x.id !== it.id && !x._ghost && !simIds.has(x.id));
+    return `<form class="fdform" data-fform="merge" novalidate><span class="lab">Merge into which task?</span>
+      <select data-ffield="into" aria-label="Task to merge this into: ${t}">
+        <option value="">${sim === null ? "Looking for matches…" : "Choose a task…"}</option>
+        ${sim && sim.length ? `<optgroup label="Looks like the same job">${sim.map((x) => opt(x.id, x.title, x.waiting ? " · waiting here" : " · on your list")).join("")}</optgroup>` : ""}
+        ${others.length ? `<optgroup label="Also waiting from Doreen">${others.map((x) => opt(x.id, x.title, "")).join("")}</optgroup>` : ""}
+      </select>
+      <p class="fdhint">This task goes away. Its words are added as a note on the one you pick.</p>
+      <div class="aprow"><div class="apbtns"><button type="button" class="btn quiet" data-fact="cancel">Cancel</button><button class="btn" type="submit">Merge</button></div></div></form>`;
+  }
   if (kind === "edit") {
     return `<form class="fdform" data-fform="edit" data-orig-due="${esc(it.due)}" novalidate><span class="lab">Edit the task</span>
       <textarea data-ffield="content" rows="3" maxlength="1000" aria-label="Task text">${esc(it.full)}</textarea>
@@ -2139,7 +2160,7 @@ function fdItemHTML(it) {
   const id = esc(it.id), g = it._ghost;
   if (g) {
     return `<div class="fd ghost${g.pending ? " pending" : ""}" data-fd="${id}"><div class="fdghost">
-      <span class="pdglyph ${esc(g.kind)}" aria-hidden="true">${g.kind === "done" ? "✓" : "→"}</span>
+      <span class="pdglyph ${esc(g.kind)}" aria-hidden="true">${g.kind === "done" ? "✓" : g.kind === "drop" ? "✕" : "→"}</span>
       <div class="text">${esc(g.label)}: ${esc(it.title)}${g.pending ? "" : ` <button type="button" class="pdlink" data-fact="undo">Undo</button>`}</div></div></div>`;
   }
   const p = FD.panel && FD.panel.id === it.id ? FD.panel.kind : "";
@@ -2159,7 +2180,15 @@ function fdItemHTML(it) {
     <div class="fdmeta">${meta.join(" · ")}</div>${notes}
     <div class="fdact">${accept}
       <button type="button" class="btn quiet" data-fact="back" aria-expanded="${p === "back"}" aria-label="Push back to Doreen: ${t}">Push back</button>
-      <button type="button" class="btn quiet" data-fact="edit" aria-expanded="${p === "edit"}" aria-label="Edit: ${t}">Edit</button></div>
+      <div class="more">
+        <button type="button" class="moretoggle" aria-haspopup="menu" aria-expanded="false" aria-label="More actions: ${t}">⋯</button>
+        <div class="menu" role="menu">
+          <button type="button" role="menuitem" data-fact="edit" aria-label="Edit: ${t}">Edit</button>
+          <button type="button" role="menuitem" data-fact="done" aria-label="Already done: ${t}">Done</button>
+          <button type="button" role="menuitem" data-fact="merge" aria-label="Merge into another task: ${t}">Merge into…</button>
+          <hr>
+          <button type="button" role="menuitem" data-fact="drop" aria-label="Drop (not doing this): ${t}">Drop</button>
+        </div></div></div>
     ${p ? fdPanelHTML(it, p) : ""}</div>`;
 }
 
@@ -2191,7 +2220,7 @@ function renderFD(force) {
         : FD.showAll && live.length > FD_CAP ? `<button type="button" class="btn quiet pdmore" data-fact="less">Show fewer</button>` : ""}`;
   }
   host.innerHTML = `<h2>From Doreen</h2>
-    <details class="fitcard fdcard"${FD.open === null || FD.open ? " open" : ""}>
+    <details class="fitcard fdcard"${FD.open ? " open" : ""}>
       <summary><span><span class="chev">›</span> ${label}</span></summary>
       <div class="fitbody">${body}</div>
     </details>`;
@@ -2223,10 +2252,13 @@ function fdWire() {
     if (act === "keep") { fdAct(id, "accept", { due: "keep" }); return; }
     if (act === "noday") { fdAct(id, "accept", { due: "keep" }); return; }
     if (act === "undo") { fdUndo(id); return; }
+    if (act === "done" || act === "drop") { fdAct(id, act); return; }
     if (act === "cancel") { FD.panel = null; renderFD(true); return; }
-    if (act === "days" || act === "pick" || act === "back" || act === "edit") {
-      FD.panel = FD.panel && FD.panel.id === id && FD.panel.kind === act ? null : { id, kind: act, focus: act !== "days" };
+    if (act === "days" || act === "pick" || act === "back" || act === "edit" || act === "merge") {
+      const closing = FD.panel && FD.panel.id === id && FD.panel.kind === act;
+      FD.panel = closing ? null : { id, kind: act, focus: act !== "days", sim: act === "merge" ? null : undefined };
       renderFD(true);
+      if (!closing && act === "merge") fdLoadSimilar(id);
     }
   });
   host.addEventListener("submit", (e) => {
@@ -2241,6 +2273,11 @@ function fdWire() {
       fdAct(id, "accept", { due: to });
     } else if (kind === "back") {
       fdAct(id, "pushback", { note: val("note") });
+    } else if (kind === "merge") {
+      const sel = form.querySelector('[data-ffield="into"]'), into = sel ? sel.value : "";
+      if (!into) { toast("Pick a task to merge into."); return; }
+      const o = sel.selectedOptions[0];
+      fdAct(id, "merge", { into, intoTitle: o ? o.dataset.title : "" });
     } else if (kind === "edit") {
       const content = val("content").trim();
       if (!content) { toast("The task can't be empty."); return; }
@@ -2257,22 +2294,35 @@ function fdWire() {
 
 function fdDrop(id) { const i = FD.items.findIndex((x) => x.id === id); if (i >= 0) FD.items.splice(i, 1); }
 
-// An answer shows at once as an "Accepted / Sent back" row with Undo, and rolls back with a message if the save fails.
+// An answer shows at once as an "Accepted / Sent back / Done / Dropped / Merged" row with Undo, and rolls back with a message if the save fails.
 async function fdAct(id, act, opts = {}) {
   const f = FD.items.find((x) => x.id === id); if (!f || f._ghost || FD.busy[id]) return;
   FD.busy[id] = true; FD.panel = null;
   const due = opts.due || "keep";
-  const day = act === "accept" ? (due !== "keep" && due !== "none" ? due : f.due) : "";
-  const label = act === "accept" ? (day ? `Accepted for ${fdDay(day)}` : "Accepted with no day") : "Sent back to Doreen";
-  f._ghost = { kind: act === "accept" ? "done" : "move", label, prev: null, pending: true, shown: false, armedAt: 0, t: 0 };
+  let label, kind;
+  if (act === "accept") { const day = due !== "keep" && due !== "none" ? due : f.due; label = day ? `Accepted for ${fdDay(day)}` : "Accepted with no day"; kind = "done"; }
+  else if (act === "done") { label = "Marked done"; kind = "done"; }
+  else if (act === "drop") { label = "Dropped"; kind = "drop"; }
+  else if (act === "merge") { label = `Merged into “${fdClip(opts.intoTitle || "another task", 40)}”`; kind = "merge"; }
+  else { label = "Sent back to Doreen"; kind = "move"; }
+  f._ghost = { kind, label, prev: null, pending: true, shown: false, armedAt: 0, t: 0 };
   renderFD(true);
-  const r = await fdApi(act === "accept" ? { action: "accept", id, due } : { action: "pushback", id, note: opts.note || "" });
+  const body = act === "accept" ? { action: "accept", id, due }
+    : act === "pushback" ? { action: "pushback", id, note: opts.note || "" }
+    : act === "merge" ? { action: "merge", id, into: opts.into } : { action: act, id };
+  const r = await fdApi(body);
   delete FD.busy[id];
   if (!r.ok) {
     if (r.status === 404) { fdDrop(id); renderFD(true); fdAfterAct(); toast(r.data.error || "That task isn't waiting anymore."); return; }
     delete f._ghost; renderFD(true); toast(r.data.error || "Couldn't save that. Try again."); return;
   }
   f._ghost.prev = r.data.prev || null; f._ghost.pending = false; f._ghost.armedAt = Date.now();
+  if (act === "drop" || act === "merge") FD.dead.add(id);          // archived: it must not come back on the main list as "done"
+  if (act === "merge" && r.data.note) {                              // the note now sits on the task it was merged into
+    f._ghost.into = opts.into; f._ghost.noteAt = r.data.note.at;
+    const tgt = FD.items.find((x) => x.id === opts.into);
+    if (tgt) tgt.notes = [...(tgt.notes || []), { at: r.data.note.at, text: fdClip(r.data.note.text, 200) }].slice(-2);
+  }
   f._ghost.t = setTimeout(() => fdExpire(id), FD_UNDO_MS);
   renderFD(true); fdAfterAct();
 }
@@ -2282,7 +2332,16 @@ async function fdUndo(id) {
   const r = await fdApi({ action: "undo", id, prev: g.prev });
   delete FD.busy[id];
   if (!r.ok) { g.t = setTimeout(() => fdExpire(id), FD_UNDO_MS); toast(r.data.error || "Couldn't undo that. Try again."); return; }
+  FD.dead.delete(id);
+  if (g.into && g.noteAt) { const tgt = FD.items.find((x) => x.id === g.into); if (tgt) tgt.notes = (tgt.notes || []).filter((n) => n.at !== g.noteAt); }
   delete f._ghost; renderFD(true); fdRenderMain(); fdAfterAct(); toast("Put back");
+}
+// Looks for tasks that read like the same job (on your list or waiting here) for the open Merge box.
+async function fdLoadSimilar(id) {
+  const r = await fdApi({ action: "similar", id });
+  if (!FD.panel || FD.panel.id !== id || FD.panel.kind !== "merge") return;
+  FD.panel.sim = r.ok && Array.isArray(r.data.items) ? r.data.items.filter((x) => x.id !== id) : [];
+  FD.panel.focus = true; renderFD(true);
 }
 function fdExpire(id) {
   const f = FD.items.find((x) => x.id === id); if (!f || !f._ghost) return;
