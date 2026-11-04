@@ -326,6 +326,37 @@
   .pddorhint { font-size:12px; color:var(--faint); margin:0 0 4px; }
   .pdtools button.drop:hover, .pdtools button.drop:focus-visible { color:var(--warn); background:transparent; }
 
+  /* From Doreen: tasks she sent you that you haven't answered. Each is accepted (and given a day) or pushed back to her. */
+  .fdhint { font-size:12px; color:var(--faint); margin:0 0 4px; }
+  .fd { border-bottom:1px solid var(--line); padding:12px 0 12px; }
+  .fdgroup .fd:last-child { border-bottom:0; }
+  .fdtitle { overflow-wrap:anywhere; }
+  .fdmeta { font-size:12px; color:var(--faint); margin-top:2px; }
+  .fdmeta .nodue, .fdmeta .waited { color:var(--warn); }
+  .fdmeta .again { color:var(--teal); }
+  .fdnotes { margin-top:6px; }
+  .fdnotes div { font-size:13px; color:var(--dim); padding-left:8px; border-left:2px solid var(--line2); overflow-wrap:anywhere; }
+  .fdnotes div + div { margin-top:4px; }
+  .fdact { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .fdact .btn { font-size:14px; padding:8px 12px; min-height:40px; }
+  .fdchips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .fdchips button { font:inherit; font-size:14px; color:var(--text); background:var(--surface2); border:1px solid var(--line2); border-radius:8px; padding:8px 12px; min-height:40px; cursor:pointer; white-space:nowrap; }
+  .fdchips button:hover, .fdchips button:focus-visible { border-color:var(--teal); color:var(--teal); outline:none; }
+  .fdchips button.quiet { background:transparent; color:var(--dim); }
+  .fdchips .lab { align-self:center; font-size:12px; color:var(--faint); margin-right:2px; }
+  .fdform { margin-top:8px; display:flex; flex-direction:column; gap:8px; }
+  .fdform .lab { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
+  .fdform textarea { min-height:64px; }
+  .fdform .aprow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .fdform .apdate { font:inherit; font-size:16px; color:var(--text); background:var(--surface); border:1px solid var(--line2); border-radius:8px; padding:8px 10px; }
+  .fdform .apbtns { margin-left:auto; display:flex; gap:8px; }
+  .fdform .btn { min-height:40px; }
+  .fd.ghost { padding:6px 0; }
+  .fd.ghost.pending { opacity:.6; }
+  .fdghost { display:flex; align-items:center; gap:2px; color:var(--faint); }
+  .fdghost .pdglyph { flex:none; margin:0 0 0 -10px; }
+  .fdghost .text { min-width:0; overflow-wrap:anywhere; }
+
   /* Markets: the daily TSP, Hard Asset and RSOTC briefs as folded cards that open to what needs doing. */
   .mkcard { padding:12px 14px 10px; }
   .mkcard.mk-act { border-left:3px solid var(--warn); }
@@ -474,6 +505,7 @@
     </div>
   </details>
   <div id="pastdue"></div>
+  <div id="fromdoreen"></div>
   <div id="markets"></div>
   <div id="videos"></div>
   <div id="fitness"></div>
@@ -696,6 +728,7 @@ async function load() {
   if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
   videosGate();
   pastdueGate();
+  fromdoreenGate();
   marketsGate();
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
@@ -875,11 +908,16 @@ function render() {
   const b = brief;
   $("#headline").textContent = b.headline || "";
   // Items given a later date leave today's list (they're collected at the bottom)
-  const today = b.items.filter(i => !i.pushed && !i.extra);
-  const moved = b.items.filter(i => i.pushed && !i.extra);
-  const upcomingItems = b.items.filter(i => i.extra === "upcoming");
-  const ticklerItems = b.items.filter(i => i.extra === "tickler");
-  const doreenItems = b.items.filter(i => i.extra === "doreen");
+  // Tasks Doreen sent you that are waiting for your answer live in "From Doreen" until you accept them,
+  // so they're left out of every list here (and only while that list has loaded, so nothing ever goes missing).
+  const hide = fdHideSet();
+  FD.hideKey = fdKey(hide);
+  const all = hide.size ? b.items.filter(i => !hide.has(i.id)) : b.items;
+  const today = all.filter(i => !i.pushed && !i.extra);
+  const moved = all.filter(i => i.pushed && !i.extra);
+  const upcomingItems = all.filter(i => i.extra === "upcoming");
+  const ticklerItems = all.filter(i => i.extra === "tickler");
+  const doreenItems = all.filter(i => i.extra === "doreen");
   const done = today.filter(i => i.done).length;
   $("#progress").innerHTML = today.length ? `<b>${done}</b> of ${today.length} checked off` : "";
   $("#progress").title = "Items checked off on today's numbered list. Upcoming, Don't forget and Doreen's rows aren't counted, and anything you move to a later day leaves the count.";
@@ -1990,6 +2028,278 @@ $("#pastdue").addEventListener("submit", (e) => {
   if (to < TODAY) { toast("Pick today or a later day."); return; }
   pdAct(form.dataset.pdform, "recommit", to);
 });
+
+// ── From Doreen ──────────────────────────────────────────────
+// Tasks Doreen sent you that you haven't answered. Each one is accepted (you confirm or set the day it's due)
+// or pushed back to her with a short reason; Edit rewrites it while it waits. Both answers can be undone for
+// a short while. While a task is waiting it appears only here, not in the lists below. Today's page only.
+const FD_FN = FN.replace(/morning-brief$/, "brief-fromdoreen");
+const FD_CAP = 5;                       // rows shown before "Show all"
+const FD_UNDO_MS = 25000;
+const FD_REFRESH_MS = 5 * 60 * 1000;
+const FD = {
+  started: false, loaded: false, err: "", items: [], run: 0, at: 0,
+  open: null,             // null = open until you fold it
+  showAll: false,
+  panel: null,            // { id, kind } while one row's day picker / push back / edit box is open
+  busy: {}, dirty: false, hideKey: "",
+};
+
+async function fdApi(body) {
+  try {
+    const res = await fetch(`${FD_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+
+function fromdoreenGate() {
+  const show = !!KEY && !!TODAY && DATE === TODAY;
+  if (!show) { FD.started = false; FD.run++; FD.loaded = false; FD.err = ""; FD.items = []; FD.panel = null; $("#fromdoreen").innerHTML = ""; return; }
+  if (!FD.started) { FD.started = true; fdRefresh(); }
+}
+async function fdRefresh() {
+  const run = ++FD.run;
+  const r = await fdApi({ action: "list" });
+  if (run !== FD.run) return;
+  FD.at = Date.now();
+  if (r.ok && Array.isArray(r.data.items)) { FD.items = r.data.items; FD.err = ""; FD.loaded = true; FD.panel = null; }
+  else if (!FD.loaded) FD.err = (r.data && r.data.error) || "Couldn't load what Doreen sent you.";
+  renderFD(); fdRenderMain();
+}
+
+// Ids that are left out of the main lists: everything waiting for an answer, and answered ones until the main list has reloaded.
+function fdHideSet() {
+  const s = new Set();
+  if (!FD.loaded) return s;
+  for (const x of FD.items) if (!x._ghost || !x._ghost.shown) s.add(x.id);
+  return s;
+}
+const fdKey = (set) => [...set].sort().join(",");
+function fdRenderMain() {
+  if (!brief) return;
+  if (fdKey(fdHideSet()) === FD.hideKey) return;       // nothing to show or hide: leave the list (and any open menu or box) alone
+  const a = document.activeElement;
+  if (a && $("#main").contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;   // never redraw under someone who is typing
+  render();
+}
+// A moment after an answer, the main list reloads so the task lands where it now belongs (today, Upcoming, or Doreen's).
+function fdAfterAct() {
+  clearTimeout(fdAfterAct._t);
+  fdAfterAct._t = setTimeout(async function again() {
+    const a = document.activeElement;
+    if (a && $("#main").contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { fdAfterAct._t = setTimeout(again, 3000); return; }
+    const t0 = Date.now();
+    await load();
+    for (const x of FD.items) if (x._ghost && x._ghost.armedAt && x._ghost.armedAt <= t0) x._ghost.shown = true;
+    fdRenderMain();
+  }, 1200);
+}
+
+const fdAge = (n) => n <= 0 ? "today" : n === 1 ? "yesterday" : n < 14 ? `${n} days ago` : n < 70 ? `${Math.round(n / 7)} weeks ago` : `${Math.round(n / 30)} months ago`;
+const fdDay = (d) => d === TODAY ? "today" : d === shiftDate(TODAY, 1) ? "tomorrow" : shortDate(d);
+function fdTyping() {
+  const a = document.activeElement, host = $("#fromdoreen");
+  return !!(a && host && host.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+
+function fdPanelHTML(it, kind) {
+  const id = esc(it.id), t = esc(it.title);
+  if (kind === "days") {
+    const chips = pdChips().map((c) =>
+      `<button type="button" data-fwhen="${esc(c.date)}" title="${esc(shortDate(c.date))}" aria-label="Accept for ${esc(c.label)} (${esc(shortDate(c.date))}): ${t}">${esc(c.label)}</button>`).join("");
+    return `<div class="fdchips"><span class="lab">Due:</span>${chips}
+      <button type="button" data-fact="pick" aria-label="Pick a day for: ${t}">Pick day</button>
+      ${it.due ? "" : `<button type="button" class="quiet" data-fact="noday" title="Accepts it without a day. It stays in the Brain but won't show on this page until it has one." aria-label="Accept with no day: ${t}">No day</button>`}</div>`;
+  }
+  if (kind === "pick") {
+    return `<form class="fdform" data-fform="pick" novalidate><div class="aprow">
+      <input type="date" class="apdate" data-ffield="date" value="${esc(shiftDate(TODAY, 1))}" min="${esc(TODAY)}" aria-label="Day this is due: ${t}">
+      <div class="apbtns"><button type="button" class="btn quiet" data-fact="cancel">Cancel</button><button class="btn" type="submit">Accept for this day</button></div></div></form>`;
+  }
+  if (kind === "back") {
+    return `<form class="fdform" data-fform="back" novalidate><span class="lab">Why? Doreen will see this</span>
+      <input type="text" data-ffield="note" maxlength="300" placeholder="Optional. A few words is plenty" autocomplete="off" aria-label="Reason for sending back: ${t}">
+      <div class="fdchips"><button type="button" data-freason="Not mine">Not mine</button><button type="button" data-freason="Need more info">Need more info</button><button type="button" data-freason="Not now">Not now</button></div>
+      <div class="aprow"><div class="apbtns"><button type="button" class="btn quiet" data-fact="cancel">Cancel</button><button class="btn" type="submit">Send back to Doreen</button></div></div></form>`;
+  }
+  if (kind === "edit") {
+    return `<form class="fdform" data-fform="edit" data-orig-due="${esc(it.due)}" novalidate><span class="lab">Edit the task</span>
+      <textarea data-ffield="content" rows="3" maxlength="1000" aria-label="Task text">${esc(it.full)}</textarea>
+      <div class="aprow"><label class="lab" for="fd-due-${id}">Due</label>
+        <input type="date" id="fd-due-${id}" class="apdate" data-ffield="due" value="${esc(it.due)}" min="${esc(TODAY)}" aria-label="Day this is due">
+        <div class="apbtns"><button type="button" class="btn quiet" data-fact="cancel">Cancel</button><button class="btn" type="submit">Save</button></div></div></form>`;
+  }
+  return "";
+}
+
+function fdItemHTML(it) {
+  const id = esc(it.id), g = it._ghost;
+  if (g) {
+    return `<div class="fd ghost${g.pending ? " pending" : ""}" data-fd="${id}"><div class="fdghost">
+      <span class="pdglyph ${esc(g.kind)}" aria-hidden="true">${g.kind === "done" ? "✓" : "→"}</span>
+      <div class="text">${esc(g.label)}: ${esc(it.title)}${g.pending ? "" : ` <button type="button" class="pdlink" data-fact="undo">Undo</button>`}</div></div></div>`;
+  }
+  const p = FD.panel && FD.panel.id === it.id ? FD.panel.kind : "";
+  const t = esc(it.title);
+  const dated = !!it.due && it.due >= TODAY;
+  const when = it.due ? `Due ${esc(shortDate(it.due))}${dated ? "" : ` <span class="nodue">(late)</span>`}` : it.month ? `Planned for ${esc(it.month.charAt(0).toUpperCase() + it.month.slice(1))}` : `<span class="nodue">No day yet</span>`;
+  const meta = [`<span${it.sent_days >= 5 ? ' class="waited"' : ""}>Sent ${esc(fdAge(it.sent_days))}</span>`, when, it.scope === "personal" ? "Personal" : "Business"];
+  if (it.returned) meta.push(`<span class="again">sent again after you pushed it back</span>`);
+  const notes = (it.notes || []).length ? `<div class="fdnotes">${it.notes.map((n) => `<div>${esc(n.text)}</div>`).join("")}</div>` : "";
+  const daysOpen = p === "days" || p === "pick";
+  const accept = dated
+    ? `<button type="button" class="btn" data-fact="keep" aria-label="Accept, due ${esc(shortDate(it.due))}: ${t}">Accept · ${esc(shortDate(it.due))}</button>
+       <button type="button" class="btn quiet" data-fact="days" aria-expanded="${daysOpen}" aria-label="Accept for a different day: ${t}">Other day</button>`
+    : `<button type="button" class="btn" data-fact="days" aria-expanded="${daysOpen}" aria-label="Accept and choose the day: ${t}">Accept…</button>`;
+  return `<div class="fd" data-fd="${id}">
+    <div class="fdtitle" title="${esc(it.full)}">${t}</div>
+    <div class="fdmeta">${meta.join(" · ")}</div>${notes}
+    <div class="fdact">${accept}
+      <button type="button" class="btn quiet" data-fact="back" aria-expanded="${p === "back"}" aria-label="Push back to Doreen: ${t}">Push back</button>
+      <button type="button" class="btn quiet" data-fact="edit" aria-expanded="${p === "edit"}" aria-label="Edit: ${t}">Edit</button></div>
+    ${p ? fdPanelHTML(it, p) : ""}</div>`;
+}
+
+function renderFD(force) {
+  const host = $("#fromdoreen"); if (!host || !FD.started) return;
+  if (!force && fdTyping()) { FD.dirty = true; return; }       // a background update never redraws under someone who is typing
+  FD.dirty = false;
+  const live = FD.items.filter((x) => !x._ghost), ghosts = FD.items.length - live.length;
+  if (!FD.loaded && !FD.err) { host.innerHTML = ""; return; }
+  if (FD.loaded && !FD.items.length) { host.innerHTML = ""; return; }   // nothing waiting: no section at all
+
+  let label, body;
+  if (!FD.loaded) {
+    label = "Couldn't load what Doreen sent you";
+    body = `<div class="vempty">${esc(FD.err)} <button class="btn quiet" data-fact="retry" type="button">Try again</button></div>`;
+  } else {
+    const nodue = live.filter((x) => !x.due).length;
+    label = live.length ? `<span class="pdn">${live.length} waiting on you</span>${nodue ? ` · ${nodue} with no day` : ""}` : "All answered";
+    let seen = 0, hidden = 0;
+    const rows = [];
+    for (const x of FD.items) {
+      if (x._ghost) { rows.push(fdItemHTML(x)); continue; }
+      if (!FD.showAll && seen >= FD_CAP) { hidden++; continue; }
+      seen++; rows.push(fdItemHTML(x));
+    }
+    body = `${live.length ? `<p class="fdhint">Doreen sent you these. Accept one to confirm the day it's due, or push it back to her.</p>` : ""}
+      <div class="fdgroup">${rows.join("")}</div>
+      ${hidden > 0 ? `<button type="button" class="btn quiet pdmore" data-fact="more">Show all ${live.length}</button>`
+        : FD.showAll && live.length > FD_CAP ? `<button type="button" class="btn quiet pdmore" data-fact="less">Show fewer</button>` : ""}`;
+  }
+  host.innerHTML = `<h2>From Doreen</h2>
+    <details class="fitcard fdcard"${FD.open === null || FD.open ? " open" : ""}>
+      <summary><span><span class="chev">›</span> ${label}</span></summary>
+      <div class="fitbody">${body}</div>
+    </details>`;
+  if (FD.panel) {
+    const f = host.querySelector(`.fd[data-fd="${CSS.escape(FD.panel.id)}"] input:not([type=hidden]), .fd[data-fd="${CSS.escape(FD.panel.id)}"] textarea`);
+    if (f && FD.panel.focus !== false) f.focus();
+    FD.panel.focus = false;       // only the first draw after opening takes the cursor
+  }
+}
+fdWire();
+function fdWire() {
+  const host = $("#fromdoreen");
+  // A background update that waited for you to finish typing goes in as soon as you leave the box.
+  host.addEventListener("focusout", () => { setTimeout(() => { if (FD.dirty && !fdTyping()) renderFD(); }, 700); });
+  host.addEventListener("toggle", (e) => { if (e.target.classList && e.target.classList.contains("fdcard")) FD.open = e.target.open; }, true);
+  host.addEventListener("keydown", (e) => { if (e.key === "Escape" && FD.panel) { FD.panel = null; renderFD(true); } });
+  host.addEventListener("click", (e) => {
+    const t = e.target;
+    const row = t.closest(".fd"), id = row ? row.dataset.fd : "";
+    const when = t.closest("[data-fwhen]");
+    if (when && id) { fdAct(id, "accept", { due: when.dataset.fwhen }); return; }
+    const reason = t.closest("[data-freason]");
+    if (reason && row) { const inp = row.querySelector('[data-ffield="note"]'); if (inp) { inp.value = reason.dataset.freason; inp.focus(); } return; }
+    const btn = t.closest("[data-fact]"); if (!btn) return;
+    const act = btn.dataset.fact;
+    if (act === "retry") { FD.err = ""; FD.started = true; fdRefresh(); return; }
+    if (act === "more" || act === "less") { FD.showAll = act === "more"; renderFD(true); return; }
+    if (!id) return;
+    if (act === "keep") { fdAct(id, "accept", { due: "keep" }); return; }
+    if (act === "noday") { fdAct(id, "accept", { due: "keep" }); return; }
+    if (act === "undo") { fdUndo(id); return; }
+    if (act === "cancel") { FD.panel = null; renderFD(true); return; }
+    if (act === "days" || act === "pick" || act === "back" || act === "edit") {
+      FD.panel = FD.panel && FD.panel.id === id && FD.panel.kind === act ? null : { id, kind: act, focus: act !== "days" };
+      renderFD(true);
+    }
+  });
+  host.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target.closest("[data-fform]"), row = e.target.closest(".fd"); if (!form || !row) return;
+    const id = row.dataset.fd, kind = form.dataset.fform;
+    const val = (n) => { const el = form.querySelector(`[data-ffield="${n}"]`); return el ? el.value : ""; };
+    if (kind === "pick") {
+      const to = val("date");
+      if (!to) { toast("Pick a day first."); return; }
+      if (to < TODAY) { toast("Pick today or a later day."); return; }
+      fdAct(id, "accept", { due: to });
+    } else if (kind === "back") {
+      fdAct(id, "pushback", { note: val("note") });
+    } else if (kind === "edit") {
+      const content = val("content").trim();
+      if (!content) { toast("The task can't be empty."); return; }
+      const due = val("due"), orig = form.dataset.origDue || "";
+      if (due && due !== orig && due < TODAY) { toast("Pick today or a later day."); return; }
+      fdEdit(id, content, due !== orig ? (due || "none") : undefined);
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && FD.started && FD.loaded && Date.now() - FD.at > FD_REFRESH_MS
+        && !FD.panel && !FD.items.some((x) => x._ghost) && !Object.keys(FD.busy).length) fdRefresh();
+  });
+}
+
+function fdDrop(id) { const i = FD.items.findIndex((x) => x.id === id); if (i >= 0) FD.items.splice(i, 1); }
+
+// An answer shows at once as an "Accepted / Sent back" row with Undo, and rolls back with a message if the save fails.
+async function fdAct(id, act, opts = {}) {
+  const f = FD.items.find((x) => x.id === id); if (!f || f._ghost || FD.busy[id]) return;
+  FD.busy[id] = true; FD.panel = null;
+  const due = opts.due || "keep";
+  const day = act === "accept" ? (due !== "keep" && due !== "none" ? due : f.due) : "";
+  const label = act === "accept" ? (day ? `Accepted for ${fdDay(day)}` : "Accepted with no day") : "Sent back to Doreen";
+  f._ghost = { kind: act === "accept" ? "done" : "move", label, prev: null, pending: true, shown: false, armedAt: 0, t: 0 };
+  renderFD(true);
+  const r = await fdApi(act === "accept" ? { action: "accept", id, due } : { action: "pushback", id, note: opts.note || "" });
+  delete FD.busy[id];
+  if (!r.ok) {
+    if (r.status === 404) { fdDrop(id); renderFD(true); fdAfterAct(); toast(r.data.error || "That task isn't waiting anymore."); return; }
+    delete f._ghost; renderFD(true); toast(r.data.error || "Couldn't save that. Try again."); return;
+  }
+  f._ghost.prev = r.data.prev || null; f._ghost.pending = false; f._ghost.armedAt = Date.now();
+  f._ghost.t = setTimeout(() => fdExpire(id), FD_UNDO_MS);
+  renderFD(true); fdAfterAct();
+}
+async function fdUndo(id) {
+  const f = FD.items.find((x) => x.id === id); if (!f || !f._ghost || f._ghost.pending || FD.busy[id]) return;
+  const g = f._ghost; FD.busy[id] = true; clearTimeout(g.t);
+  const r = await fdApi({ action: "undo", id, prev: g.prev });
+  delete FD.busy[id];
+  if (!r.ok) { g.t = setTimeout(() => fdExpire(id), FD_UNDO_MS); toast(r.data.error || "Couldn't undo that. Try again."); return; }
+  delete f._ghost; renderFD(true); fdRenderMain(); fdAfterAct(); toast("Put back");
+}
+function fdExpire(id) {
+  const f = FD.items.find((x) => x.id === id); if (!f || !f._ghost) return;
+  fdDrop(id); renderFD();
+}
+async function fdEdit(id, content, due) {
+  const f = FD.items.find((x) => x.id === id); if (!f || f._ghost || FD.busy[id]) return;
+  FD.busy[id] = true;
+  const r = await fdApi({ action: "edit", id, content, ...(due !== undefined ? { due } : {}) });
+  delete FD.busy[id];
+  if (!r.ok) {
+    if (r.status === 404) { fdDrop(id); FD.panel = null; renderFD(true); fdAfterAct(); toast(r.data.error || "That task isn't waiting anymore."); return; }
+    toast(r.data.error || "Couldn't save that. Try again."); return;
+  }
+  f.title = r.data.title; f.full = r.data.full; f.due = r.data.due || ""; f.month = r.data.month || "";
+  FD.panel = null; renderFD(true); toast("Saved");
+}
 
 // ── Markets ──────────────────────────────────────────────────
 // The three daily market briefs (TSP, Hard Asset, RSOTC) as folded cards, like Walk and Workout. Folded,
