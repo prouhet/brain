@@ -83,7 +83,7 @@
 
   /* Items — mirrors the paper: box, number, text */
   .item { border-bottom:1px solid var(--line); }
-  .row { display:grid; grid-template-columns:44px 1fr; align-items:start; padding:10px 0; }
+  .row { display:grid; grid-template-columns:44px 1fr auto; align-items:start; padding:10px 0; }
   .check {
     width:44px; height:44px; margin:-10px 0 -10px -10px; display:flex; align-items:center; justify-content:center;
     background:none; border:0; cursor:pointer; -webkit-tap-highlight-color:transparent;
@@ -124,6 +124,18 @@
     .addbar #addbtn { margin-left:auto; }
     .wrap { padding-bottom:160px; }
   }
+  /* One "⋯" per task opens its actions (Edit, Add note, Tomorrow, Pick day, Doreen's, Not a task). */
+  .more { position:relative; grid-column:3; margin:-6px -8px -6px 4px; }
+  .moretoggle { width:40px; height:40px; display:flex; align-items:center; justify-content:center; font:inherit; font-size:22px; line-height:1; letter-spacing:1px; color:var(--dim); background:none; border:0; border-radius:8px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .moretoggle:hover, .moretoggle:focus-visible, .more.open .moretoggle { color:var(--teal); background:var(--teal-dim); outline:none; }
+  .menu { display:none; position:absolute; right:0; top:100%; z-index:40; min-width:176px; padding:4px; background:var(--surface); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  .more.open .menu { display:block; }
+  .more.up .menu { top:auto; bottom:100%; }
+  .menu button { display:block; width:100%; text-align:left; font:inherit; font-size:14.5px; color:var(--text); background:none; border:0; border-radius:6px; padding:10px 12px; cursor:pointer; white-space:nowrap; }
+  .menu button:hover, .menu button:focus-visible { color:var(--teal); background:var(--teal-dim); outline:none; }
+  .menu .pick { display:flex; width:100%; }
+  .menu .pick button { width:100%; }
+  .menu hr { border:0; border-top:1px solid var(--line); margin:4px 2px; }
   .pick { position:relative; display:inline-flex; }
   .pick input[type=date] {
     position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;
@@ -727,14 +739,18 @@ function itemHTML(it) {
         <span class="num">${it.n}.</span><span class="title">${esc(it.title)}${it.recurring ? " ⟳" : ""}</span>${it.quick ? '<span class="quick" title="About 15 minutes or less (Jev\'s read)">⚡ quick</span>' : ""}${flag}
         ${it.detail ? `<div class="detail">${esc(it.detail)}</div>` : ""}
       </div>
-      <div class="tools">
-        <button data-act="edit" aria-label="Edit item ${it.n}">Edit</button>
-        <button data-act="note" aria-label="Add a note to item ${it.n}">Note</button>
-        ${it.done ? `<button data-act="followup" aria-label="Item ${it.n} is done — set a follow-up for it">Follow up</button>` : ""}
-        <button data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
-        ${it.section === "client" ? "" : `<button data-act="doreen" aria-label="Item ${it.n} is Doreen's — set it aside">Doreen's</button>`}
-        ${it.done || it.pushed ? "" : `<button data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
-        <span class="pick"><button tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
+      <div class="more">
+        <button type="button" class="moretoggle" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for item ${it.n}">⋯</button>
+        <div class="menu" role="menu">
+          <button type="button" role="menuitem" data-act="edit" aria-label="Edit item ${it.n}">Edit</button>
+          <button type="button" role="menuitem" data-act="note" aria-label="Add a note to item ${it.n}">Add note</button>
+          ${it.done ? `<button type="button" role="menuitem" data-act="followup" aria-label="Item ${it.n} is done — set a follow-up for it">Follow up</button>` : ""}
+          ${it.done || it.pushed ? "" : `<button type="button" role="menuitem" data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
+          <span class="pick"><button type="button" role="menuitem" tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
+          ${it.section === "client" ? "" : `<button type="button" role="menuitem" data-act="doreen" aria-label="Item ${it.n} is Doreen's — set it aside">Doreen's</button>`}
+          <hr>
+          <button type="button" role="menuitem" data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
+        </div>
       </div>
     </div>
     ${notes ? `<div class="notes">${notes}</div>` : ""}
@@ -1055,6 +1071,43 @@ document.addEventListener("change", (e) => {
   if (inp.value) {
     root.querySelectorAll("[data-when]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.when === "custom")));
     if (root.dataset.kind === "add") syncAddBar();
+  }
+});
+
+// The "⋯" menu on each task: one open at a time; a tap outside, Escape, or choosing something closes it.
+function closeMenus(except) {
+  document.querySelectorAll(".more.open").forEach((m) => {
+    if (m === except) return;
+    m.classList.remove("open", "up");
+    const t = m.querySelector(".moretoggle"); if (t) t.setAttribute("aria-expanded", "false");
+  });
+}
+function openMenu(toggle) {
+  const more = toggle.closest(".more"); closeMenus(more);
+  more.classList.add("open"); more.classList.remove("up"); toggle.setAttribute("aria-expanded", "true");
+  // Near the bottom (the add bar is fixed there) the menu opens upward instead of hiding behind it.
+  const menu = more.querySelector(".menu"), bar = document.querySelector(".addbar");
+  const floor = bar ? bar.getBoundingClientRect().top : window.innerHeight;
+  const r = menu.getBoundingClientRect();
+  if (r.bottom > floor - 4) {
+    if (toggle.getBoundingClientRect().top - r.height > 8) more.classList.add("up");
+    else window.scrollBy(0, r.bottom - floor + 12);
+  }
+}
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  const tg = t.closest && t.closest(".moretoggle");
+  if (tg) { tg.closest(".more").classList.contains("open") ? closeMenus() : openMenu(tg); return; }
+  if (!(t.closest && t.closest(".menu"))) closeMenus();
+  else if (t.closest("button")) closeMenus();           // a choice was made; the date field stays open for the picker
+});
+document.addEventListener("keydown", (e) => {
+  const open = document.querySelector(".more.open"); if (!open) return;
+  if (e.key === "Escape") { const tg = open.querySelector(".moretoggle"); closeMenus(); tg.focus(); return; }
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    const btns = [...open.querySelectorAll(".menu button[data-act]")]; if (!btns.length) return;
+    const i = btns.indexOf(document.activeElement);
+    btns[(i + (e.key === "ArrowDown" ? 1 : -1) + btns.length) % btns.length].focus(); e.preventDefault();
   }
 });
 
