@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2b7d94">
+<meta name="robots" content="noindex">
+<title>Act on RSOTC — Studio Strong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal:#2b7d94; --teal-strong:#1f6376; --teal-dim:rgba(43,125,148,.10); --on-teal:#fff;
+    --bg:#f7f9fc; --surface:#fff; --surface2:#f0f4f8; --line:rgba(0,0,0,.09); --line2:rgba(0,0,0,.18);
+    --text:#1a1a1a; --dim:#5a5a5a; --faint:#767676; --gain:#17714f; --gain-dim:rgba(23,113,79,.10); --loss:#b4381f; --loss-dim:rgba(180,56,31,.09); --warn:#a2481f; --warn-dim:rgba(162,72,31,.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0e0f10; --surface:#16181a; --surface2:#1d2023; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.18);
+      --text:#e8e8e8; --dim:#a0a0a0; --faint:#858585; --teal:#3a9ab5; --teal-strong:#56b3cc; --teal-dim:rgba(58,154,181,.14); --on-teal:#0b1417;
+      --gain:#2fb383; --gain-dim:rgba(47,179,131,.13); --loss:#f0806a; --loss-dim:rgba(240,128,106,.12); --warn:#e8946a; --warn-dim:rgba(232,148,106,.13);
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  [hidden] { display:none !important; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+    font-size:16px; line-height:1.45; min-height:100vh; overflow-x:hidden;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap { max-width:760px; margin:0 auto; padding:18px 16px 120px; }
+  a { color:var(--teal); text-decoration:none; overflow-wrap:anywhere; }
+  a:hover { text-decoration:underline; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  :focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  .num { font-variant-numeric:tabular-nums; }
+
+  /* Header */
+  .top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px 12px; flex-wrap:wrap; }
+  h1 { font-size:26px; font-weight:700; letter-spacing:-.01em; line-height:1.15; }
+  .headline { color:var(--dim); margin:6px 0 0; max-width:56ch; font-size:15px; }
+  .toplinks a { display:inline-block; font-size:13px; color:var(--teal); background:var(--teal-dim); border:1px solid transparent; border-radius:8px; padding:6px 10px; }
+  .toplinks a:hover, .toplinks a:focus-visible { border-color:var(--teal); text-decoration:none; }
+  .rule { font-size:13px; color:var(--dim); margin:12px 0 0; padding:9px 12px; border:1px solid var(--line2); border-radius:10px; background:var(--surface); }
+  .rule b { color:var(--text); font-weight:600; }
+
+  /* Buttons and inputs */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:var(--teal); color:var(--on-teal); border:1px solid var(--teal); border-radius:10px; padding:9px 14px; min-height:44px; cursor:pointer; font-weight:600; font-size:14px; -webkit-tap-highlight-color:transparent; }
+  .btn:hover { filter:brightness(1.06); }
+  .btn.ghost { background:transparent; color:var(--dim); border-color:var(--line2); font-weight:500; }
+  .btn.ghost:hover { color:var(--teal); border-color:var(--teal); filter:none; }
+  .btn.sm { min-height:36px; padding:6px 11px; font-size:13px; border-radius:8px; }
+  .btn.link { background:none; border:0; color:var(--teal); padding:6px 4px; min-height:36px; font-weight:500; }
+  .btn.link.warn { color:var(--warn); }
+  .btn[disabled] { opacity:.55; cursor:default; filter:none; }
+  input[type=text], input[type=number], input[type=search], select, textarea {
+    background:var(--surface2); border:1px solid var(--line2); border-radius:10px; padding:9px 11px; min-height:44px; width:100%; min-width:0; font-size:16px; color:var(--text);
+  }
+  textarea { resize:vertical; min-height:70px; line-height:1.4; }
+  ::placeholder { color:var(--faint); }
+  label.fld { display:flex; flex-direction:column; gap:5px; font-size:13px; color:var(--dim); font-weight:500; }
+  label.fld .hint { font-weight:400; color:var(--faint); font-size:12.5px; }
+  input[type=checkbox], input[type=radio] { width:20px; height:20px; accent-color:var(--teal); flex:0 0 auto; }
+  .chip { font-size:13px; background:var(--surface); border:1px solid var(--line2); border-radius:999px; padding:5px 12px; cursor:pointer; color:var(--dim); min-height:36px; }
+  .chip:hover { border-color:var(--teal); color:var(--teal); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .seg { display:inline-flex; border:1px solid var(--line2); border-radius:10px; overflow:hidden; background:var(--surface); }
+  .seg button { background:none; border:0; padding:8px 14px; font-size:14px; color:var(--dim); cursor:pointer; min-height:44px; border-right:1px solid var(--line); }
+  .seg button:last-child { border-right:0; }
+  .seg button[aria-pressed=true] { background:var(--teal-dim); color:var(--teal); font-weight:600; }
+
+  /* Key setup */
+  .keysetup { margin:14px 0 4px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .keysetup p { font-size:14px; color:var(--dim); }
+  .keysetup .err { color:var(--warn); font-weight:600; }
+  .krow { display:flex; flex-wrap:wrap; gap:8px; }
+  .krow input { flex:1 1 200px; }
+
+  /* Tabs */
+  .tabs { display:flex; gap:0; margin:14px 0 4px; border-bottom:1px solid var(--line); }
+  .tabs button { flex:1 1 0; background:none; border:0; border-bottom:2px solid transparent; padding:11px 6px; font-weight:600; color:var(--dim); cursor:pointer; margin-bottom:-1px; min-height:44px; }
+  .tabs button[aria-selected=true] { color:var(--teal); border-bottom-color:var(--teal); }
+  .tabs .n { font-weight:500; color:var(--faint); margin-left:4px; font-variant-numeric:tabular-nums; }
+
+  /* Notes and banners */
+  .banner { font-size:14px; color:var(--text); background:var(--warn-dim); border:1px solid var(--line2); border-radius:10px; padding:10px 12px; margin:12px 0 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; }
+  .banner b { font-weight:700; }
+  .banner .btn { margin-left:auto; }
+  .banner.info { background:var(--teal-dim); }
+  .stats { font-size:13px; color:var(--dim); margin:12px 0 4px; display:flex; flex-wrap:wrap; align-items:center; gap:2px 10px; }
+  .stats .btn.link { padding:0 4px; min-height:36px; }
+  .how { font-size:13px; color:var(--dim); margin:10px 0 0; }
+  .how > summary { cursor:pointer; color:var(--faint); padding:6px 0; min-height:32px; }
+  .how p, .how li { margin:4px 0 6px; max-width:62ch; }
+  .how ul { padding-left:18px; }
+  .search { margin:8px 0 4px; }
+
+  /* Groups and setup rows */
+  .grp { margin:16px 0 0; }
+  .grp > summary { cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:8px; padding:6px 0; min-height:36px; }
+  .grp > summary::-webkit-details-marker { display:none; }
+  .grp > summary::before { content:"›"; display:inline-block; color:var(--faint); transition:transform .15s; }
+  .grp[open] > summary::before { transform:rotate(90deg); }
+  .grp h3 { font-size:15px; font-weight:700; }
+  .grp .gn { color:var(--faint); font-weight:500; font-variant-numeric:tabular-nums; }
+  .grp .gsub { font-size:12.5px; color:var(--faint); margin:0 0 8px; }
+  .setup { display:block; width:100%; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:8px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .setup:hover, .setup:focus-visible { border-color:var(--teal); }
+  .setup .l1 { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  .setup .tk { font-size:17px; font-weight:700; }
+  .setup .l2 { display:block; font-size:13.5px; color:var(--dim); margin-top:5px; overflow-wrap:anywhere; }
+  .setup .l3 { display:block; font-size:12.5px; margin-top:5px; color:var(--warn); overflow-wrap:anywhere; }
+  .pill { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:2px 7px; border-radius:6px; background:var(--surface2); color:var(--dim); white-space:nowrap; }
+  .pill.long { background:var(--gain-dim); color:var(--gain); }
+  .pill.short { background:var(--loss-dim); color:var(--loss); }
+  .pill.st { background:var(--teal-dim); color:var(--teal); }
+  .pill.warn { background:var(--warn-dim); color:var(--warn); }
+
+  /* Cards, plans */
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .card h3 { font-size:18px; font-weight:700; }
+  .ctop { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  .lv { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px 12px; margin-top:12px; }
+  .lv div { min-width:0; }
+  .lv .k { display:block; font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); }
+  .lv .v { display:block; font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .lv .s { display:block; font-size:12.5px; color:var(--dim); overflow-wrap:anywhere; }
+  .gainc { color:var(--gain); } .lossc { color:var(--loss); }
+  .live { margin-top:10px; font-size:13.5px; color:var(--dim); overflow-wrap:anywhere; }
+  .live b { color:var(--text); font-weight:600; }
+  .chg { margin-top:10px; padding:9px 12px; border-radius:8px; background:var(--warn-dim); border:1px solid var(--line2); font-size:13.5px; }
+  .chg b { display:block; margin-bottom:2px; }
+  .chg ul { padding-left:18px; } .chg li { margin:2px 0; overflow-wrap:anywhere; }
+  .alert { margin-top:10px; padding:9px 12px; border-radius:8px; background:var(--loss-dim); border:1px solid var(--line2); font-size:13.5px; overflow-wrap:anywhere; }
+  .pnote { margin-top:10px; font-size:14px; border-left:3px solid var(--teal); padding:2px 0 2px 10px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .acts { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center; }
+  .steps { margin-top:10px; font-size:14px; }
+  .steps > summary { cursor:pointer; color:var(--teal); font-weight:600; padding:6px 0; min-height:36px; }
+  .sum { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; margin:12px 0 4px; }
+  .sum > div { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13.5px; color:var(--dim); }
+  .sum b { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }
+
+  /* Order ticket */
+  .ticket { margin-top:12px; border:1px solid var(--line2); border-radius:10px; padding:12px 14px; background:var(--surface); }
+  .ticket h4 { font-size:14px; font-weight:700; margin-bottom:6px; }
+  .ticket ol { padding-left:20px; font-size:14px; } .ticket li { margin:5px 0; overflow-wrap:anywhere; }
+  .ticket pre { font:inherit; font-size:13px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--surface2); border-radius:8px; padding:10px 12px; margin:10px 0 8px; }
+  .cautions { margin-top:10px; font-size:13px; color:var(--warn); padding-left:18px; } .cautions li { margin:3px 0; }
+
+  /* States */
+  .empty { text-align:center; color:var(--dim); padding:30px 12px; border:1px dashed var(--line2); border-radius:10px; margin-top:12px; }
+  .empty p { margin-bottom:12px; }
+  .errbox { color:var(--warn); background:var(--surface); border:1px solid var(--line2); border-radius:10px; padding:14px; margin-top:12px; display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; }
+  .loading { color:var(--dim); padding:28px 4px; text-align:center; }
+  .loading i { display:block; height:4px; width:120px; margin:12px auto 0; border-radius:4px; background:linear-gradient(90deg,var(--line) 0,var(--teal) 50%,var(--line) 100%); background-size:200% 100%; animation:slide 1.2s linear infinite; }
+  @keyframes slide { to { background-position:-200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .loading i { animation:none; } .grp > summary::before { transition:none; } }
+  .foot { margin-top:30px; font-size:12px; color:var(--faint); max-width:64ch; }
+
+  /* Account */
+  .acct { display:flex; flex-direction:column; gap:16px; margin-top:14px; }
+  .acct .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:520px) { .acct .row2 { grid-template-columns:1fr; } }
+  .check { display:flex; align-items:flex-start; gap:10px; font-size:15px; cursor:pointer; min-height:44px; padding:6px 0; }
+  .check small { display:block; color:var(--dim); font-size:12.5px; }
+  .budget { font-size:14px; padding:10px 12px; border-radius:10px; background:var(--teal-dim); }
+  .budget b { font-variant-numeric:tabular-nums; }
+
+  /* Sheet (setup + prompts) */
+  dialog { border:0; padding:0; background:var(--surface); color:var(--text); width:min(640px,100vw); max-width:100vw; max-height:94vh; border-radius:16px 16px 0 0; margin:auto auto 0; overflow:hidden; }
+  dialog[open] { display:flex; flex-direction:column; }
+  @media (min-width:700px) { dialog { margin:auto; border-radius:14px; max-height:90vh; } }
+  dialog::backdrop { background:rgba(0,0,0,.5); }
+  .sheet-h { padding:16px 18px 8px; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .sheet-h h2 { font-size:20px; font-weight:700; line-height:1.2; }
+  .sheet-h .sub { font-size:13.5px; color:var(--dim); margin-top:4px; overflow-wrap:anywhere; }
+  .sheet-b { padding:6px 18px 10px; overflow:auto; flex:1 1 auto; min-height:0; overscroll-behavior:contain; }
+  .sheet-b .lbl { font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; display:block; }
+  .sheet-b .hint { font-size:13px; color:var(--dim); }
+  .sheet-f { padding:12px 18px calc(14px + env(safe-area-inset-bottom)); display:flex; flex-wrap:wrap; gap:8px; border-top:1px solid var(--line); background:var(--surface); align-items:center; }
+  .sheet-f .btn { flex:1 1 auto; }
+  .sheet-f .grow { flex:2 1 160px; }
+  .sheet-f .why { flex:1 1 100%; font-size:12.5px; color:var(--dim); }
+  .rl { display:grid; gap:8px; font-size:14px; }
+  .rl .r { display:flex; flex-wrap:wrap; gap:2px 8px; align-items:baseline; }
+  .rl .r b { min-width:74px; font-weight:600; }
+  .rl .r .t { color:var(--dim); font-size:13px; flex:1 1 100%; overflow-wrap:anywhere; }
+  .rnote { font-size:13.5px; color:var(--dim); white-space:pre-wrap; overflow-wrap:anywhere; max-height:150px; overflow:auto; padding:9px 11px; background:var(--surface2); border-radius:8px; margin-top:6px; }
+  .blocked { margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--warn-dim); border:1px solid var(--line2); font-size:14px; }
+  .blocked ul { padding-left:18px; } .blocked li { margin:3px 0; }
+  .form { display:grid; gap:14px; }
+  .trow { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); cursor:pointer; min-height:48px; margin-bottom:6px; }
+  .trow.on { border-color:var(--teal); background:var(--teal-dim); }
+  .trow .main { flex:1 1 140px; min-width:0; overflow-wrap:anywhere; }
+  .trow .main b { font-variant-numeric:tabular-nums; }
+  .trow .main small { display:block; color:var(--dim); font-size:12.5px; }
+  .trow .st { font-size:13px; text-align:right; font-variant-numeric:tabular-nums; margin-left:auto; color:var(--dim); }
+  .trow .st .gainc { font-weight:600; }
+  .trow .bad { flex:1 1 100%; font-size:12.5px; color:var(--warn); }
+  .trow input[type=number] { flex:1 1 120px; min-height:40px; }
+  .res { margin-top:16px; }
+  .res-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
+  .res-grid > div { background:var(--surface2); border-radius:10px; padding:10px 12px; min-width:0; }
+  .res-grid .k { display:block; font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); }
+  .res-grid .v { display:block; font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .res-grid .s { display:block; font-size:12.5px; color:var(--dim); }
+  .msgs { margin:10px 0 0; padding-left:18px; font-size:13.5px; } .msgs li { margin:4px 0; overflow-wrap:anywhere; }
+  .msgs.err { color:var(--loss); } .msgs.warn { color:var(--warn); }
+  .entrywords { margin-top:10px; font-size:14px; padding:9px 12px; border-radius:8px; background:var(--teal-dim); overflow-wrap:anywhere; }
+  .more > summary { cursor:pointer; color:var(--dim); font-size:13.5px; padding:6px 0; min-height:36px; }
+  .more .form { margin-top:8px; }
+
+  /* Toast */
+  #toast { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:50; width:min(92vw,480px); }
+  .toast { background:#222; color:#f1f1f1; border-radius:10px; padding:11px 14px; display:flex; align-items:center; gap:12px; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.28); }
+  .toast span { flex:1 1 auto; overflow-wrap:anywhere; }
+  .toast button { background:none; border:0; color:#8fd3e6; font-weight:700; cursor:pointer; padding:6px 4px; min-height:36px; }
+  .toast.bad { background:#6e2a14; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Act on RSOTC</h1>
+      <p class="headline">Turn one of Randy's setups into the three Schwab orders you place yourself: entry, stop, target.</p>
+    </div>
+    <nav class="toplinks" aria-label="Other pages"><a href="brief.html">Morning brief</a></nav>
+  </header>
+  <p class="rule"><b>This page never places an order or moves money.</b> You place every order at Schwab. The prices are Randy's or yours, and the share count comes from the risk number you set. It isn't investment advice.</p>
+
+  <form class="keysetup" id="keysetup" hidden>
+    <p id="keymsg">One-time setup: paste your page key, or the whole link you were given. It's saved on this device only, so the key never sits in this page's code.</p>
+    <div class="krow">
+      <input type="text" id="keyin" placeholder="Paste key or link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Page key">
+      <button class="btn" type="submit">Save &amp; open</button>
+    </div>
+  </form>
+
+  <div id="app" hidden>
+    <div id="banner"></div>
+
+    <div class="tabs" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" id="tab-setups" aria-controls="panel-setups" aria-selected="true" data-tab="setups">Setups<span class="n" id="nSetups"></span></button>
+      <button type="button" role="tab" id="tab-plans" aria-controls="panel-plans" aria-selected="false" data-tab="plans">My plans<span class="n" id="nPlans"></span></button>
+      <button type="button" role="tab" id="tab-account" aria-controls="panel-account" aria-selected="false" data-tab="account">My account</button>
+    </div>
+
+    <section id="panel-setups" role="tabpanel" aria-labelledby="tab-setups">
+      <div class="stats" id="setupStats"></div>
+      <div class="search"><input type="search" id="setupQ" placeholder="Filter by ticker" aria-label="Filter setups by ticker" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+      <div id="setupList"></div>
+    </section>
+
+    <section id="panel-plans" role="tabpanel" aria-labelledby="tab-plans" hidden>
+      <div class="stats" id="planStats"></div>
+      <div id="planSummary"></div>
+      <div id="planList"></div>
+    </section>
+
+    <section id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
+      <form class="acct" id="acctForm" autocomplete="off" novalidate>
+        <label class="fld">Account size
+          <input type="text" inputmode="decimal" id="acctSize" placeholder="e.g. 2000" aria-describedby="acctSizeHint">
+          <span class="hint" id="acctSizeHint">Dollars you have, or plan to have, in the Schwab account. Share counts never go past what this can buy.</span>
+        </label>
+        <label class="check"><input type="checkbox" id="acctFunded"><span>The money is in the account<small>Until this is ticked the page is in planning mode: you can work out and save plans.</small></span></label>
+        <div>
+          <span class="lbl-inline" id="riskLbl" style="display:block;font-size:13px;color:var(--dim);font-weight:500;margin-bottom:5px">Most you're willing to lose on one trade, if the stop is hit</span>
+          <div class="row2">
+            <div class="seg" role="group" aria-labelledby="riskLbl" style="width:fit-content">
+              <button type="button" id="modeDollars" aria-pressed="true">Dollars</button>
+              <button type="button" id="modePercent" aria-pressed="false">% of account</button>
+            </div>
+            <input type="text" inputmode="decimal" id="riskVal" placeholder="Your number" aria-labelledby="riskLbl">
+          </div>
+          <p class="hint" style="font-size:12.5px;color:var(--faint);margin-top:6px" id="riskHint">You choose this number. The page doesn't suggest one.</p>
+        </div>
+        <div class="budget" id="budget" aria-live="polite"></div>
+        <label class="check"><input type="checkbox" id="acctMargin"><span>It's a margin account<small>Selling short needs one at Schwab, with at least $2,000 in the account.</small></span></label>
+        <label class="check"><input type="checkbox" id="acctFut"><span>Approved for futures at Schwab<small>Futures and indexes are shown as levels only. This page doesn't size or ticket them yet.</small></span></label>
+        <div class="acts" style="margin-top:0">
+          <button class="btn" type="submit" id="acctSave">Save my account</button>
+          <span class="hint" id="acctMsg" role="status" style="font-size:13px;color:var(--dim)"></span>
+        </div>
+      </form>
+      <details class="how" open>
+        <summary>How the numbers work</summary>
+        <ul>
+          <li>Shares = your risk number ÷ (entry − stop), rounded down to whole shares. That's the only formula.</li>
+          <li>If that many shares would cost more than your account size, it's cut to what the account can buy.</li>
+          <li>The loss at the stop and the gain at the target are those shares times the distance. A stop order isn't guaranteed to fill at the stop price.</li>
+          <li>A short entry, a gap or a thin market can fill worse than any number shown here.</li>
+        </ul>
+      </details>
+    </section>
+
+    <p class="foot">Randy's levels come from the RSOTC feed in your brief. Prices come from Yahoo and can be delayed: check the live quote at Schwab before you place anything.</p>
+  </div>
+</div>
+
+<dialog id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-h"><div><h2 id="sheetTitle"></h2><div class="sub" id="sheetSub"></div></div><button type="button" class="btn link" id="sheetX" aria-label="Close">Close</button></div>
+  <div class="sheet-b" id="sheetBody"></div>
+  <div class="sheet-f" id="sheetFoot"></div>
+</dialog>
+<dialog id="ask" aria-labelledby="askTitle">
+  <form method="dialog" id="askForm" style="display:flex;flex-direction:column;min-height:0;flex:1 1 auto" novalidate>
+    <div class="sheet-h"><div><h2 id="askTitle"></h2><div class="sub" id="askSub"></div></div></div>
+    <div class="sheet-b"><div class="form" id="askFields"></div><p class="warnhint" id="askErr" style="color:var(--loss);font-size:13px;margin-top:8px" role="alert"></p></div>
+    <div class="sheet-f"><button type="button" class="btn ghost" id="askNo">Cancel</button><button type="submit" class="btn grow" id="askYes">OK</button></div>
+  </form>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const FN = "https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/rsotc-act";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+// Builds elements with text nodes only, so nothing from the server is ever read as markup.
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "value") el.value = v;
+    else if (k === "data") for (const [dk, dv] of Object.entries(v)) el.dataset[dk] = dv;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, "");
+    else el.setAttribute(k, String(v));
+  }
+  for (const kid of kids.flat(Infinity)) { if (kid == null || kid === false) continue; el.append(kid.nodeType ? kid : document.createTextNode(String(kid))); }
+  return el;
+}
+const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
+const px = (n) => (n == null ? "—" : Math.abs(n) >= 1 ? Number(n).toFixed(2) : String(n));
+const usd = (n) => (n == null ? "—" : (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const usdS = (n) => (n == null ? "—" : (n > 0 ? "+" : "") + usd(n));
+const pctS = (n) => (n == null ? "" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(1) + "%");
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
+const numIn = (s) => { const t = String(s ?? "").replace(/[$,\s]/g, ""); if (t === "") return null; const n = Number(t); return Number.isFinite(n) ? n : NaN; };
+const where = (pct) => (pct == null ? "" : pct === 0 ? "at the price now" : `${Math.abs(pct).toFixed(1)}% ${pct > 0 ? "above" : "below"} now`);
+const dateShort = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+const dirWord = (d) => (d === "short" ? "short" : "long");
+const STATE_LABEL = { planned: "Planned", placed: "Placed at Schwab", filled: "Open trade", closed: "Closed", skipped: "Skipped" };
+
+// ── Preferences (this browser only; the page works without storage)
+const PREF_KEY = "act-prefs";
+const P = (() => { try { return { tab: "setups", ...JSON.parse(localStorage.getItem(PREF_KEY) || "{}") }; } catch (e) { return { tab: "setups" }; } })();
+if (!["setups", "plans", "account"].includes(P.tab)) P.tab = "setups";
+const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(P)); } catch (e) {} };
+
+// ── Page key. Never in this page's code: from the link once, then this browser's storage (shared with the other pages).
+const KEY_STORE = "brain-key";
+let KEY = "";
+const goodKey = (k) => /^[A-Za-z0-9_-]{16,}$/.test(k || "");
+const getStoredKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
+const putStoredKey = (k) => { try { localStorage.setItem(KEY_STORE, k); return true; } catch (e) { return false; } };
+const dropStoredKey = () => { try { localStorage.removeItem(KEY_STORE); } catch (e) {} };
+function keyFromPaste(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/[?&]key=([^&#\s]+)/);
+  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
+  return goodKey(k) ? k : "";
+}
+function resolveKey() {
+  const fromUrl = new URLSearchParams(location.search).get("key");
+  if (goodKey(fromUrl)) {
+    if (putStoredKey(fromUrl)) { try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {} }
+    return fromUrl;
+  }
+  const s = getStoredKey();
+  return goodKey(s) ? s : "";
+}
+
+// ── Talking to the function
+class ApiError extends Error { constructor(m, status, data) { super(m); this.status = status; this.data = data; } }
+async function api(action, body = {}, timeout = 45000) {
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), timeout);
+  let res;
+  try {
+    res = await fetch(`${FN}?key=${encodeURIComponent(KEY)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...body }), signal: ctl.signal });
+  } catch (e) {
+    throw new ApiError(e && e.name === "AbortError" ? "That took too long. Try again." : "Couldn't reach the server. Check your connection and try again.", 0);
+  } finally { clearTimeout(timer); }
+  let data = null; try { data = await res.json(); } catch (e) {}
+  if (res.status === 401) { keyRejected(); throw new ApiError("That key didn't work.", 401); }
+  if (!res.ok || !data || data.error) throw new ApiError((data && data.error) || `Something went wrong (${res.status}).`, res.status, data);
+  return data;
+}
+
+// ── State
+const S = {
+  gopen: {},
+  board: null, boardErr: "", boardLoading: false,
+  plans: null, plansErr: "", plansLoading: false, showSkipped: false,
+  settings: null, riskBudget: null, mode: "planning", settingsSaved: false, settingsError: null,
+  tab: P.tab, q: "", busy: new Set(), acctDirty: false, acctSaving: false,
+};
+
+// ── Toast
+let toastTimer = 0;
+function toast(msg, opts = {}) {
+  const box = $("#toast"); clearTimeout(toastTimer); clear(box);
+  box.append(h("div", { class: "toast" + (opts.bad ? " bad" : "") }, h("span", null, msg),
+    opts.action ? h("button", { type: "button", onclick: () => { clearTimeout(toastTimer); clear(box); opts.action(); } }, opts.label || "OK") : null));
+  toastTimer = setTimeout(() => clear(box), opts.action ? 9000 : opts.bad ? 7000 : 4500);
+}
+const failToast = (e) => toast(e && e.message ? e.message : "Something went wrong.", { bad: true });
+
+// ── Key setup / rejected
+function showKeySetup(msg) {
+  $("#app").hidden = true; $("#keysetup").hidden = false;
+  const m = $("#keymsg"); clear(m);
+  if (msg) m.append(h("span", { class: "err" }, msg), " Paste the key, or the whole link, again.");
+  else m.append("One-time setup: paste your page key, or the whole link you were given. It's saved on this device only, so the key never sits in this page's code.");
+  $("#keyin").focus();
+}
+function keyRejected() { dropStoredKey(); KEY = ""; closeSheets(); showKeySetup("That key didn't work."); }
+$("#keysetup").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const k = keyFromPaste($("#keyin").value);
+  if (!k) { toast("That doesn't look like a key. Paste the key or the whole link.", { bad: true }); return; }
+  if (!putStoredKey(k)) toast("This browser won't save it, so you'll be asked again next time.", { bad: true });
+  KEY = k; $("#keyin").value = ""; $("#keysetup").hidden = true; start();
+});
+
+// ── Money numbers the server sends back
+function absorb(d) {
+  if (d.settings) {
+    S.settings = d.settings; S.mode = d.mode || (d.settings.funded ? "live" : "planning");
+    if ("risk_budget" in d) S.riskBudget = d.risk_budget;
+    if ("settings_saved" in d) S.settingsSaved = d.settings_saved;
+    if ("settings_error" in d) S.settingsError = d.settings_error;
+    if (!S.acctDirty) fillAccount();
+    renderBanner(); renderBudget();
+  }
+}
+
+// ── Tabs
+function setTab(t, quiet) {
+  S.tab = t; P.tab = t; if (!quiet) savePrefs();
+  for (const b of $$(".tabs [role=tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
+  for (const k of ["setups", "plans", "account"]) $("#panel-" + k).hidden = k !== t;
+}
+$(".tabs").addEventListener("click", (e) => { const b = e.target.closest("[role=tab]"); if (b) setTab(b.dataset.tab); });
+$(".tabs").addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const tabs = $$(".tabs [role=tab]"); const at = tabs.findIndex((b) => b.dataset.tab === S.tab);
+  const nx = tabs[(at + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]; setTab(nx.dataset.tab); nx.focus();
+});
+function renderTabCounts() {
+  $("#nSetups").textContent = S.board ? String(S.board.setups.length) : "";
+  const active = S.plans ? S.plans.plans.filter((p) => ["planned", "placed", "filled"].includes(p.state)).length : null;
+  $("#nPlans").textContent = active ? String(active) : "";
+}
+
+// ── Banner
+function renderBanner() {
+  const box = clear($("#banner"));
+  if (!S.settings) return;
+  if (S.settingsError) box.append(h("div", { class: "banner" }, h("span", null, h("b", null, "Couldn't read your account numbers. "), "Share counts may be missing. Reload to try again.")));
+  if (S.mode === "planning") {
+    box.append(h("div", { class: "banner info", id: "planBanner" },
+      h("span", null, h("b", null, "Planning mode. "), "Your account isn't marked funded yet, so this is for working out and saving plans."),
+      h("button", { type: "button", class: "btn sm ghost", onclick: () => setTab("account") }, "My account")));
+  }
+}
+
+// ═══ Setups tab ═══════════════════════════════════════════════
+async function loadBoard() {
+  if (S.boardLoading) return; S.boardLoading = true;
+  renderSetups();
+  try { const d = await api("board"); S.board = d; S.boardErr = ""; absorb(d); }
+  catch (e) { if (e.status === 401) return; S.boardErr = e.message; }
+  finally { S.boardLoading = false; }
+  renderSetups(); renderTabCounts();
+}
+const GROUPS = [
+  { key: "plan", title: "You have a plan", sub: "Open these under My plans.", open: true },
+  { key: "ready", title: "Ready to plan", sub: "Randy gave an entry, a stop and a target, and this account can place it.", open: true },
+  { key: "needs", title: "Needs your levels", sub: "Randy left something out. You can still plan it by entering the missing number yourself.", open: true },
+  { key: "blocked", title: "Can't be placed here", sub: "Shown for reference only.", open: false },
+];
+function setupCard(s) {
+  const bits = [];
+  if (s.price != null) bits.push(h("span", { class: "num" }, "Now " + px(s.price)));
+  if (s.randy.entry != null) bits.push(h("span", { class: "num" }, "Entry " + px(s.randy.entry) + (s.pct.to_entry != null ? ` (${where(s.pct.to_entry)})` : "")));
+  if (s.randy.stop != null) bits.push(h("span", { class: "num" }, "Stop " + px(s.randy.stop)));
+  const nt = s.randy.targets.filter((t) => t.price != null && !t.hit).length;
+  if (nt) bits.push(plural(nt, "target"));
+  const l3 = s.plan ? `Your plan: ${STATE_LABEL[s.plan.state] || s.plan.state}` : s.group === "blocked" ? (s.placeable.blockers[0] || "") : s.missing.length ? `Randy hasn't given: ${s.missing.join(", ")}` : "";
+  return h("button", { type: "button", class: "setup", data: { id: s.id, ticker: s.ticker }, "aria-label": `${s.ticker} ${dirWord(s.direction)}. Open` },
+    h("span", { class: "l1" }, h("span", { class: "tk" }, s.ticker), h("span", { class: "pill " + dirWord(s.direction) }, dirWord(s.direction)), h("span", { class: "pill st" }, s.status), s.tf ? h("span", { class: "pill" }, s.tf) : null),
+    h("span", { class: "l2" }, bits.map((b, i) => [i ? " · " : "", b])),
+    l3 ? h("span", { class: "l3" }, l3) : null);
+}
+function renderSetups() {
+  const stats = clear($("#setupStats")), list = clear($("#setupList"));
+  if (S.boardLoading && !S.board) { list.append(h("div", { class: "loading" }, "Loading Randy's setups…", h("i"))); return; }
+  if (!S.board) { list.append(h("div", { class: "errbox" }, h("span", null, S.boardErr || "Couldn't load the setups."), h("button", { type: "button", class: "btn sm", onclick: loadBoard }, "Try again"))); return; }
+  const b = S.board;
+  stats.append(h("span", { id: "priceNote" }, b.prices_ok ? b.price_note : "Prices unavailable right now. You can still type your own."),
+    h("button", { type: "button", class: "btn link", id: "refreshSetups", onclick: () => { loadBoard(); loadPlans(); }, disabled: S.boardLoading }, S.boardLoading ? "Refreshing…" : "Refresh"),
+    h("span", null, "Not ranked. Sorted by ticker."));
+  if (S.boardErr) list.append(h("div", { class: "errbox" }, h("span", null, "Couldn't refresh: " + S.boardErr)));
+  if (!S.settingsSaved || S.riskBudget == null) {
+    list.append(h("div", { class: "banner info", id: "needAcct" }, h("span", null, h("b", null, "Set your risk number first. "), "Tell the page your account size and the most you're willing to lose on one trade. Until then it shows Randy's levels but no share counts."),
+      h("button", { type: "button", class: "btn sm", onclick: () => setTab("account") }, "My account")));
+  }
+  const q = S.q.trim().toUpperCase();
+  const all = b.setups.filter((s) => !q || s.ticker.includes(q));
+  if (!b.setups.length) { list.append(h("div", { class: "empty" }, h("p", null, "Randy has no open setups right now."))); return; }
+  if (!all.length) { list.append(h("div", { class: "empty" }, h("p", null, `No setup matches "${S.q.trim()}".`))); return; }
+  for (const g of GROUPS) {
+    const rows = all.filter((s) => s.group === g.key);
+    if (!rows.length) continue;
+    list.append(h("details", { class: "grp", data: { group: g.key, ns: "s" }, open: (S.gopen["s" + g.key] ?? g.open) || q ? true : null },
+      h("summary", null, h("h3", null, g.title), h("span", { class: "gn" }, String(rows.length))),
+      h("p", { class: "gsub" }, g.sub), rows.map(setupCard)));
+  }
+}
+document.addEventListener("toggle", (e) => { const d = e.target; if (d && d.classList && d.classList.contains("grp") && d.dataset.ns && !S.q.trim()) S.gopen[d.dataset.ns + d.dataset.group] = d.open; }, true);
+$("#setupQ").addEventListener("input", (e) => { S.q = e.target.value; renderSetups(); });
+$("#setupList").addEventListener("click", (e) => {
+  const c = e.target.closest(".setup"); if (!c) return;
+  const s = S.board && S.board.setups.find((x) => x.id === c.dataset.id); if (s) openSetup(s, null);
+});
+
+// ═══ Setup sheet ══════════════════════════════════════════════
+const sheet = $("#sheet");
+const F = { setup: null, plan: null, targets: [], pick: null, token: 0, timer: 0, calc: null, calcErr: "", saving: false, refs: {} };
+function closeSheets() { for (const d of [sheet, $("#ask")]) if (d.open) d.close(); }
+$("#sheetX").onclick = () => sheet.close();
+sheet.addEventListener("close", () => { clearTimeout(F.timer); F.token++; F.setup = null; });
+sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
+
+function randyLevels(s) {
+  const r = s.randy, rows = [];
+  const row = (k, v, t) => h("div", { class: "r" }, h("b", null, k), h("span", { class: "num" }, v), t ? h("span", { class: "t" }, t) : null);
+  rows.push(row("Entry", r.entry != null ? px(r.entry) : "not given", r.entry_note));
+  rows.push(row("Stop", r.stop != null ? px(r.stop) : "not given", r.stop_note));
+  if (r.invalidation != null) rows.push(row("Invalidation", px(r.invalidation), "Randy's level where the idea is wrong."));
+  for (const t of r.targets) {
+    const val = t.price != null ? px(t.price) + (t.zone ? ` (zone ${px(t.zone[0])}–${px(t.zone[1])}, near edge)` : "") : "no price (a drawn line)";
+    rows.push(row(t.label, val + (t.hit ? " · hit " + t.hit : "") + (t.potential ? " · possible" : ""), t.note));
+  }
+  const box = h("div", { class: "rl" }, rows);
+  return [box, r.notes ? h("div", { class: "rnote" }, r.notes) : null, r.last_event ? h("p", { class: "hint", style: "margin-top:8px" }, "Latest from Randy: " + r.last_event) : null];
+}
+
+function openSetup(s, plan) {
+  F.setup = s; F.plan = plan; F.calc = null; F.calcErr = ""; F.saving = false; F.token++;
+  F.targets = s.randy.targets.filter((t) => t.price != null && !t.hit);
+  F.pick = null;
+  const body = clear($("#sheetBody")), foot = clear($("#sheetFoot"));
+  $("#sheetTitle").textContent = `${s.ticker} ${dirWord(s.direction)}`;
+  const sub = clear($("#sheetSub"));
+  sub.append(`Randy has it as ${s.status}${s.tf ? ", " + s.tf : ""}. ` + (s.price != null ? `Price now ${px(s.price)} (${S.board ? S.board.price_note : ""}).` : "No price right now."));
+  if (safeUrl(s.randy.link)) sub.append(" ", h("a", { href: safeUrl(s.randy.link), target: "_blank", rel: "noopener noreferrer" }, "Randy's post ↗"));
+  body.append(h("span", { class: "lbl" }, "Randy's levels"), ...randyLevels(s).filter(Boolean));
+  F.refs = {};
+
+  if (s.plan && !plan) {
+    body.append(h("div", { class: "blocked" }, h("b", null, `You already have a plan on this (${(STATE_LABEL[s.plan.state] || s.plan.state).toLowerCase()}). `), "Open it under My plans."));
+    foot.append(h("button", { type: "button", class: "btn ghost", onclick: () => sheet.close() }, "Close"), h("button", { type: "button", class: "btn grow", onclick: () => { sheet.close(); setTab("plans"); } }, "Open My plans"));
+    if (!sheet.open) sheet.showModal(); return;
+  }
+  if (!s.placeable.ok) {
+    body.append(h("div", { class: "blocked", id: "blockedBox" }, h("b", null, "This can't be placed from here."), h("ul", null, s.placeable.blockers.map((x) => h("li", null, x)))));
+    foot.append(h("button", { type: "button", class: "btn grow", onclick: () => sheet.close() }, "Close"));
+    if (!sheet.open) sheet.showModal(); return;
+  }
+  if (s.placeable.notes.length) body.append(h("ul", { class: "msgs warn" }, s.placeable.notes.map((x) => h("li", null, x))));
+
+  // ---- the form
+  const entryV = plan ? String(plan.entry) : s.randy.entry != null ? String(s.randy.entry) : "";
+  const stopV = plan ? String(plan.stop) : "";
+  const entry = h("input", { type: "text", inputmode: "decimal", id: "fEntry", value: entryV, placeholder: "Entry price", autocomplete: "off" });
+  const stop = h("input", { type: "text", inputmode: "decimal", id: "fStop", value: stopV, placeholder: "Your stop price", autocomplete: "off" });
+  const entryChips = h("div", { class: "chips" });
+  if (s.randy.entry != null) entryChips.append(h("button", { type: "button", class: "chip", onclick: () => setField(entry, s.randy.entry) }, `Randy's entry ${px(s.randy.entry)}`));
+  if (s.price != null) entryChips.append(h("button", { type: "button", class: "chip", id: "chipNow", onclick: () => setField(entry, s.price) }, `Price now ${px(s.price)}`));
+  const stopChips = h("div", { class: "chips" });
+  if (s.randy.stop != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipStop", onclick: () => setField(stop, s.randy.stop) }, `Randy's stop ${px(s.randy.stop)}`));
+  if (s.randy.invalidation != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipInval", onclick: () => setField(stop, s.randy.invalidation) }, `Randy's invalidation ${px(s.randy.invalidation)}`));
+  const stopHint = s.randy.stop == null ? "Randy hasn't given a stop on this one. Enter your own." : "Your stop is your call. Tap Randy's number to use it, or type yours.";
+
+  // targets
+  const tbox = h("div", { id: "tbox" });
+  F.targets.forEach((t, i) => {
+    const rr = h("span", { class: "rr" }, ""), gain = h("span", { class: "gain" }, ""), bad = h("span", { class: "bad", hidden: true });
+    const radio = h("input", { type: "radio", name: "tgt", value: String(i), "aria-label": `${t.label} ${px(t.price)}` });
+    const row = h("label", { class: "trow", data: { i: String(i) } }, radio,
+      h("span", { class: "main" }, h("b", null, `${t.label} ${px(t.price)}`), t.zone ? h("small", null, `Zone ${px(t.zone[0])}–${px(t.zone[1])}, entered at the near edge`) : null, t.potential ? h("small", null, "Randy marked this one as possible") : null),
+      h("span", { class: "st" }, rr, " ", gain), bad);
+    radio.addEventListener("change", () => { F.pick = i; syncPick(); schedule(0); });
+    F.refs["t" + i] = { row, rr, gain, bad, radio };
+    tbox.append(row);
+  });
+  const mine = h("input", { type: "text", inputmode: "decimal", id: "fMine", placeholder: "Your own target price", autocomplete: "off", "aria-label": "Your own target price" });
+  const mineRadio = h("input", { type: "radio", name: "tgt", value: "mine", "aria-label": "Use my own target" });
+  const mineRow = h("label", { class: "trow", id: "mineRow" }, mineRadio, h("span", { class: "main" }, h("b", null, "Mine")), mine,
+    h("span", { class: "st" }, h("span", { class: "rr" }), " ", h("span", { class: "gain" })), h("span", { class: "bad", hidden: true }));
+  mineRadio.addEventListener("change", () => { F.pick = "mine"; syncPick(); schedule(0); mine.focus(); });
+  mine.addEventListener("input", () => { if (F.pick !== "mine") { F.pick = "mine"; mineRadio.checked = true; syncPick(); } schedule(); });
+  F.refs.mineSlot = { row: mineRow, rr: mineRow.querySelector(".rr"), gain: mineRow.querySelector(".gain"), bad: mineRow.querySelector(".bad"), radio: mineRadio };
+  tbox.append(mineRow);
+
+  const shares = h("input", { type: "text", inputmode: "numeric", id: "fShares", placeholder: "Leave empty to use your risk number", autocomplete: "off" });
+  const etype = h("select", { id: "fEtype" }, [["auto", "Automatic, from where the price is now"], ["limit", "Limit"], ["stop", "Stop (buy stop / sell-short stop)"], ["market", "Market"]].map(([v, t]) => h("option", { value: v }, t)));
+  const note = h("textarea", { id: "fNote", maxlength: "500", placeholder: "Why this one, or anything to remember (optional)" });
+  Object.assign(F.refs, { entry, stop, mine, shares, etype, note });
+  if (plan) { if (plan.note) note.value = plan.note; if (["limit", "stop", "market"].includes(plan.entry_type)) etype.value = plan.entry_type; entry.addEventListener("input", () => { etype.value = "auto"; }); }
+
+  body.append(
+    h("span", { class: "lbl" }, plan ? "Edit your plan" : "Your plan"),
+    h("div", { class: "form" },
+      h("div", null, h("label", { class: "fld", for: "fEntry" }, "Entry price", entry), entryChips),
+      h("div", null, h("label", { class: "fld", for: "fStop" }, "Stop price", stop, h("span", { class: "hint" }, stopHint)), stopChips),
+      h("div", null, h("span", { class: "lbl", style: "margin-top:0" }, "Target"),
+        F.targets.length ? null : h("p", { class: "hint", style: "margin-bottom:8px" }, "Randy hasn't given a target with a price. Enter your own."),
+        tbox, h("p", { class: "hint", id: "tHint" }, F.targets.length ? "Pick one, or use your own. Nothing is picked for you." : "")),
+      h("details", { class: "more" }, h("summary", null, "More: shares and order type"),
+        h("div", { class: "form" },
+          h("label", { class: "fld", for: "fShares" }, "Shares (optional)", shares, h("span", { class: "hint" }, "Only if you want a number of your own. The page will say if it's over your risk number.")),
+          h("label", { class: "fld", for: "fEtype" }, "Entry order type", etype))),
+      h("label", { class: "fld", for: "fNote" }, "Note", note)),
+    h("div", { class: "res", id: "res", "aria-live": "polite" }));
+
+  // saved target (editing)
+  if (plan) {
+    const at = F.targets.findIndex((t) => Math.abs(t.price - plan.target) < 1e-9);
+    if (at >= 0) { F.pick = at; F.refs["t" + at].radio.checked = true; }
+    else { F.pick = "mine"; mine.value = String(plan.target); mineRadio.checked = true; }
+  }
+  syncPick();
+  for (const el of [entry, stop, shares, note]) el.addEventListener("input", () => schedule());
+  etype.addEventListener("change", () => schedule(0));
+
+  foot.append(h("div", { class: "why", id: "saveWhy" }),
+    h("button", { type: "button", class: "btn ghost", onclick: () => sheet.close() }, "Cancel"),
+    h("button", { type: "button", class: "btn grow", id: "savePlan", onclick: savePlan }, plan ? "Save changes" : "Save plan"));
+  if (!sheet.open) sheet.showModal();
+  renderResults(); schedule(0);
+}
+function setField(input, n) { input.value = String(n); input.dispatchEvent(new Event("input", { bubbles: true })); input.focus(); }
+function syncPick() { for (const [k, r] of Object.entries(F.refs)) if (r && r.row) r.row.classList.toggle("on", (k === "mineSlot" && F.pick === "mine") || (k.startsWith("t") && F.pick === Number(k.slice(1)))); }
+
+function currentTarget() {
+  if (F.pick === "mine") return numIn(F.refs.mine.value);
+  if (typeof F.pick === "number") return F.targets[F.pick] ? F.targets[F.pick].price : null;
+  return null;
+}
+function readForm() {
+  const entry = numIn(F.refs.entry.value), stop = numIn(F.refs.stop.value), target = currentTarget(), shares = numIn(F.refs.shares.value);
+  const body = { setup_id: F.setup.id, entry, stop, targets: F.targets.map((t) => ({ price: t.price, label: t.label })) };
+  if (target != null && !Number.isNaN(target)) body.target = target;
+  if (shares != null && !Number.isNaN(shares)) body.shares = shares;
+  if (F.refs.etype.value !== "auto") body.entry_type = F.refs.etype.value;
+  return { body, entry, stop, target, shares };
+}
+function schedule(ms = 350) { clearTimeout(F.timer); F.timer = setTimeout(runCalc, ms); renderResults(); }
+async function runCalc() {
+  if (!F.setup) return;
+  const f = readForm();
+  const tok = ++F.token;
+  if (!(f.entry > 0) || !(f.stop > 0)) { F.calc = null; F.calcErr = ""; renderResults(); return; }
+  try {
+    const r = await api("calc", f.body);
+    if (tok !== F.token || !F.setup) return;
+    F.calc = r.calc; F.calcErr = "";
+  } catch (e) {
+    if (tok !== F.token || !F.setup || e.status === 401) return;
+    F.calc = null; F.calcErr = e.message;
+  }
+  renderResults();
+}
+
+function statsFor(slot, r) {
+  const rr = slot.rr, gain = slot.gain, bad = slot.bad;
+  rr.textContent = ""; gain.textContent = ""; bad.hidden = true; bad.textContent = "";
+  if (!r) return;
+  if (!r.ok) { bad.hidden = false; bad.textContent = r.error || "Can't use this target."; return; }
+  rr.textContent = `${r.rr}:1`;
+  gain.textContent = r.gain != null ? usdS(r.gain) : "";
+  gain.className = "gain gainc";
+}
+function renderResults() {
+  const box = $("#res"); if (!box || !F.setup) return;
+  clear(box);
+  const c = F.calc;
+  const f = readForm();
+  // per-target table
+  F.targets.forEach((t, i) => statsFor(F.refs["t" + i], c && c.by_target[i]));
+  statsFor(F.refs.mineSlot, null);
+  if (c && f.target != null && !Number.isNaN(f.target) && F.pick === "mine") {
+    const sz = c.sized; const slot = F.refs.mineSlot;
+    slot.rr.textContent = sz.rr != null ? `${sz.rr}:1` : ""; slot.gain.textContent = sz.gain_at_target != null ? usdS(sz.gain_at_target) : ""; slot.gain.className = "gain gainc";
+    if (!sz.ok && sz.errors[0]) { slot.bad.hidden = false; slot.bad.textContent = sz.errors[0]; }
+  }
+  $("#tHint") && ($("#tHint").textContent = !c && F.targets.length ? "Enter your entry and stop to see reward against risk for each target." : F.targets.length ? "Pick one, or use your own. Nothing is picked for you." : "");
+
+  let why = "";
+  if (F.calcErr) { box.append(h("ul", { class: "msgs err" }, h("li", null, F.calcErr))); why = F.calcErr; }
+  else if (!c) why = "Enter your entry and stop.";
+  else {
+    const sz = c.sized;
+    if (sz.errors.length) { box.append(h("ul", { class: "msgs err", id: "errs" }, sz.errors.map((x) => h("li", null, x)))); why = sz.errors[0]; }
+    else {
+      const cells = [];
+      cells.push(h("div", { id: "rShares" }, h("span", { class: "k" }, "Shares"), h("span", { class: "v" }, sz.shares != null ? String(sz.shares) : "—"),
+        h("span", { class: "s" }, sz.shares == null ? "" : sz.limited_by === "account" ? "Cut to what the account can buy" : sz.limited_by === "you" ? "Your own number" : "From your risk number")));
+      if (sz.cost != null) cells.push(h("div", null, h("span", { class: "k" }, "Cost"), h("span", { class: "v" }, usd(sz.cost)), h("span", { class: "s" }, "at the entry price")));
+      if (sz.loss_at_stop != null) cells.push(h("div", { id: "rLoss" }, h("span", { class: "k" }, "If the stop is hit"), h("span", { class: "v lossc" }, usdS(-sz.loss_at_stop)), h("span", { class: "s" }, sz.loss_pct != null ? `${sz.loss_pct}% of the account` : "")));
+      if (sz.gain_at_target != null) cells.push(h("div", { id: "rGain" }, h("span", { class: "k" }, "If the target is hit"), h("span", { class: "v gainc" }, usdS(sz.gain_at_target)), h("span", { class: "s" }, (sz.gain_pct != null ? `${sz.gain_pct}% of the account` : "") + (sz.rr != null ? ` · ${sz.rr}:1 reward to risk` : ""))));
+      box.append(h("span", { class: "lbl" }, "The numbers"), h("div", { class: "res-grid" }, cells));
+      if (sz.shares == null && sz.needs) { box.append(h("div", { class: "banner info", id: "rNeeds" }, h("span", null, sz.needs), h("button", { type: "button", class: "btn sm", onclick: () => { sheet.close(); setTab("account"); } }, "My account"))); why = sz.needs; }
+      if (c.entry_words) box.append(h("div", { class: "entrywords", id: "rEntry" }, h("b", null, c.entry_type ? c.entry_type[0].toUpperCase() + c.entry_type.slice(1) + " entry. " : ""), c.entry_words));
+      if (c.warnings.length) box.append(h("ul", { class: "msgs warn", id: "rWarn" }, c.warnings.map((x) => h("li", null, x))));
+      if (!c.placeable.ok) { box.append(h("ul", { class: "msgs err" }, c.placeable.blockers.map((x) => h("li", null, x)))); why = c.placeable.blockers[0]; }
+      else if (f.target == null || Number.isNaN(f.target)) why = why || "Pick a target.";
+      if (c.ticket) box.append(ticketView(c.ticket, c.cautions));
+      else if (!why) why = "Pick a target.";
+    }
+  }
+  const btn = $("#savePlan"); if (btn) btn.disabled = !(c && c.ok) || F.saving;
+  const w = $("#saveWhy"); if (w) w.textContent = c && c.ok ? "" : why;
+}
+function ticketView(t, cautions) {
+  return h("div", { class: "ticket", id: "ticket" },
+    h("h4", null, "Your three Schwab orders: " + t.conditional),
+    h("ol", null, t.steps.map((x) => h("li", null, x))),
+    h("pre", { id: "ticketText" }, t.text),
+    h("button", { type: "button", class: "btn sm ghost", onclick: () => copyText(t.text) }, "Copy the order text"),
+    cautions && cautions.length ? h("ul", { class: "cautions" }, cautions.map((x) => h("li", null, x))) : null);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast("Copied. Paste it wherever you keep your notes."); return; } catch (e) {}
+  try {
+    const ta = h("textarea", { style: "position:fixed;left:-9999px;top:0", "aria-hidden": "true" }); ta.value = text; document.body.append(ta); ta.select();
+    const ok = document.execCommand("copy"); ta.remove(); toast(ok ? "Copied." : "Couldn't copy. Select the text and copy it.", ok ? {} : { bad: true });
+  } catch (e) { toast("Couldn't copy. Select the text and copy it.", { bad: true }); }
+}
+
+async function savePlan() {
+  if (F.saving || !F.setup) return;
+  const f = readForm();
+  if (!F.calc || !F.calc.ok) return;
+  F.saving = true; $("#savePlan").disabled = true; $("#savePlan").textContent = "Saving…";
+  const body = { ...f.body, target: f.target, note: F.refs.note.value };
+  delete body.targets;
+  if (F.plan) body.id = F.plan.id;
+  try {
+    await api("plan_save", body);
+    sheet.close();
+    toast(F.plan ? "Plan updated." : "Plan saved. It's under My plans.", { action: () => setTab("plans"), label: "View" });
+    await Promise.all([loadPlans(), loadBoard()]);
+  } catch (e) {
+    if (e.status === 401) return;
+    F.saving = false;
+    const b = $("#savePlan"); if (b) { b.textContent = F.plan ? "Save changes" : "Save plan"; b.disabled = false; }
+    failToast(e);
+    if (e.status === 409) { loadPlans(); loadBoard(); }
+  }
+}
+
+// ═══ Prompt dialog (fill, exit, confirm) ═════════════════════
+const ask = $("#ask");
+function askDialog({ title, sub, fields = [], confirm = "OK", chips = null }) {
+  return new Promise((resolve) => {
+    $("#askTitle").textContent = title; $("#askSub").textContent = sub || ""; $("#askErr").textContent = "";
+    const box = clear($("#askFields")); const els = {};
+    for (const f of fields) {
+      const input = f.options
+        ? h("select", { id: "ask_" + f.id }, f.options.map(([v, t]) => h("option", { value: v }, t)))
+        : h("input", { type: "text", inputmode: f.numeric ? "decimal" : "text", id: "ask_" + f.id, value: f.value ?? "", autocomplete: "off" });
+      if (f.options && f.value != null) input.value = f.value;
+      els[f.id] = input;
+      box.append(h("div", null, h("label", { class: "fld", for: "ask_" + f.id }, f.label, input, f.hint ? h("span", { class: "hint" }, f.hint) : null),
+        f.chips ? h("div", { class: "chips" }, f.chips.map((c) => h("button", { type: "button", class: "chip", onclick: () => { input.value = String(c.value); if (c.set) for (const [k, v] of Object.entries(c.set)) els[k].value = v; } }, c.label))) : null));
+    }
+    $("#askYes").textContent = confirm;
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; $("#askForm").onsubmit = null; $("#askNo").onclick = null; ask.removeEventListener("cancel", onCancel); if (ask.open) ask.close(); resolve(v); };
+    const onCancel = (e) => { e.preventDefault(); finish(null); };
+    ask.addEventListener("cancel", onCancel);
+    $("#askNo").onclick = () => finish(null);
+    $("#askForm").onsubmit = (e) => {
+      e.preventDefault();
+      const out = {}; for (const f of fields) out[f.id] = els[f.id].value;
+      for (const f of fields) if (f.validate) { const msg = f.validate(out[f.id], out); if (msg) { $("#askErr").textContent = msg; return; } }
+      finish(out);
+    };
+    ask.showModal();
+    const first = fields.length ? els[fields[0].id] : $("#askYes"); first.focus();
+  });
+}
+const needPrice = (label) => (v) => { const n = numIn(v); return n == null || Number.isNaN(n) || n <= 0 ? `Enter the ${label} price.` : ""; };
+const needShares = (v) => { const n = numIn(v); return n == null || !Number.isInteger(n) || n < 1 ? "Shares has to be a whole number, 1 or more." : ""; };
+
+// ═══ My plans ═════════════════════════════════════════════════
+async function loadPlans() {
+  if (S.plansLoading) return; S.plansLoading = true;
+  renderPlans();
+  try { const d = await api("plans", { include_skipped: S.showSkipped }); S.plans = d; S.plansErr = ""; absorb(d); }
+  catch (e) { if (e.status === 401) return; S.plansErr = e.message; }
+  finally { S.plansLoading = false; }
+  renderPlans(); renderTabCounts();
+}
+function lvCell(k, v, s, cls) { return h("div", null, h("span", { class: "k" }, k), h("span", { class: "v " + (cls || "") }, v), s ? h("span", { class: "s" }, s) : null); }
+function pastStop(p) { return p.price != null && ((p.direction === "long" && p.price <= p.stop) || (p.direction === "short" && p.price >= p.stop)); }
+function planCard(p) {
+  const busy = S.busy.has(p.id);
+  const live = p.state === "filled" || p.state === "placed" || p.state === "planned";
+  const card = h("article", { class: "card plan", data: { id: p.id, state: p.state, ticker: p.ticker } });
+  card.append(h("div", { class: "ctop" }, h("h3", null, p.ticker), h("span", { class: "pill " + dirWord(p.direction) }, dirWord(p.direction)), h("span", { class: "pill st" }, STATE_LABEL[p.state] || p.state),
+    p.randy_status && !["open"].includes(p.randy_status) ? h("span", { class: "pill" }, "Randy: " + p.randy_status) : null,
+    p.setup_id == null ? h("span", { class: "pill warn" }, "Randy's setup is gone") : null));
+  const cells = [];
+  if (p.state === "filled" || p.state === "closed") {
+    cells.push(lvCell(p.direction === "short" ? "Sold short at" : "Bought at", px(p.fill_price), plural(p.fill_shares, "share")));
+  } else cells.push(lvCell("Entry", px(p.entry), p.entry_type + " order"));
+  cells.push(lvCell("Stop", px(p.stop)), lvCell("Target", px(p.target), p.target_label));
+  if (p.state === "closed") cells.push(lvCell("Exit", px(p.exit_price), p.exit_reason ? "by " + p.exit_reason : ""));
+  else cells.push(lvCell("Shares", String(p.state === "filled" ? p.fill_shares : p.shares), p.state === "filled" ? (p.at_risk != null ? `risk ${usd(p.at_risk)} at the stop` : "") : `risk ${usd(p.risk_dollars)} at the stop`));
+  card.append(h("div", { class: "lv" }, cells));
+  if (p.state === "closed") {
+    card.append(h("div", { class: "live" }, h("b", { class: p.realized >= 0 ? "gainc" : "lossc" }, usdS(p.realized)), p.realized_pct != null ? ` (${pctS(p.realized_pct)})` : "", p.closed_at ? ` · closed ${dateShort(p.closed_at)}` : ""));
+  } else if (live && p.price != null) {
+    const bits = [h("b", null, "Now " + px(p.price))];
+    if (p.state === "filled") {
+      if (p.open_pnl != null) bits.push(" · open ", h("b", { class: p.open_pnl >= 0 ? "gainc" : "lossc" }, usdS(p.open_pnl)), p.open_pnl_pct != null ? ` (${pctS(p.open_pnl_pct)})` : "");
+      if (p.pct.to_stop != null) bits.push(` · stop is ${where(p.pct.to_stop)}`);
+      if (p.pct.to_target != null) bits.push(`, target is ${where(p.pct.to_target)}`);
+    } else {
+      if (p.pct.to_entry != null) bits.push(` · entry is ${where(p.pct.to_entry)}`);
+    }
+    card.append(h("div", { class: "live" }, bits));
+  }
+  if (live && pastStop(p)) card.append(h("div", { class: "alert" }, h("b", null, "The price is at or past your stop. "), p.state === "filled" ? "If your stop order is in at Schwab, check whether it filled." : "A stop order placed now would trigger at once."));
+  if (p.changes.length) card.append(h("div", { class: "chg" }, h("b", null, "Randy changed things since you made this plan"), h("ul", null, p.changes.map((x) => h("li", null, x))), h("div", { style: "margin-top:4px;color:var(--dim)" }, "Check his post, then decide whether to keep, edit or skip the plan. Any change to the orders is made at Schwab, by you.")));
+  if (p.note) card.append(h("div", { class: "pnote" }, p.note));
+  if ((p.state === "planned" || p.state === "placed") && p.ticket) {
+    card.append(h("details", { class: "steps" }, h("summary", null, "Schwab steps"), p.entry_words ? h("p", { class: "hint", style: "font-size:13px;color:var(--dim);margin:0 0 6px" }, p.entry_words) : null, ticketView(p.ticket, null)));
+  }
+  const b = (label, fn, cls = "btn sm ghost", extra = {}) => h("button", { type: "button", class: cls, disabled: busy, onclick: fn, ...extra }, label);
+  const acts = h("div", { class: "acts" });
+  if (p.state === "planned") acts.append(b("Mark as placed", () => step(p, "placed"), "btn sm"), b("It filled…", () => askFill(p)), b("Edit", () => editPlan(p)), b("Skip", () => step(p, "skipped")), b("Delete", () => delPlan(p), "btn link warn"));
+  else if (p.state === "placed") acts.append(b("It filled…", () => askFill(p), "btn sm"), b("Back to planned", () => step(p, "planned")), b("Skip", () => step(p, "skipped")));
+  else if (p.state === "filled") acts.append(b("Close the trade…", () => askClose(p), "btn sm"), b("Undo fill", () => undoFill(p), "btn link warn"));
+  else if (p.state === "closed") acts.append(b("Undo close", () => step(p, "filled"), "btn sm ghost"));
+  else if (p.state === "skipped") acts.append(b("Back to planned", () => step(p, "planned"), "btn sm"), b("Delete", () => delPlan(p), "btn link warn"));
+  acts.append(b(p.note ? "Edit note" : "Add a note", () => editNote(p), "btn link"));
+  card.append(acts);
+  return card;
+}
+function renderPlans() {
+  const stats = clear($("#planStats")), sum = clear($("#planSummary")), list = clear($("#planList"));
+  if (S.plansLoading && !S.plans) { list.append(h("div", { class: "loading" }, "Loading your plans…", h("i"))); return; }
+  if (!S.plans) { list.append(h("div", { class: "errbox" }, h("span", null, S.plansErr || "Couldn't load your plans."), h("button", { type: "button", class: "btn sm", onclick: loadPlans }, "Try again"))); return; }
+  const d = S.plans, sm = d.summary;
+  stats.append(h("span", null, d.prices_ok ? d.price_note : "Prices unavailable right now."),
+    h("button", { type: "button", class: "btn link", onclick: () => loadPlans(), disabled: S.plansLoading }, S.plansLoading ? "Refreshing…" : "Refresh"),
+    h("label", { style: "display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:36px" }, h("input", { type: "checkbox", id: "showSkipped", checked: S.showSkipped ? true : null, onchange: (e) => { S.showSkipped = e.target.checked; loadPlans(); } }), "Show skipped"));
+  if (S.plansErr) list.append(h("div", { class: "errbox" }, "Couldn't refresh: " + S.plansErr));
+  if (sm.open || sm.closed) {
+    const cells = [];
+    if (sm.open) cells.push(h("div", { id: "sumOpen" }, "Open trades ", h("b", null, String(sm.open)), " · at risk ", h("b", null, usd(sm.at_risk)), " · open P/L ", h("b", { class: sm.open_pnl >= 0 ? "gainc" : "lossc" }, usdS(sm.open_pnl))));
+    if (sm.closed) cells.push(h("div", { id: "sumClosed" }, "Closed ", h("b", null, String(sm.closed)), " · realized ", h("b", { class: sm.realized >= 0 ? "gainc" : "lossc" }, usdS(sm.realized)), ` (${plural(sm.wins, "win")}, ${plural(sm.losses, "loss", "losses")})`));
+    sum.append(h("div", { class: "sum" }, cells));
+  }
+  if (!d.plans.length) { list.append(h("div", { class: "empty" }, h("p", null, "No plans yet. Open a setup, enter your stop and pick a target."), h("button", { type: "button", class: "btn", onclick: () => setTab("setups") }, "See the setups"))); return; }
+  const order = [["filled", "Open trades"], ["placed", "Placed at Schwab"], ["planned", "Planned"], ["closed", "Closed"], ["skipped", "Skipped"]];
+  for (const [st, title] of order) {
+    const rows = d.plans.filter((p) => p.state === st); if (!rows.length) continue;
+    list.append(h("details", { class: "grp", open: (S.gopen["p" + st] ?? (st !== "closed")) ? true : null, data: { group: st, ns: "p" } }, h("summary", null, h("h3", null, title), h("span", { class: "gn" }, String(rows.length))), rows.map(planCard)));
+  }
+}
+
+async function step(p, to, extra = {}) {
+  if (S.busy.has(p.id)) return; S.busy.add(p.id); renderPlans();
+  let ok = false;
+  try {
+    const r = await api("plan_state", { id: p.id, to, ...extra });
+    ok = true;
+    const msg = [r.reminder, ...(r.warnings || [])].filter(Boolean).join(" ");
+    toast(msg || "Saved.");
+  } catch (e) { if (e.status === 401) return; failToast(e); }
+  S.busy.delete(p.id);
+  await Promise.all([loadPlans(), loadBoard()]);
+  return ok;
+}
+async function askFill(p) {
+  const v = await askDialog({
+    title: `${p.ticker} filled`, sub: "Enter what Schwab shows. If it filled in pieces, use the average price.", confirm: "Record the fill",
+    fields: [
+      { id: "price", label: "Fill price", numeric: true, value: px(p.entry), validate: needPrice("fill") },
+      { id: "shares", label: "Shares filled", numeric: true, value: String(p.shares), validate: (x) => needShares(x) },
+    ],
+  });
+  if (v) await step(p, "filled", { fill_price: numIn(v.price), fill_shares: numIn(v.shares) });
+}
+async function askClose(p) {
+  const v = await askDialog({
+    title: `Close ${p.ticker}`, sub: "Enter the price you got out at, as Schwab shows it.", confirm: "Record the close",
+    fields: [
+      { id: "price", label: "Exit price", numeric: true, value: "", validate: needPrice("exit"),
+        chips: [{ label: `Your target ${px(p.target)}`, value: p.target, set: { reason: "target" } }, { label: `Your stop ${px(p.stop)}`, value: p.stop, set: { reason: "stop" } }] },
+      { id: "reason", label: "How it ended", options: [["target", "The target filled"], ["stop", "The stop filled"], ["manual", "I closed it myself"]], value: "manual" },
+    ],
+  });
+  if (v) await step(p, "closed", { exit_price: numIn(v.price), exit_reason: v.reason });
+}
+async function undoFill(p) {
+  const v = await askDialog({ title: "Undo this fill?", sub: `${p.ticker} goes back to "placed at Schwab", and the trade is taken out of your open trades (and the brief).`, confirm: "Undo the fill" });
+  if (v) await step(p, "placed");
+}
+async function delPlan(p) {
+  const v = await askDialog({ title: "Delete this plan?", sub: "It isn't placed anywhere. This can't be undone.", confirm: "Delete" });
+  if (!v) return;
+  S.busy.add(p.id); renderPlans();
+  try { await api("plan_delete", { id: p.id }); toast("Plan deleted."); } catch (e) { if (e.status === 401) return; failToast(e); }
+  S.busy.delete(p.id); await Promise.all([loadPlans(), loadBoard()]);
+}
+async function editNote(p) {
+  const v = await askDialog({ title: `Note on ${p.ticker}`, confirm: "Save note", fields: [{ id: "note", label: "Note", value: p.note || "", validate: (x) => (x.length > 500 ? "Keep the note to 500 characters." : "") }] });
+  if (!v) return;
+  try { await api("plan_note", { id: p.id, note: v.note }); toast("Note saved."); await loadPlans(); } catch (e) { if (e.status === 401) return; failToast(e); }
+}
+function editPlan(p) {
+  const s = S.board && S.board.setups.find((x) => x.id === p.setup_id);
+  if (!s) { toast("Randy's setup isn't open anymore, so this plan can't be edited. Skip it or delete it.", { bad: true }); return; }
+  openSetup({ ...s, plan: null }, p);
+}
+
+// ═══ My account ═══════════════════════════════════════════════
+let riskMode = "dollars";
+function setRiskMode(m, quiet) {
+  riskMode = m;
+  $("#modeDollars").setAttribute("aria-pressed", String(m === "dollars")); $("#modePercent").setAttribute("aria-pressed", String(m === "percent"));
+  $("#riskVal").placeholder = m === "dollars" ? "Dollars, e.g. 20" : "Percent, e.g. 1";
+  $("#riskHint").textContent = m === "dollars" ? "You choose this number. The page doesn't suggest one." : "A percent of your account size. You choose it; the page doesn't suggest one.";
+  if (!quiet) S.acctDirty = true;
+}
+function fillAccount() {
+  const s = S.settings; if (!s) return;
+  $("#acctSize").value = s.account_size != null ? String(s.account_size) : "";
+  $("#acctFunded").checked = !!s.funded; $("#acctMargin").checked = !!s.margin_ok; $("#acctFut").checked = !!s.futures_ok;
+  setRiskMode(s.risk_mode === "percent" ? "percent" : "dollars", true);
+  $("#riskVal").value = s.risk_value != null ? String(s.risk_value) : "";
+}
+function renderBudget() {
+  const b = $("#budget"); clear(b);
+  if (S.riskBudget != null) b.append("Each trade is sized so a hit stop costs about ", h("b", { id: "budgetVal" }, usd(S.riskBudget)), ".");
+  else if (S.settings && S.settings.risk_mode === "percent" && S.settings.risk_value != null) b.append("Enter your account size to turn that percent into dollars.");
+  else b.append("Risk per trade isn't set yet, so share counts can't be worked out.");
+}
+$("#modeDollars").onclick = () => setRiskMode("dollars");
+$("#modePercent").onclick = () => setRiskMode("percent");
+for (const id of ["#acctSize", "#riskVal", "#acctFunded", "#acctMargin", "#acctFut"]) $(id).addEventListener("input", () => { S.acctDirty = true; $("#acctMsg").textContent = ""; });
+$("#acctForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); if (S.acctSaving) return;
+  const size = numIn($("#acctSize").value), risk = numIn($("#riskVal").value);
+  const msg = $("#acctMsg");
+  if (Number.isNaN(size) || (size != null && size < 0)) { msg.textContent = "Account size has to be a number, 0 or more."; return; }
+  if (Number.isNaN(risk) || (risk != null && risk <= 0)) { msg.textContent = "Risk per trade has to be more than 0."; return; }
+  S.acctSaving = true; $("#acctSave").disabled = true; msg.textContent = "Saving…";
+  try {
+    const d = await api("settings", { set: { account_size: size, funded: $("#acctFunded").checked, risk_mode: riskMode, risk_value: risk, margin_ok: $("#acctMargin").checked, futures_ok: $("#acctFut").checked } });
+    S.acctDirty = false; S.settingsSaved = true; S.settingsError = null; absorb({ settings: d.settings, risk_budget: d.risk_budget, settings_saved: true, settings_error: null });
+    msg.textContent = "Saved."; toast("Account saved.");
+    await Promise.all([loadBoard(), loadPlans()]);
+  } catch (err) { if (err.status === 401) return; msg.textContent = err.message; }
+  S.acctSaving = false; $("#acctSave").disabled = false;
+});
+
+// ── Start
+function start() {
+  $("#app").hidden = false; setTab(S.tab, true);
+  renderBudget();
+  loadBoard(); loadPlans();
+}
+KEY = resolveKey();
+if (!KEY) showKeySetup(); else start();
+</script>
+</body>
+</html>

@@ -239,7 +239,7 @@
           <button type="button" data-kind="ask" aria-pressed="false">Ask HN</button>
         </div>
         <select id="days" aria-label="How far back">
-          <option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
+          <option value="auto">Since I last looked</option><option value="1">Last day</option><option value="2">Last 2 days</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
         </select>
         <div class="seg" role="group" aria-label="Order">
           <button type="button" data-sort="taste" aria-pressed="true">For you</button>
@@ -262,10 +262,12 @@
       <div id="discList"></div>
       <details class="how">
         <summary>How this works</summary>
-        <p><b>When it refreshes.</b> Every time you open this page it asks Hacker News again (it remembers the answer for 5 minutes, so moving a slider is quick). Tap <b>Refresh</b> to look again right now. The list is live: new posts show up as they're written, and a post drops off once it picks up more votes or comments than your limits, or falls outside the days you picked. Posts that arrived since you last looked are marked <b>New</b>.</p>
-        <p><b>Topics.</b> Every post is filed under one or two of twelve topics, worked out from its words, so what you keep can be browsed and searched later. It's a good guess, not perfect. In Saved, searching also looks through the posts you opened in your browsing history, so you can ask "do I have anything for…?" and save the ones worth keeping.</p>
+        <p><b>When it refreshes.</b> Every time you open this page it asks Hacker News again (it remembers the answer for 5 minutes, so moving a slider is quick). Tap <b>Refresh</b> to look again right now. The list is live: new posts show up as they're written, and a post drops off once it picks up more votes or comments than your limits, or falls outside the days you picked.</p>
+        <p><b>Since I last looked.</b> This is the default. The page remembers when you last opened it (on the server, so your phone and computer agree) and looks back far enough to cover everything since: a day away is the last day, a long weekend is the last 3 or 4 days, at most 30. The first time, with nothing remembered, it shows 7 days. Reloading or tapping around within half an hour of opening counts as the same visit. Posts that arrived since your last visit are marked <b>New</b>, whichever window you pick.</p>
+        <p><b>Topics.</b> Every post is filed under one or two of twelve topics, worked out from its words, so what you keep can be browsed and searched later. It's a good guess, not perfect. Search in Saved to ask "do I have anything for…?"</p>
+        <p><b>From my history.</b> The Show HN posts you opened in your browsing history are in Saved too, tagged <b>From my history</b> and dated the day you opened them. Tap <b>Unsave</b> on any you don't want; they stop teaching it too. Pick the tag in Saved to see them together. Add a reason of your own to one and it counts as a full heart.</p>
         <p>A post counts as <b>overlooked</b> when it has a lot of writing but few votes and comments. The overlooked score is its length divided by the attention it got, the same idea as pj4533.com/hn-overlooked.</p>
-        <p><b>For you</b> puts posts that read like the ones you hearted first. It compares words, and your own reasons count extra. Posts from your browsing history count too, a little less than a heart. Each match shows the words and the post behind it, so you can see why it's there.</p>
+        <p><b>For you</b> puts posts that read like the ones you hearted first. It compares words, and your own reasons count extra. Posts from your browsing history count too, a little less than a heart until you give them a reason of your own. Each match shows the words and the post behind it, so you can see why it's there.</p>
       </details>
     </section>
 
@@ -273,7 +275,7 @@
     <section id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
       <div class="stats" id="savedStats" aria-live="polite"></div>
       <div class="srow">
-        <input type="search" id="sq" placeholder="Search saved posts and your history" aria-label="Search saved posts and your browsing history" autocomplete="off">
+        <input type="search" id="sq" placeholder="Search saved posts" aria-label="Search saved posts" autocomplete="off">
         <select id="sstatus" aria-label="Show"><option value="revisit">To revisit</option><option value="done">Revisited</option><option value="all">All</option></select>
         <select id="ssort" aria-label="Order"><option value="new">Newest first</option><option value="old">Oldest first</option></select>
       </div>
@@ -318,6 +320,7 @@
 "use strict";
 const FN = "https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/hn-gems";
 const MIN_LIKES_DEFAULT = 3;
+const HISTORY_TAG = "From my history";
 const PRESETS = ["Clever idea","Solves a problem I have","Could build on it","Business idea","Beautifully made","Good writing","Great story","Learn from it","Tool I'd use","For the gym","AI / agents","Want to talk to the author"];
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -335,9 +338,6 @@ const terms = (q) => { const out = []; for (const w of lc(q || "").split(/[^a-z0
 const allIn = (text, ts) => ts.every((t) => text.includes(t));
 const topicCounts = (list) => { const n = {}; for (const x of list) for (const t of topicsOf(x)) n[t] = (n[t] || 0) + 1; return Object.entries(n).map(([topic, count]) => ({ topic, count })).sort((a, b) => b.count - a.count || topicLabel(a.topic).localeCompare(topicLabel(b.topic))); };
 const topicPills = (x, act, sel) => topicsOf(x).map((t) => `<button type="button" class="pill topic" data-act="${act}" data-topic="${esc(t)}" aria-pressed="${sel === t}" title="Show only ${esc(topicLabel(t))}">${esc(topicLabel(t))}</button>`).join("");
-const SEEN_KEY = "gems-last-seen";
-const readSeen = () => { try { const n = parseInt(localStorage.getItem(SEEN_KEY) || "", 10); return Number.isFinite(n) && n > 0 ? n : null; } catch (e) { return null; } };
-const writeSeen = (n) => { try { localStorage.setItem(SEEN_KEY, String(n)); } catch (e) {} };
 function ago(iso) {
   const t = Date.parse(iso); if (!t) return "";
   const m = Math.max(0, Math.round((Date.now() - t) / 60000));
@@ -349,12 +349,13 @@ function dshort(iso) { const d = new Date(iso); return isNaN(d) ? "" : d.toLocal
 
 // ── Preferences (this browser only; the page works without storage)
 const PREF_KEY = "gems-prefs";
-const DEF = { tab: "discover", kinds: "both", days: 7, sort: "taste", min_len: 500, max_votes: 50, max_comments: 10, status: "revisit", ssort: "new" };
+const DEF = { tab: "discover", kinds: "both", win: "auto", sort: "taste", min_len: 500, max_votes: 50, max_comments: 10, status: "revisit", ssort: "new" };
 function loadPrefs() { try { return { ...DEF, ...JSON.parse(localStorage.getItem(PREF_KEY) || "{}") }; } catch (e) { return { ...DEF }; } }
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(P)); } catch (e) {} }
 const P = loadPrefs();
 if (!["both","show","ask"].includes(P.kinds)) P.kinds = DEF.kinds;
-if (![3,7,14,30].includes(Number(P.days))) P.days = DEF.days; P.days = Number(P.days);
+const WINS = ["auto", "1", "2", "3", "7", "14", "30"];
+P.win = String(P.win); if (!WINS.includes(P.win)) P.win = DEF.win;
 if (!["taste","passion"].includes(P.sort)) P.sort = DEF.sort;
 if (!["revisit","done","all"].includes(P.status)) P.status = DEF.status;
 if (!["new","old"].includes(P.ssort)) P.ssort = DEF.ssort;
@@ -438,7 +439,7 @@ function allReasonOptions() {
   const seen = new Set(), out = [];
   const add = (t) => { const k = lc(t); if (t && !seen.has(k)) { seen.add(k); out.push(t); } };
   (S.saved.presets || PRESETS).forEach(add);
-  S.saved.tags.forEach((t) => add(t.tag));
+  S.saved.tags.forEach((t) => { if (lc(t.tag) !== lc(HISTORY_TAG)) add(t.tag); });
   W.shown.forEach(add);
   [...W.tags].forEach(add);
   return out;
@@ -488,7 +489,15 @@ $("#whyAddBtn").onclick = addCustomReason;
 $("#whyAdd").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addCustomReason(); } });
 
 // ── Discover
-const nextDays = (d) => (d < 7 ? 7 : d < 14 ? 14 : 30);
+const nextDays = (d) => [1, 2, 3, 7, 14, 30].find((x) => x > d) || 30;
+const daysPhrase = (n) => (n === 1 ? "day" : `${n} days`);
+function whenWords(ms) {            // "today at 3:12 PM", "yesterday at 9:05 AM", "Nov 5 at 3:12 PM"
+  const d = new Date(ms); if (isNaN(d)) return "";
+  const t = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const a = new Date(); a.setHours(0, 0, 0, 0); const b = new Date(d); b.setHours(0, 0, 0, 0);
+  const diff = Math.round((a - b) / 86400000);
+  return `${diff === 0 ? "today" : diff === 1 ? "yesterday" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${t}`;
+}
 function sortCands() {
   const m = S.disc.meta, c = S.disc.cands;
   if (P.sort === "taste" && m && m.taste_ready) c.sort((a, b) => ((b.taste && b.taste.score) || 0) - ((a.taste && a.taste.score) || 0) || b.passion - a.passion);
@@ -498,12 +507,14 @@ async function loadDiscover(fresh) {
   const D = S.disc, token = ++D.token;
   D.loading = true; D.error = ""; renderDisc();
   try {
-    const body = { days: P.days, min_len: P.min_len, max_votes: P.max_votes, max_comments: P.max_comments, kinds: kindsArr(), sort: P.sort, limit: 300 };
+    const body = { min_len: P.min_len, max_votes: P.max_votes, max_comments: P.max_comments, kinds: kindsArr(), sort: P.sort, limit: 300 };
+    if (P.win === "auto") { body.auto = true; if (D.prevSeen) body.since = new Date(D.prevSeen).toISOString(); } else body.days = Number(P.win);
+    if (!D.seenSet) body.visit = true;                 // the first look of this page visit: the server notes it and says when the one before was
     if (fresh === true) body.fresh = true;
     const d = await api("discover", body);
     if (token !== D.token) return;
     D.cands = d.cands; D.meta = d.meta; D.shown = 30; D.changes = 0; D.newLikes = 0; D.loaded = true; sortCands();
-    if (!D.seenSet) { D.seenSet = true; D.prevSeen = readSeen(); writeSeen(Date.now()); }      // "New" means newer than your last visit, kept for the whole visit
+    if (!D.seenSet) { D.seenSet = true; D.prevSeen = d.meta.prev_visit ? Date.parse(d.meta.prev_visit) || null : null; }      // "New" means newer than your last visit, kept for the whole page visit
     if (D.topic && !D.cands.some((c) => (c.topics || []).includes(D.topic))) D.topic = "";
   } catch (e) { if (token !== D.token) return; if (e.status !== 401) D.error = e.message; }
   D.loading = false; renderDisc();
@@ -558,7 +569,7 @@ function renderDisc() {
   const D = S.disc, list = $("#discList"), stats = $("#discStats"), note = $("#discNote");
   if (D.loading) {
     stats.textContent = ""; note.innerHTML = "";
-    list.innerHTML = `<div class="loading">Looking through the last ${P.days} days of Hacker News…<i></i></div>`; return;
+    list.innerHTML = `<div class="loading">${P.win === "auto" ? "Looking through what's new on Hacker News" : `Looking through the last ${esc(daysPhrase(Number(P.win)))} of Hacker News`}…<i></i></div>`; return;
   }
   if (D.error) {
     stats.textContent = ""; note.innerHTML = "";
@@ -567,10 +578,11 @@ function renderDisc() {
   const m = D.meta; if (!m) { list.innerHTML = ""; return; }
   const hidden = m.hidden_seen ? ` · ${plural(m.hidden_seen, "post")} you already saved, passed on or opened ${m.hidden_seen === 1 ? "is" : "are"} hidden` : "";
   const nNew = D.cands.filter(isNew).length;
-  stats.innerHTML = `${esc(`Looked at ${fmt(m.looked)} posts from the last ${m.days} days. ${fmt(m.matched)} had enough text${hidden}.`)} ${nNew ? `<b>${esc(plural(nNew, "post"))} new since your last visit.</b> ` : ""}Updated ${esc(ago(m.at) || "just now")}. <button type="button" class="btn link" data-act="refresh">Refresh</button>`;
+  const sizing = m.auto ? (D.prevSeen ? ` Sized to your last visit (${whenWords(D.prevSeen)}).` : " This is your first visit on record, so it starts with 7 days.") : "";
+  stats.innerHTML = `${esc(`Looked at ${fmt(m.looked)} posts from the last ${daysPhrase(m.days)}. ${fmt(m.matched)} had enough text${hidden}.${sizing}`)} ${nNew ? `<b>${esc(plural(nNew, "post"))} new since your last visit.</b> ` : ""}Updated ${esc(ago(m.at) || "just now")}. <button type="button" class="btn link" data-act="refresh">Refresh</button>`;
   renderDiscTopics(); renderDiscNote();
   if (!D.cands.length) {
-    list.innerHTML = `<div class="empty"><p>${m.matched ? "You've been through everything that matched. Try a longer window." : "Nothing matched these filters."}</p>${P.days < 30 ? `<button type="button" class="btn" data-act="widen">Look back ${nextDays(P.days)} days</button>` : ""}</div>`; return;
+    list.innerHTML = `<div class="empty"><p>${m.matched ? (m.auto && D.prevSeen ? "You're all caught up since you last looked." : "You've been through everything that matched.") + (m.days < 30 ? " Try a longer window." : "") : "Nothing matched these filters."}</p>${m.days < 30 ? `<button type="button" class="btn" data-act="widen">Look back ${daysPhrase(nextDays(m.days))}</button>` : ""}</div>`; return;
   }
   const view = discView();
   if (!view.length) {
@@ -690,7 +702,7 @@ function savedCard(g) {
       <button type="button" class="btn sm ghost" data-act="s-read"${S.loadingBody.has(g.hn_id) ? " disabled" : ""}>${readLabel}</button>
       <button type="button" class="btn sm ghost" data-act="s-edit">Edit why</button>
       ${g.revisited_at ? `<button type="button" class="btn sm ghost" data-act="s-back">Move back to revisit</button>` : (S.revisiting === g.hn_id ? "" : `<button type="button" class="btn sm" data-act="s-rv-open">Mark revisited</button>`)}
-      <button type="button" class="btn link warn" data-act="s-remove">Remove</button>
+      <button type="button" class="btn link warn" data-act="s-remove">Unsave</button>
     </div>
   </article>`;
 }
@@ -698,9 +710,8 @@ function renderHist() {
   const V = S.saved, box = $("#savedHist"), r = V.srv;
   const active = terms(V.q).length > 0 || !!V.topic;
   if (!active || V.loading || V.error) { box.innerHTML = ""; return; }
-  if (r.loading && !r.hist.length) { box.innerHTML = `<h4>Your browsing history</h4><p class="hint">Looking…</p>`; return; }
-  if (r.error) { box.innerHTML = `<h4>Your browsing history</h4><p class="hint">${esc(r.error)}</p>`; return; }
-  if (!r.hist.length) { box.innerHTML = r.q || r.topic ? `<h4>Your browsing history</h4><p class="hint">Nothing from your browsing history matches.</p>` : ""; return; }
+  if (r.error) { box.innerHTML = `<p class="hint">${esc(r.error)}</p>`; return; }
+  if (!r.hist.length) { box.innerHTML = ""; return; }
   box.innerHTML = `<h4>${esc(plural(r.total - r.ids.size, "post"))} from your browsing history</h4><p class="hint">Posts you opened on Hacker News before. Save one to keep it with the others.</p>`
     + r.hist.map((h) => `<article class="hcard" data-id="${h.hn_id}"><div class="ctop">${kindPill(h.kind)}${topicPills(h, "s-topic", V.topic)}</div><div class="ht">${titleLink(h)}</div><p class="snip">${esc(h.snippet)}</p><div class="acts"><button type="button" class="btn sm like" data-act="h-like">${HEART} Save</button></div></article>`).join("")
     + (r.total - r.ids.size > r.hist.length ? `<p class="hint">Showing ${r.hist.length}. Add a word to narrow it down.</p>` : "");
@@ -746,7 +757,7 @@ async function runSrv(q, topic) {
     const d = await api("search", { q, topic: topic || undefined, limit: 40 });
     if (token !== V.srv.token) return;
     V.srv = { q, topic, ids: new Set(d.results.filter((x) => x.state === "liked").map((x) => x.hn_id)), hist: d.results.filter((x) => x.state === "seed"), total: d.total, loading: false, error: "", token };
-  } catch (e) { if (token !== V.srv.token) return; V.srv = { ...V.srv, loading: false, error: e.status === 401 ? "" : "Couldn't search your history just now." }; }
+  } catch (e) { if (token !== V.srv.token) return; V.srv = { ...V.srv, loading: false, error: e.status === 401 ? "" : "Couldn't search the full text just now. Showing matches from the titles and reasons." }; }
   renderSaved();
 }
 async function histLike(id) {
@@ -786,7 +797,7 @@ async function savedRemove(g) {
   try {
     await api("forget", { hn_id: g.hn_id });
     S.saved.gems = S.saved.gems.filter((x) => x.hn_id !== g.hn_id); S.open.delete(g.hn_id); S.disc.cands.forEach((c) => { if (c.hn_id === g.hn_id) c.state = null; }); recompute(); renderSaved();
-    toast("Removed from Saved.", { undo: async () => {
+    toast("Unsaved.", { undo: async () => {
       try {
         const post = { title: keep.title, kind: keep.kind, url: keep.url, author: keep.author, posted_at: keep.posted_at, score: keep.score, comments: keep.comments, text: keep.body || keep.snippet || "" };
         let d = await api("like", { hn_id: keep.hn_id, why_tags: keep.why_tags || [], why_note: keep.why_note || "", post });
@@ -827,7 +838,7 @@ document.querySelector(".tabs").addEventListener("click", (e) => { const b = e.t
 function syncControls() {
   $$("[data-kind]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.kind === P.kinds)));
   $$("[data-sort]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sort === P.sort)));
-  $("#days").value = String(P.days);
+  $("#days").value = P.win;
   $("#fMin").value = P.min_len; $("#fVotes").value = P.max_votes; $("#fComments").value = P.max_comments;
   $("#filtersSum").textContent = (P.min_len !== DEF.min_len || P.max_votes !== DEF.max_votes || P.max_comments !== DEF.max_comments) ? "Filters · changed" : "Filters";
 }
@@ -836,7 +847,7 @@ document.querySelector("#panel-discover .controls").addEventListener("click", (e
   if (k && k.dataset.kind !== P.kinds) { P.kinds = k.dataset.kind; savePrefs(); syncControls(); loadDiscover(); }
   if (s && s.dataset.sort !== P.sort) { P.sort = s.dataset.sort; savePrefs(); syncControls(); sortCands(); S.disc.shown = 30; renderDisc(); }
 });
-$("#days").addEventListener("change", () => { P.days = Number($("#days").value); savePrefs(); loadDiscover(); });
+$("#days").addEventListener("change", () => { P.win = $("#days").value; savePrefs(); loadDiscover(); });
 const intOr = (v, d, lo, hi) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
 $("#fApply").onclick = () => {
   P.min_len = intOr($("#fMin").value, DEF.min_len, 0, 10000); P.max_votes = intOr($("#fVotes").value, DEF.max_votes, 1, 500); P.max_comments = intOr($("#fComments").value, DEF.max_comments, 0, 200);
@@ -882,7 +893,7 @@ document.addEventListener("click", (e) => {
     case "h-like": return void histLike(id);
     case "retry": return void loadDiscover();
     case "resort": return void loadDiscover();
-    case "widen": P.days = nextDays(P.days); savePrefs(); syncControls(); return void loadDiscover();
+    case "widen": P.win = String(nextDays(S.disc.meta ? S.disc.meta.days : 7)); savePrefs(); syncControls(); return void loadDiscover();
     case "retry-saved": S.saved.loaded = false; return void loadSaved();
     case "go-discover": return setTab("discover");
     case "clear-filters": S.saved.sel.clear(); S.saved.noWhy = false; S.saved.q = ""; S.saved.topic = ""; if (!savedView().length) { P.status = "all"; savePrefs(); } scheduleSrv(0); return renderSaved();
