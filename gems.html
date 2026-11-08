@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2b7d94">
+<meta name="robots" content="noindex">
+<title>HN Gems — Studio Strong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal:#2b7d94; --teal-strong:#1f6376; --teal-dim:rgba(43,125,148,.10); --on-teal:#fff;
+    --bg:#f7f9fc; --surface:#fff; --surface2:#f0f4f8; --line:rgba(0,0,0,.09); --line2:rgba(0,0,0,.18);
+    --text:#1a1a1a; --dim:#5a5a5a; --faint:#8a8a8a; --done:#1a8a62; --warn:#b4532a; --heart:#c2415d; --heart-dim:rgba(194,65,93,.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0e0f10; --surface:#16181a; --surface2:#1d2023; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.18);
+      --text:#e8e8e8; --dim:#9a9a9a; --faint:#7a7a7a; --teal:#3a9ab5; --teal-strong:#56b3cc; --teal-dim:rgba(58,154,181,.14); --on-teal:#0b1417;
+      --done:#2fb383; --warn:#e8845a; --heart:#ee6f8a; --heart-dim:rgba(238,111,138,.14);
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  [hidden] { display:none !important; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    background:var(--bg); color:var(--text); font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+    font-size:16px; line-height:1.45; min-height:100vh;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap { max-width:680px; margin:0 auto; padding:18px 16px 120px; }
+  a { color:var(--teal); text-decoration:none; overflow-wrap:anywhere; }
+  a:hover { text-decoration:underline; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  :focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+
+  /* Header */
+  .top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px 12px; flex-wrap:wrap; }
+  h1 { font-size:26px; font-weight:700; letter-spacing:-.01em; line-height:1.15; }
+  .headline { color:var(--dim); margin:6px 0 0; max-width:52ch; font-size:15px; }
+  .toplinks a { display:inline-block; font-size:13px; color:var(--teal); background:var(--teal-dim); border:1px solid transparent; border-radius:8px; padding:6px 10px; }
+  .toplinks a:hover, .toplinks a:focus-visible { border-color:var(--teal); text-decoration:none; }
+
+  /* Buttons and inputs */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:var(--teal); color:var(--on-teal); border:1px solid var(--teal); border-radius:10px; padding:9px 14px; min-height:40px; cursor:pointer; font-weight:600; font-size:14px; -webkit-tap-highlight-color:transparent; }
+  .btn:hover { filter:brightness(1.06); }
+  .btn.ghost { background:transparent; color:var(--dim); border-color:var(--line2); font-weight:500; }
+  .btn.ghost:hover { color:var(--teal); border-color:var(--teal); filter:none; }
+  .btn.like { background:var(--heart); border-color:var(--heart); color:#fff; }
+  .btn.sm { min-height:34px; padding:6px 10px; font-size:13px; border-radius:8px; }
+  .btn.link { background:none; border:0; color:var(--teal); padding:6px 4px; min-height:34px; font-weight:500; }
+  .btn.link.warn { color:var(--warn); }
+  .btn[disabled] { opacity:.55; cursor:default; }
+  input[type=text], input[type=number], input[type=search], select, textarea {
+    background:var(--surface2); border:1px solid var(--line2); border-radius:10px; padding:9px 11px; min-height:40px; width:100%; min-width:0;
+  }
+  textarea { resize:vertical; min-height:76px; line-height:1.4; }
+  ::placeholder { color:var(--faint); }
+
+  /* Key setup, capture */
+  .keysetup { margin:14px 0 4px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .keysetup p { font-size:14px; color:var(--dim); }
+  .keysetup .err { color:var(--warn); font-weight:600; }
+  .krow { display:flex; flex-wrap:wrap; gap:8px; }
+  .krow input { flex:1 1 200px; }
+  .capture { display:flex; gap:8px; margin:16px 0 4px; }
+  .capture input { flex:1 1 auto; }
+  .capture .btn { flex:0 0 auto; }
+
+  /* Tabs */
+  .tabs { display:flex; gap:0; margin:14px 0 4px; border-bottom:1px solid var(--line); }
+  .tabs button { flex:1 1 0; background:none; border:0; border-bottom:2px solid transparent; padding:11px 8px; font-weight:600; color:var(--dim); cursor:pointer; margin-bottom:-1px; min-height:44px; }
+  .tabs button[aria-selected=true] { color:var(--teal); border-bottom-color:var(--teal); }
+  .tabs .n { font-weight:500; color:var(--faint); margin-left:4px; font-variant-numeric:tabular-nums; }
+
+  /* Controls */
+  .controls { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; margin:14px 0 8px; }
+  .seg { display:inline-flex; border:1px solid var(--line2); border-radius:10px; overflow:hidden; background:var(--surface); }
+  .seg button { background:none; border:0; padding:7px 12px; font-size:13px; color:var(--dim); cursor:pointer; min-height:36px; border-right:1px solid var(--line); }
+  .seg button:last-child { border-right:0; }
+  .seg button[aria-pressed=true] { background:var(--teal-dim); color:var(--teal); font-weight:600; }
+  .controls select { width:auto; min-height:36px; padding:6px 10px; font-size:13px; }
+  .filters { margin:2px 0 8px; font-size:14px; }
+  .filters > summary { cursor:pointer; color:var(--dim); font-size:13px; padding:6px 0; list-style:none; }
+  .filters > summary::-webkit-details-marker { display:none; }
+  .filters > summary::before { content:"›"; display:inline-block; margin-right:6px; transition:transform .15s; color:var(--faint); }
+  .filters[open] > summary::before { transform:rotate(90deg); }
+  .frow { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 10px; }
+  .frow label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--dim); }
+  .frow input { min-height:38px; }
+  .fbtns { display:flex; gap:8px; }
+  .stats { font-size:13px; color:var(--dim); margin:6px 0 4px; }
+  .note { font-size:13.5px; color:var(--dim); background:var(--teal-dim); border-radius:10px; padding:9px 12px; margin:8px 0; display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; }
+  .note b { color:var(--text); font-weight:600; }
+  .note .btn { margin-left:auto; }
+  .how { font-size:13px; color:var(--dim); margin:2px 0 6px; }
+  .how > summary { cursor:pointer; color:var(--faint); padding:4px 0; }
+  .how p { margin:4px 0 6px; max-width:60ch; }
+
+  /* Cards */
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .card.flash { border-color:var(--teal); }
+  .ctop { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:12px; color:var(--dim); }
+  .pill { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:2px 7px; border-radius:6px; background:var(--surface2); color:var(--dim); }
+  .pill.show { background:var(--teal-dim); color:var(--teal); }
+  .pill.score { background:transparent; border:1px solid var(--line2); text-transform:none; letter-spacing:0; font-weight:600; }
+  .ct { font-size:16.5px; font-weight:600; line-height:1.3; margin:7px 0 3px; overflow-wrap:anywhere; }
+  .meta { font-size:12.5px; color:var(--dim); display:flex; flex-wrap:wrap; gap:2px 10px; }
+  .snip { font-size:14px; margin-top:9px; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; }
+  .full { font-size:14.5px; margin-top:10px; white-space:pre-wrap; overflow-wrap:anywhere; max-height:420px; overflow:auto; padding:10px 12px; background:var(--surface2); border-radius:8px; }
+  .taste { font-size:13px; margin-top:10px; padding:7px 10px; border-radius:8px; background:var(--surface2); color:var(--dim); overflow-wrap:anywhere; }
+  .taste .tl { font-weight:700; margin-right:4px; }
+  .taste.t-strong { background:var(--heart-dim); } .taste.t-strong .tl { color:var(--heart); }
+  .taste.t-some { background:var(--teal-dim); } .taste.t-some .tl { color:var(--teal); }
+  .taste b { color:var(--text); font-weight:600; }
+  .taste .np { display:block; margin-top:2px; color:var(--warn); }
+  .acts { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center; }
+  .acts .btn { min-height:44px; }
+  .acts .btn.sm { min-height:36px; }
+  .state { margin-top:12px; font-size:14px; color:var(--dim); display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; }
+  .state .ok { color:var(--heart); font-weight:600; display:inline-flex; align-items:center; gap:5px; }
+  .heart { width:17px; height:17px; fill:currentColor; flex:0 0 auto; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .tag { font-size:12.5px; background:var(--teal-dim); color:var(--teal); border:1px solid transparent; border-radius:999px; padding:3px 10px; cursor:default; }
+  button.tag { cursor:pointer; font-size:12.5px; }
+  button.tag:hover { border-color:var(--teal); }
+  .nowhy { font-size:12.5px; color:var(--warn); border:1px dashed var(--line2); border-radius:999px; padding:3px 10px; background:none; cursor:pointer; }
+  .why { margin-top:9px; font-size:14px; color:var(--text); border-left:3px solid var(--teal); padding:2px 0 2px 10px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .follow { margin-top:8px; font-size:13.5px; color:var(--dim); overflow-wrap:anywhere; }
+  .follow b { color:var(--done); }
+  .mini { margin-top:10px; display:flex; flex-direction:column; gap:8px; padding:10px; background:var(--surface2); border-radius:8px; }
+  .mini .row { display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* Saved controls */
+  .schips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .chip { font-size:13px; background:var(--surface); border:1px solid var(--line2); border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--dim); min-height:32px; }
+  .chip .c { color:var(--faint); margin-left:4px; font-variant-numeric:tabular-nums; }
+  .chip[aria-pressed=true] { background:var(--teal); border-color:var(--teal); color:var(--on-teal); font-weight:600; }
+  .chip[aria-pressed=true] .c { color:inherit; opacity:.8; }
+  .srow { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 4px; }
+  .srow input { flex:1 1 100%; }
+  .srow select { flex:1 1 0; width:auto; min-width:0; }
+
+  /* States */
+  .empty { text-align:center; color:var(--dim); padding:34px 12px; border:1px dashed var(--line2); border-radius:10px; margin-top:12px; }
+  .empty p { margin-bottom:12px; }
+  .errbox { color:var(--warn); background:var(--surface); border:1px solid var(--line2); border-radius:10px; padding:14px; margin-top:12px; display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; }
+  .loading { color:var(--dim); padding:28px 4px; text-align:center; }
+  .loading i { display:block; height:4px; width:120px; margin:12px auto 0; border-radius:4px; background:linear-gradient(90deg,var(--line) 0,var(--teal) 50%,var(--line) 100%); background-size:200% 100%; animation:slide 1.2s linear infinite; }
+  @keyframes slide { to { background-position:-200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .loading i { animation:none; } .filters > summary::before { transition:none; } }
+  .more { text-align:center; margin:14px 0; }
+  .foot { margin-top:30px; font-size:12px; color:var(--faint); }
+
+  /* Why sheet */
+  dialog { border:0; padding:0; background:var(--surface); color:var(--text); width:min(560px,100vw); max-width:100vw; max-height:92vh; border-radius:16px 16px 0 0; margin:auto auto 0; overflow:hidden; }
+  dialog[open] { display:flex; flex-direction:column; }
+  @media (min-width:640px) { dialog { margin:auto; border-radius:14px; } }
+  dialog::backdrop { background:rgba(0,0,0,.5); }
+  .sheet-h { padding:16px 18px 6px; }
+  .sheet-h h2 { font-size:18px; font-weight:700; line-height:1.2; }
+  .sheet-h .what { font-size:13.5px; color:var(--dim); margin-top:4px; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .sheet-b { padding:8px 18px 4px; overflow:auto; flex:1 1 auto; min-height:0; }
+  .sheet-b .lbl { font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); margin:12px 0 6px; display:block; }
+  .sheet-b .hint { font-size:13px; color:var(--dim); }
+  .sheet-b .warnhint { font-size:13px; color:var(--warn); margin-top:8px; }
+  .addrow { display:flex; gap:8px; margin-top:8px; }
+  .sheet-f { padding:12px 18px calc(14px + env(safe-area-inset-bottom)); display:flex; flex-wrap:wrap; gap:8px; border-top:1px solid var(--line); background:var(--surface); }
+  .sheet-f .btn { flex:1 1 auto; min-height:44px; }
+  .sheet-f .grow { flex:2 1 150px; }
+
+  /* Toast */
+  #toast { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:20; width:min(92vw,460px); }
+  .toast { background:#222; color:#f1f1f1; border-radius:10px; padding:11px 14px; display:flex; align-items:center; gap:12px; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.28); }
+  .toast span { flex:1 1 auto; overflow-wrap:anywhere; }
+  .toast button { background:none; border:0; color:#8fd3e6; font-weight:700; cursor:pointer; padding:6px 4px; min-height:34px; }
+  .toast.bad { background:#6e2a14; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>HN Gems</h1>
+      <p class="headline">Overlooked Hacker News posts. Heart the ones you love, say why, and come back to them.</p>
+    </div>
+    <nav class="toplinks" aria-label="Other pages"><a href="brief.html">Morning brief</a></nav>
+  </header>
+
+  <form class="keysetup" id="keysetup" hidden>
+    <p id="keymsg">One-time setup: paste your page key, or the whole link you were given. It's saved on this device only, so the key never sits in this page's code.</p>
+    <div class="krow">
+      <input type="text" id="keyin" placeholder="Paste key or link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Page key">
+      <button class="btn" type="submit">Save &amp; open</button>
+    </div>
+  </form>
+
+  <div id="app" hidden>
+    <form class="capture" id="capture" autocomplete="off">
+      <input type="text" id="refin" inputmode="url" placeholder="Paste a Hacker News link to save it" aria-label="Paste a Hacker News link to save a post" autocapitalize="off" spellcheck="false">
+      <button class="btn ghost" type="submit" id="refgo">Add</button>
+    </form>
+
+    <div class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" id="tab-discover" aria-controls="panel-discover" aria-selected="true" data-tab="discover">Discover</button>
+      <button role="tab" id="tab-saved" aria-controls="panel-saved" aria-selected="false" data-tab="saved">Saved<span class="n" id="savedCount"></span></button>
+    </div>
+
+    <!-- DISCOVER -->
+    <section id="panel-discover" role="tabpanel" aria-labelledby="tab-discover">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Kind of post">
+          <button type="button" data-kind="both" aria-pressed="true">Both</button>
+          <button type="button" data-kind="show" aria-pressed="false">Show HN</button>
+          <button type="button" data-kind="ask" aria-pressed="false">Ask HN</button>
+        </div>
+        <select id="days" aria-label="How far back">
+          <option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
+        </select>
+        <div class="seg" role="group" aria-label="Order">
+          <button type="button" data-sort="taste" aria-pressed="true">For you</button>
+          <button type="button" data-sort="passion" aria-pressed="false">Most overlooked</button>
+        </div>
+      </div>
+      <details class="filters" id="filters">
+        <summary id="filtersSum">Filters</summary>
+        <div class="frow">
+          <label>Min. length (characters)<input type="number" id="fMin" inputmode="numeric" min="0" max="10000"></label>
+          <label>Max. votes<input type="number" id="fVotes" inputmode="numeric" min="1" max="500"></label>
+          <label>Max. comments<input type="number" id="fComments" inputmode="numeric" min="0" max="200"></label>
+        </div>
+        <div class="fbtns"><button type="button" class="btn sm" id="fApply">Apply</button><button type="button" class="btn sm ghost" id="fReset">Reset</button></div>
+      </details>
+      <div class="stats" id="discStats" aria-live="polite"></div>
+      <div id="discNote"></div>
+      <div id="discList"></div>
+      <details class="how">
+        <summary>How this works</summary>
+        <p>A post counts as <b>overlooked</b> when it has a lot of writing but few votes and comments. The overlooked score is its length divided by the attention it got, the same idea as pj4533.com/hn-overlooked.</p>
+        <p><b>For you</b> puts posts that read like the ones you hearted first. It compares words, and your own reasons count extra. Each match shows the words and the saved post behind it, so you can see why it's there.</p>
+      </details>
+    </section>
+
+    <!-- SAVED -->
+    <section id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
+      <div class="stats" id="savedStats" aria-live="polite"></div>
+      <div class="srow">
+        <input type="search" id="sq" placeholder="Search saved posts" aria-label="Search saved posts" autocomplete="off">
+        <select id="sstatus" aria-label="Show"><option value="revisit">To revisit</option><option value="done">Revisited</option><option value="all">All</option></select>
+        <select id="ssort" aria-label="Order"><option value="new">Newest first</option><option value="old">Oldest first</option></select>
+      </div>
+      <div class="schips" id="schips" role="group" aria-label="Filter by reason"></div>
+      <div id="savedList"></div>
+    </section>
+
+    <p class="foot">Idea from <a href="https://pj4533.com/hn-overlooked/" target="_blank" rel="noopener noreferrer">pj4533.com/hn-overlooked</a>. Posts come from Hacker News through Algolia's public search.</p>
+  </div>
+</div>
+
+<dialog id="why" aria-labelledby="whyTitle">
+  <form method="dialog" id="whyForm" style="display:contents">
+    <div class="sheet-h">
+      <h2 id="whyTitle">Why do you like this one?</h2>
+      <div class="what" id="whyWhat"></div>
+    </div>
+    <div class="sheet-b">
+      <div class="warnhint" id="whyWarn" hidden></div>
+      <span class="lbl">Tap any that fit</span>
+      <div class="schips" id="whyChips" role="group" aria-label="Reasons"></div>
+      <div class="addrow">
+        <input type="text" id="whyAdd" maxlength="40" placeholder="Add your own reason" aria-label="Add your own reason" autocomplete="off">
+        <button type="button" class="btn ghost" id="whyAddBtn">Add</button>
+      </div>
+      <span class="lbl"><label for="whyNote">In your words (optional)</label></span>
+      <textarea id="whyNote" maxlength="1000" rows="3" placeholder="What caught you? What would you do with it?"></textarea>
+      <p class="hint" style="margin-top:8px">Your reasons teach Discover what to put first.</p>
+    </div>
+    <div class="sheet-f">
+      <button type="button" class="btn ghost" id="whyCancel">Cancel</button>
+      <button type="button" class="btn ghost" id="whySkip">Save without a reason</button>
+      <button type="submit" class="btn grow like" id="whySave">Save</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const FN = "https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/hn-gems";
+const MIN_LIKES_DEFAULT = 3;
+const PRESETS = ["Clever idea","Solves a problem I have","Could build on it","Business idea","Beautifully made","Good writing","Great story","Learn from it","Tool I'd use","For the gym","AI / agents","Want to talk to the author"];
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
+const fmt = (n) => Number(n || 0).toLocaleString("en-US");
+const clip = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s; };
+const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many || one + "s"}`;
+const lc = (s) => String(s).toLowerCase();
+function ago(iso) {
+  const t = Date.parse(iso); if (!t) return "";
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 60) return `${Math.max(1, m)}m ago`;
+  if (m < 1440) return `${Math.round(m / 60)}h ago`;
+  return `${Math.round(m / 1440)}d ago`;
+}
+function dshort(iso) { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+
+// ── Preferences (this browser only; the page works without storage)
+const PREF_KEY = "gems-prefs";
+const DEF = { tab: "discover", kinds: "both", days: 7, sort: "taste", min_len: 500, max_votes: 50, max_comments: 10, status: "revisit", ssort: "new" };
+function loadPrefs() { try { return { ...DEF, ...JSON.parse(localStorage.getItem(PREF_KEY) || "{}") }; } catch (e) { return { ...DEF }; } }
+function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(P)); } catch (e) {} }
+const P = loadPrefs();
+if (!["both","show","ask"].includes(P.kinds)) P.kinds = DEF.kinds;
+if (![3,7,14,30].includes(Number(P.days))) P.days = DEF.days; P.days = Number(P.days);
+if (!["taste","passion"].includes(P.sort)) P.sort = DEF.sort;
+if (!["revisit","done","all"].includes(P.status)) P.status = DEF.status;
+if (!["new","old"].includes(P.ssort)) P.ssort = DEF.ssort;
+if (!["discover","saved"].includes(P.tab)) P.tab = DEF.tab;
+
+// ── Page key. Never in this page's code: from the link once, then this browser's storage.
+const KEY_STORE = "brain-key";
+let KEY = "";
+const goodKey = (k) => /^[A-Za-z0-9_-]{16,}$/.test(k || "");
+const getStoredKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
+const putStoredKey = (k) => { try { localStorage.setItem(KEY_STORE, k); return true; } catch (e) { return false; } };
+const dropStoredKey = () => { try { localStorage.removeItem(KEY_STORE); } catch (e) {} };
+function keyFromPaste(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/[?&]key=([^&#\s]+)/);          // accepts the whole link or just the key
+  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
+  return goodKey(k) ? k : "";
+}
+function resolveKey() {
+  const fromUrl = new URLSearchParams(location.search).get("key");
+  if (goodKey(fromUrl)) {
+    if (putStoredKey(fromUrl)) { try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {} }   // stored, so the link no longer needs to carry it
+    return fromUrl;
+  }
+  const s = getStoredKey();
+  return goodKey(s) ? s : "";
+}
+
+// ── Talking to the function
+class ApiError extends Error { constructor(m, status) { super(m); this.status = status; } }
+async function api(action, body = {}, timeout = 45000) {
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), timeout);
+  let res;
+  try {
+    res = await fetch(`${FN}?key=${encodeURIComponent(KEY)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...body }), signal: ctl.signal });
+  } catch (e) {
+    throw new ApiError(e && e.name === "AbortError" ? "That took too long. Try again." : "Couldn't reach the server. Check your connection and try again.", 0);
+  } finally { clearTimeout(timer); }
+  let data = null; try { data = await res.json(); } catch (e) {}
+  if (res.status === 401) { keyRejected(); throw new ApiError("That key didn't work.", 401); }
+  if (!res.ok || !data || data.error) throw new ApiError((data && data.error) || `Something went wrong (${res.status}).`, res.status);
+  return data;
+}
+
+// ── State
+const S = {
+  disc: { loading: false, error: "", cands: [], meta: null, shown: 30, changes: 0, newLikes: 0, token: 0, loaded: false },
+  saved: { loading: false, error: "", gems: [], tags: [], presets: PRESETS, loaded: false, q: "", sel: new Set(), noWhy: false, token: 0 },
+  bodies: {}, loadingBody: new Set(), revisiting: null,
+};
+const kindsArr = () => (P.kinds === "show" ? ["show"] : P.kinds === "ask" ? ["ask"] : ["ask", "show"]);
+
+// ── Toast
+let toastTimer = 0;
+function toast(msg, opts = {}) {
+  const box = $("#toast"); clearTimeout(toastTimer);
+  box.innerHTML = `<div class="toast${opts.bad ? " bad" : ""}"><span>${esc(msg)}</span>${opts.undo ? `<button type="button" id="toastUndo">${esc(opts.label || "Undo")}</button>` : ""}</div>`;
+  if (opts.undo) $("#toastUndo").onclick = () => { clearTimeout(toastTimer); box.innerHTML = ""; opts.undo(); };
+  toastTimer = setTimeout(() => { box.innerHTML = ""; }, opts.undo ? 9000 : opts.bad ? 6000 : 3500);
+}
+const failToast = (e) => toast(e && e.message ? e.message : "Something went wrong.", { bad: true });
+
+// ── Key setup / rejected
+function showKeySetup(msg) {
+  $("#app").hidden = true; $("#keysetup").hidden = false;
+  $("#keymsg").innerHTML = msg ? `<span class="err">${esc(msg)}</span> Paste the key, or the whole link, again.` : "One-time setup: paste your page key, or the whole link you were given. It's saved on this device only, so the key never sits in this page's code.";
+  $("#keyin").focus();
+}
+function keyRejected() { dropStoredKey(); KEY = ""; showKeySetup("That key didn't work."); }
+$("#keysetup").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const k = keyFromPaste($("#keyin").value);
+  if (!k) { toast("That doesn't look like a key. Paste the key or the whole link.", { bad: true }); return; }
+  if (!putStoredKey(k)) toast("This browser won't save it, so you'll be asked again next time.", { bad: true });
+  KEY = k; $("#keyin").value = ""; $("#keysetup").hidden = true; start();
+});
+
+// ── The "why" sheet. Resolves {tags, note, skip?} or null when cancelled.
+const W = { tags: new Set(), shown: [], resolve: null, mode: "like" };
+function allReasonOptions() {
+  const seen = new Set(), out = [];
+  const add = (t) => { const k = lc(t); if (t && !seen.has(k)) { seen.add(k); out.push(t); } };
+  (S.saved.presets || PRESETS).forEach(add);
+  S.saved.tags.forEach((t) => add(t.tag));
+  W.shown.forEach(add);
+  [...W.tags].forEach(add);
+  return out;
+}
+const hasTag = (t) => [...W.tags].some((x) => lc(x) === lc(t));
+function renderWhyChips() {
+  $("#whyChips").innerHTML = allReasonOptions().map((t) => `<button type="button" class="chip" data-reason="${esc(t)}" aria-pressed="${hasTag(t)}">${esc(t)}</button>`).join("");
+}
+function openWhy({ mode, post, tags = [], note = "", warn = "" }) {
+  return new Promise((resolve) => {
+    W.mode = mode; W.tags = new Set(tags); W.shown = [...tags]; W.resolve = resolve;
+    $("#whyTitle").textContent = mode === "edit" ? "Why do you like this one?" : "Why do you like this one?";
+    $("#whyWhat").textContent = post.title || "";
+    const warnEl = $("#whyWarn"); warnEl.hidden = !warn; warnEl.textContent = warn;
+    $("#whyNote").value = note || "";
+    $("#whyAdd").value = "";
+    $("#whySkip").hidden = mode === "edit";
+    $("#whySave").textContent = mode === "edit" ? "Save changes" : "Save to gems";
+    renderWhyChips();
+    const dlg = $("#why"); if (!dlg.open) dlg.showModal();
+  });
+}
+function finishWhy(value) {
+  const r = W.resolve; W.resolve = null;
+  const dlg = $("#why"); if (dlg.open) dlg.close();
+  if (r) r(value);
+}
+$("#why").addEventListener("close", () => finishWhy(null));
+$("#why").addEventListener("click", (e) => { if (e.target === $("#why")) finishWhy(null); });     // tap outside the sheet
+$("#whyCancel").onclick = () => finishWhy(null);
+$("#whySkip").onclick = () => finishWhy({ tags: [], note: "", skip: true });
+$("#whyForm").addEventListener("submit", (e) => { e.preventDefault(); finishWhy({ tags: [...W.tags], note: $("#whyNote").value.trim() }); });
+$("#whyChips").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-reason]"); if (!b) return;
+  const t = b.dataset.reason;
+  if (hasTag(t)) { W.tags = new Set([...W.tags].filter((x) => lc(x) !== lc(t))); }
+  else if (W.tags.size >= 8) { toast("Up to 8 reasons per post."); return; }
+  else W.tags.add(t);
+  renderWhyChips();
+});
+function addCustomReason() {
+  const t = $("#whyAdd").value.replace(/\s+/g, " ").trim().slice(0, 40); if (!t) return;
+  if (!hasTag(t)) { if (W.tags.size >= 8) { toast("Up to 8 reasons per post."); return; } W.tags.add(t); if (!W.shown.some((x) => lc(x) === lc(t))) W.shown.push(t); }
+  $("#whyAdd").value = ""; renderWhyChips();
+}
+$("#whyAddBtn").onclick = addCustomReason;
+$("#whyAdd").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addCustomReason(); } });
+
+// ── Discover
+const nextDays = (d) => (d < 7 ? 7 : d < 14 ? 14 : 30);
+function sortCands() {
+  const m = S.disc.meta, c = S.disc.cands;
+  if (P.sort === "taste" && m && m.taste_ready) c.sort((a, b) => ((b.taste && b.taste.score) || 0) - ((a.taste && a.taste.score) || 0) || b.passion - a.passion);
+  else c.sort((a, b) => b.passion - a.passion || b.hn_id - a.hn_id);
+}
+async function loadDiscover() {
+  const D = S.disc, token = ++D.token;
+  D.loading = true; D.error = ""; renderDisc();
+  try {
+    const d = await api("discover", { days: P.days, min_len: P.min_len, max_votes: P.max_votes, max_comments: P.max_comments, kinds: kindsArr(), sort: P.sort, limit: 300 });
+    if (token !== D.token) return;
+    D.cands = d.cands; D.meta = d.meta; D.shown = 30; D.changes = 0; D.newLikes = 0; D.loaded = true; sortCands();
+  } catch (e) { if (token !== D.token) return; if (e.status !== 401) D.error = e.message; }
+  D.loading = false; renderDisc();
+}
+function tasteHtml(t) {
+  if (!t || t.label === "none") return "";
+  const lab = { strong: "Strong match", some: "Some match", weak: "Weak match" }[t.label];
+  const because = t.because && t.because.length ? `because <b>${t.because.map(esc).join(", ")}</b>` : "";
+  const like = t.like ? `${because ? " · " : ""}like <b>“${esc(clip(t.like.title.replace(/^(show|ask) hn:\s*/i, ""), 64))}”</b>` : "";
+  const np = t.near_passed ? `<span class="np">Also close to one you passed on.</span>` : "";
+  return `<div class="taste t-${esc(t.label)}"><span class="tl">${lab}</span>${because}${like}${np}</div>`;
+}
+const kindPill = (k) => (k === "show" ? `<span class="pill show">Show HN</span>` : k === "ask" ? `<span class="pill">Ask HN</span>` : `<span class="pill">HN</span>`);
+const HEART = `<svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+function titleLink(p) {
+  const u = safeUrl(p.url) || safeUrl(p.hn_link);
+  return `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(p.title)}</a>`;
+}
+function discCard(c) {
+  let foot;
+  if (c.state === "liked") foot = `<div class="state"><span class="ok">${HEART} Saved</span><button type="button" class="btn link" data-act="d-edit">Edit why</button><button type="button" class="btn link" data-act="d-undo">Undo</button></div>`;
+  else if (c.state === "passed") foot = `<div class="state"><span>Hidden. You won't see this one again.</span><button type="button" class="btn link" data-act="d-undo">Undo</button></div>`;
+  else foot = `<div class="acts"><button type="button" class="btn like" data-act="d-like">${HEART} Like</button><button type="button" class="btn ghost" data-act="d-pass">Not for me</button></div>`;
+  return `<article class="card" data-id="${c.hn_id}">
+    <div class="ctop">${kindPill(c.kind)}<span class="pill score" title="Length divided by attention. Higher means more overlooked.">Overlooked ${fmt(Math.round(c.passion))}</span></div>
+    <h3 class="ct">${titleLink(c)}</h3>
+    <div class="meta"><span>${plural(c.score, "vote")}</span><span>${plural(c.comments, "comment")}</span><span>${esc(ago(c.posted_at))}</span>${c.author ? `<span>by ${esc(c.author)}</span>` : ""}<span>${fmt(c.text_len)} characters</span><a href="${esc(safeUrl(c.hn_link))}" target="_blank" rel="noopener noreferrer">On Hacker News</a></div>
+    <p class="snip">${esc(c.snippet)}</p>
+    ${tasteHtml(c.taste)}
+    ${foot}
+  </article>`;
+}
+function renderDisc() {
+  const D = S.disc, list = $("#discList"), stats = $("#discStats"), note = $("#discNote");
+  if (D.loading) {
+    stats.textContent = ""; note.innerHTML = "";
+    list.innerHTML = `<div class="loading">Looking through the last ${P.days} days of Hacker News…<i></i></div>`; return;
+  }
+  if (D.error) {
+    stats.textContent = ""; note.innerHTML = "";
+    list.innerHTML = `<div class="errbox"><span>${esc(D.error)}</span><button type="button" class="btn sm" data-act="retry">Try again</button></div>`; return;
+  }
+  const m = D.meta; if (!m) { list.innerHTML = ""; return; }
+  const hidden = m.hidden_seen ? ` · ${plural(m.hidden_seen, "post")} you already saved or passed on ${m.hidden_seen === 1 ? "is" : "are"} hidden` : "";
+  stats.textContent = `Looked at ${fmt(m.looked)} posts from the last ${m.days} days. ${fmt(m.matched)} had enough text${hidden}.`;
+  renderDiscNote();
+  if (!D.cands.length) {
+    list.innerHTML = `<div class="empty"><p>${m.matched ? "You've been through everything that matched. Try a longer window." : "Nothing matched these filters."}</p>${P.days < 30 ? `<button type="button" class="btn" data-act="widen">Look back ${nextDays(P.days)} days</button>` : ""}</div>`; return;
+  }
+  const slice = D.cands.slice(0, D.shown), left = D.cands.length - slice.length;
+  list.innerHTML = slice.map(discCard).join("") + (left > 0 ? `<div class="more"><button type="button" class="btn ghost" data-act="more">Show ${Math.min(30, left)} more <span style="opacity:.7">(${fmt(left)} left)</span></button></div>` : "");
+}
+function renderDiscNote() {
+  const D = S.disc, m = D.meta, note = $("#discNote"); if (!m) { note.innerHTML = ""; return; }
+  const need = m.min_likes || MIN_LIKES_DEFAULT;
+  let msg = "", resort = false;
+  if (!m.taste_ready) {
+    const have = Math.min(m.likes + D.newLikes, need);
+    if (have >= need) { msg = `<span>You've hearted enough posts for <b>For you</b> to start working.</span>`; resort = true; }
+    else msg = `<span>Learning what you like. <b>${have} of ${need}</b> hearts so far. After ${need}, posts like the ones you love float to the top.</span>`;
+  } else if (P.sort === "taste") {
+    msg = `<span>Ordered by what you've liked: <b>${plural(m.likes, "heart")}</b>${m.passes ? `, ${plural(m.passes, "pass", "passes")}` : ""}. Each match shows why.</span>`;
+    resort = D.changes > 0;
+  } else {
+    msg = `<span>Ordered by most overlooked. Pick <b>For you</b> to put your kind of post first.</span>`;
+  }
+  note.innerHTML = `<div class="note">${msg}${resort ? `<button type="button" class="btn sm" data-act="resort">Re-sort with my hearts</button>` : ""}</div>`;
+}
+function refreshDiscCard(id) {
+  const c = S.disc.cands.find((x) => x.hn_id === id), el = $(`#discList .card[data-id="${id}"]`);
+  if (!c || !el) return;
+  const t = document.createElement("template"); t.innerHTML = discCard(c).trim(); el.replaceWith(t.content.firstElementChild);
+}
+const discPost = (c) => ({ title: c.title, kind: c.kind, url: c.url, author: c.author, posted_at: c.posted_at, score: c.score, comments: c.comments, snippet: c.snippet });
+async function discLike(c) {
+  const r = await openWhy({ mode: "like", post: c }); if (!r) return;
+  try {
+    const d = await api("like", { hn_id: c.hn_id, why_tags: r.skip ? [] : r.tags, why_note: r.skip ? "" : r.note, post: discPost(c) });
+    c.state = "liked"; c._tags = d.gem.why_tags; c._note = d.gem.why_note; S.disc.changes++; S.disc.newLikes++; S.saved.loaded = false;
+    refreshDiscCard(c.hn_id); renderDiscNote(); bumpSaved(1);
+    if (!r.tags.length && !r.note && !r.skip) toast("Saved without a reason. You can add one any time.");
+  } catch (e) { if (e.status !== 401) failToast(e); }
+}
+async function discPass(c) {
+  try { await api("pass", { hn_id: c.hn_id, post: discPost(c) }); c.state = "passed"; S.disc.changes++; refreshDiscCard(c.hn_id); renderDiscNote(); }
+  catch (e) { if (e.status !== 401) failToast(e); }
+}
+async function discUndo(c) {
+  try { await api("forget", { hn_id: c.hn_id }); if (c.state === "liked") { bumpSaved(-1); S.disc.newLikes = Math.max(0, S.disc.newLikes - 1); } c.state = null; c._tags = c._note = null; S.disc.changes = Math.max(0, S.disc.changes - 1); S.saved.loaded = false; refreshDiscCard(c.hn_id); renderDiscNote(); }
+  catch (e) { if (e.status !== 401) failToast(e); }
+}
+async function discEdit(c) {
+  const r = await openWhy({ mode: "edit", post: c, tags: c._tags || [], note: c._note || "" }); if (!r) return;
+  try { const d = await api("update", { hn_id: c.hn_id, why_tags: r.tags, why_note: r.note }); c._tags = d.gem.why_tags; c._note = d.gem.why_note; S.saved.loaded = false; toast("Reason saved."); }
+  catch (e) { if (e.status !== 401) failToast(e); }
+}
+let savedN = null;
+function bumpSaved(d) { if (savedN == null) return; savedN = Math.max(0, savedN + d); $("#savedCount").textContent = savedN ? savedN : ""; }
+function setSavedCount(n) { savedN = n; $("#savedCount").textContent = n ? n : ""; }
+
+// ── Saved
+async function loadSaved(quiet) {
+  const V = S.saved, token = ++V.token;
+  if (!quiet) { V.loading = true; V.error = ""; renderSaved(); }
+  try {
+    const d = await api("list");
+    if (token !== V.token) return;
+    V.gems = d.gems; V.tags = d.tags; V.presets = d.presets && d.presets.length ? d.presets : PRESETS; V.loaded = true; V.error = "";
+    setSavedCount(d.counts.liked);
+  } catch (e) { if (token !== V.token) return; if (e.status !== 401) V.error = e.message; }
+  V.loading = false; renderSaved();
+}
+function recompute() {
+  const V = S.saved, m = new Map();
+  for (const g of V.gems) for (const t of g.why_tags || []) { const k = lc(t); const e = m.get(k) || { tag: t, count: 0 }; e.count++; m.set(k, e); }
+  V.tags = [...m.values()].sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+  for (const t of [...V.sel]) if (!V.tags.some((x) => lc(x.tag) === t)) V.sel.delete(t);
+  setSavedCount(V.gems.length);
+}
+function applyGem(g) {
+  const V = S.saved;
+  if (g.body != null) { S.bodies[g.hn_id] = g.body; g = { ...g, snippet: g.body.replace(/\s+/g, " ").slice(0, 360) }; delete g.body; }
+  const i = V.gems.findIndex((x) => x.hn_id === g.hn_id);
+  if (i >= 0) V.gems[i] = g; else V.gems.unshift(g);
+  recompute();
+}
+const noReason = (g) => !(g.why_tags && g.why_tags.length) && !g.why_note;
+function savedView() {
+  const V = S.saved; let g = V.gems.slice();
+  if (P.status === "revisit") g = g.filter((x) => !x.revisited_at); else if (P.status === "done") g = g.filter((x) => x.revisited_at);
+  for (const t of V.sel) g = g.filter((x) => (x.why_tags || []).some((y) => lc(y) === t));
+  if (V.noWhy) g = g.filter(noReason);
+  const q = lc(V.q.trim());
+  if (q) g = g.filter((x) => lc([x.title, x.snippet, x.why_note, x.followup, x.author, ...(x.why_tags || [])].join(" \n ")).includes(q));
+  g.sort((a, b) => (Date.parse(a.liked_at) - Date.parse(b.liked_at)) * (P.ssort === "old" ? 1 : -1));
+  return g;
+}
+function savedCard(g) {
+  const open = Object.prototype.hasOwnProperty.call(S.bodies, g.hn_id) && S.bodies[g.hn_id] !== null && S.open && S.open.has(g.hn_id);
+  const tags = (g.why_tags || []).map((t) => `<button type="button" class="tag" data-act="s-tag" data-tag="${esc(lc(t))}" title="Show only this reason">${esc(t)}</button>`).join("");
+  const none = noReason(g) ? `<button type="button" class="nowhy" data-act="s-edit">No reason yet. Add one</button>` : "";
+  const body = open ? `<div class="full">${esc(S.bodies[g.hn_id])}</div>` : (g.snippet ? `<p class="snip">${esc(g.snippet)}</p>` : "");
+  const readLabel = S.loadingBody.has(g.hn_id) ? "Loading…" : open ? "Show less" : "Read all";
+  const done = g.revisited_at ? `<div class="follow"><b>Revisited ${esc(dshort(g.revisited_at))}.</b> ${esc(g.followup || "")}</div>` : (g.followup ? `<div class="follow">${esc(g.followup)}</div>` : "");
+  const form = S.revisiting === g.hn_id ? `<div class="mini"><label for="rv-${g.hn_id}" class="hint" style="font-size:13px;color:var(--dim)">What happened, or what did you do? (optional)</label><textarea id="rv-${g.hn_id}" maxlength="1000" rows="2" placeholder="e.g. Emailed the author, trying it this weekend"></textarea><div class="row"><button type="button" class="btn sm" data-act="s-rv-save">Mark revisited</button><button type="button" class="btn sm ghost" data-act="s-rv-cancel">Cancel</button></div></div>` : "";
+  return `<article class="card" data-id="${g.hn_id}">
+    <div class="ctop">${kindPill(g.kind)}<span>saved ${esc(dshort(g.liked_at))}</span></div>
+    <h3 class="ct">${titleLink(g)}</h3>
+    <div class="meta"><span>${plural(g.score, "vote")}</span><span>${plural(g.comments, "comment")}</span>${g.posted_at ? `<span>posted ${esc(dshort(g.posted_at))}</span>` : ""}${g.author ? `<span>by ${esc(g.author)}</span>` : ""}<a href="${esc(safeUrl(g.hn_link))}" target="_blank" rel="noopener noreferrer">On Hacker News</a></div>
+    ${tags || none ? `<div class="tags">${tags}${none}</div>` : ""}
+    ${g.why_note ? `<div class="why">${esc(g.why_note)}</div>` : ""}
+    ${body}
+    ${done}
+    ${form}
+    <div class="acts">
+      <button type="button" class="btn sm ghost" data-act="s-read"${S.loadingBody.has(g.hn_id) ? " disabled" : ""}>${readLabel}</button>
+      <button type="button" class="btn sm ghost" data-act="s-edit">Edit why</button>
+      ${g.revisited_at ? `<button type="button" class="btn sm ghost" data-act="s-back">Move back to revisit</button>` : (S.revisiting === g.hn_id ? "" : `<button type="button" class="btn sm" data-act="s-rv-open">Mark revisited</button>`)}
+      <button type="button" class="btn link warn" data-act="s-remove">Remove</button>
+    </div>
+  </article>`;
+}
+function renderSaved() {
+  const V = S.saved, list = $("#savedList"), stats = $("#savedStats"), chips = $("#schips");
+  $("#sq").value !== V.q && ($("#sq").value = V.q);
+  $("#sstatus").value = P.status; $("#ssort").value = P.ssort;
+  if (V.loading) { stats.textContent = ""; chips.innerHTML = ""; list.innerHTML = `<div class="loading">Loading your saved posts…<i></i></div>`; return; }
+  if (V.error) { stats.textContent = ""; chips.innerHTML = ""; list.innerHTML = `<div class="errbox"><span>${esc(V.error)}</span><button type="button" class="btn sm" data-act="retry-saved">Try again</button></div>`; return; }
+  const all = V.gems, withWhy = all.filter((g) => !noReason(g)).length, toRev = all.filter((g) => !g.revisited_at).length, done = all.length - toRev;
+  stats.textContent = all.length ? `${plural(all.length, "post")} saved · ${withWhy} with a reason · ${toRev} to revisit` : "";
+  const opts = $("#sstatus").options; opts[0].textContent = `To revisit (${toRev})`; opts[1].textContent = `Revisited (${done})`; opts[2].textContent = `All (${all.length})`;
+  const noN = all.filter(noReason).length;
+  chips.innerHTML = V.tags.map((t) => `<button type="button" class="chip" data-chip="${esc(lc(t.tag))}" aria-pressed="${V.sel.has(lc(t.tag))}">${esc(t.tag)}<span class="c">${t.count}</span></button>`).join("")
+    + (noN ? `<button type="button" class="chip" data-chip-none aria-pressed="${V.noWhy}">No reason yet<span class="c">${noN}</span></button>` : "");
+  if (!all.length) {
+    list.innerHTML = `<div class="empty"><p>Nothing saved yet. Heart a post in Discover, or paste a Hacker News link at the top.</p><button type="button" class="btn" data-act="go-discover">Go to Discover</button></div>`; return;
+  }
+  const g = savedView();
+  if (!g.length) {
+    list.innerHTML = `<div class="empty"><p>Nothing matches. ${P.status === "revisit" && done ? `${done} ${done === 1 ? "is" : "are"} already marked revisited.` : ""}</p><button type="button" class="btn ghost" data-act="clear-filters">Clear filters</button></div>`; return;
+  }
+  list.innerHTML = g.map(savedCard).join("");
+}
+function refreshSavedCard(id) { renderSaved(); const el = $(`#savedList .card[data-id="${id}"]`); if (el) { el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1200); } }
+S.open = new Set();
+async function savedRead(id) {
+  if (S.open.has(id)) { S.open.delete(id); renderSaved(); return; }
+  if (S.bodies[id] == null) {
+    S.loadingBody.add(id); renderSaved();
+    try { const d = await api("get", { hn_id: id }); S.bodies[id] = d.gem.body || ""; }
+    catch (e) { S.loadingBody.delete(id); renderSaved(); if (e.status !== 401) failToast(e); return; }
+    S.loadingBody.delete(id);
+  }
+  S.open.add(id); renderSaved();
+}
+async function savedEdit(g) {
+  const r = await openWhy({ mode: "edit", post: g, tags: g.why_tags || [], note: g.why_note || "" }); if (!r) return;
+  try { const d = await api("update", { hn_id: g.hn_id, why_tags: r.tags, why_note: r.note }); applyGem(d.gem); renderSaved(); toast("Reason saved."); }
+  catch (e) { if (e.status !== 401) failToast(e); }
+}
+async function savedRevisit(g, done, followup) {
+  const before = { done: !!g.revisited_at, followup: g.followup || "" };
+  try {
+    const body = { hn_id: g.hn_id, done }; if (followup !== undefined) body.followup = followup;
+    const d = await api("update", body); applyGem(d.gem); S.revisiting = null; renderSaved();
+    toast(done ? "Marked revisited." : "Moved back to your revisit list.", { undo: async () => { try { const u = await api("update", { hn_id: g.hn_id, done: before.done, followup: before.followup }); applyGem(u.gem); renderSaved(); } catch (e) { failToast(e); } } });
+  } catch (e) { if (e.status !== 401) failToast(e); }
+}
+async function savedRemove(g) {
+  const keep = { ...g, body: S.bodies[g.hn_id] };
+  try {
+    await api("forget", { hn_id: g.hn_id });
+    S.saved.gems = S.saved.gems.filter((x) => x.hn_id !== g.hn_id); S.open.delete(g.hn_id); S.disc.cands.forEach((c) => { if (c.hn_id === g.hn_id) c.state = null; }); recompute(); renderSaved();
+    toast("Removed from Saved.", { undo: async () => {
+      try {
+        const post = { title: keep.title, kind: keep.kind, url: keep.url, author: keep.author, posted_at: keep.posted_at, score: keep.score, comments: keep.comments, text: keep.body || keep.snippet || "" };
+        let d = await api("like", { hn_id: keep.hn_id, why_tags: keep.why_tags || [], why_note: keep.why_note || "", post });
+        if (keep.followup || keep.revisited_at) d = await api("update", { hn_id: keep.hn_id, followup: keep.followup || "", done: !!keep.revisited_at });
+        applyGem(d.gem); renderSaved();
+      } catch (e) { failToast(e); }
+    } });
+  } catch (e) { if (e.status !== 401) failToast(e); }
+}
+
+// ── Paste a link
+$("#capture").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const ref = $("#refin").value.trim(); if (!ref) return;
+  const btn = $("#refgo"); btn.disabled = true; btn.textContent = "Looking…";
+  try {
+    const { post } = await api("lookup", { ref });
+    if (post.state === "liked") { toast("That one is already in Saved.", { undo: () => { setTab("saved"); loadSaved(true); }, label: "Open Saved" }); $("#refin").value = ""; return; }
+    const r = await openWhy({ mode: "like", post, warn: post.state === "passed" ? "You passed on this one earlier. Saving it brings it back." : "" });
+    if (!r) return;
+    const d = await api("like", { hn_id: post.hn_id, why_tags: r.skip ? [] : r.tags, why_note: r.skip ? "" : r.note, post: { title: post.title, kind: post.kind, url: post.url, author: post.author, posted_at: post.posted_at, score: post.score, comments: post.comments, text: post.text } });
+    $("#refin").value = ""; S.saved.loaded = false; bumpSaved(1); S.disc.newLikes++; S.disc.changes++;
+    S.disc.cands.forEach((c) => { if (c.hn_id === post.hn_id) { c.state = "liked"; c._tags = d.gem.why_tags; c._note = d.gem.why_note; } });
+    toast("Saved.", { undo: () => { setTab("saved"); loadSaved(true); }, label: "Open Saved" });
+    if ($("#panel-discover").hidden === false) renderDisc();
+  } catch (err) { if (err.status !== 401) failToast(err); }
+  finally { btn.disabled = false; btn.textContent = "Add"; }
+});
+
+// ── Tabs and controls
+function setTab(name) {
+  P.tab = name; savePrefs();
+  $$("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  $("#panel-discover").hidden = name !== "discover"; $("#panel-saved").hidden = name !== "saved";
+  if (name === "saved") { renderSaved(); loadSaved(S.saved.gems.length > 0); }
+}
+document.querySelector(".tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) setTab(b.dataset.tab); });
+function syncControls() {
+  $$("[data-kind]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.kind === P.kinds)));
+  $$("[data-sort]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sort === P.sort)));
+  $("#days").value = String(P.days);
+  $("#fMin").value = P.min_len; $("#fVotes").value = P.max_votes; $("#fComments").value = P.max_comments;
+  $("#filtersSum").textContent = (P.min_len !== DEF.min_len || P.max_votes !== DEF.max_votes || P.max_comments !== DEF.max_comments) ? "Filters · changed" : "Filters";
+}
+document.querySelector("#panel-discover .controls").addEventListener("click", (e) => {
+  const k = e.target.closest("[data-kind]"), s = e.target.closest("[data-sort]");
+  if (k && k.dataset.kind !== P.kinds) { P.kinds = k.dataset.kind; savePrefs(); syncControls(); loadDiscover(); }
+  if (s && s.dataset.sort !== P.sort) { P.sort = s.dataset.sort; savePrefs(); syncControls(); sortCands(); S.disc.shown = 30; renderDisc(); }
+});
+$("#days").addEventListener("change", () => { P.days = Number($("#days").value); savePrefs(); loadDiscover(); });
+const intOr = (v, d, lo, hi) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+$("#fApply").onclick = () => {
+  P.min_len = intOr($("#fMin").value, DEF.min_len, 0, 10000); P.max_votes = intOr($("#fVotes").value, DEF.max_votes, 1, 500); P.max_comments = intOr($("#fComments").value, DEF.max_comments, 0, 200);
+  savePrefs(); syncControls(); loadDiscover();
+};
+$("#fReset").onclick = () => { P.min_len = DEF.min_len; P.max_votes = DEF.max_votes; P.max_comments = DEF.max_comments; savePrefs(); syncControls(); loadDiscover(); };
+
+$("#sq").addEventListener("input", () => { S.saved.q = $("#sq").value; renderSavedList(); });
+function renderSavedList() { const st = $("#sq"), had = document.activeElement === st, pos = st.selectionStart; renderSaved(); if (had) { st.focus(); try { st.setSelectionRange(pos, pos); } catch (e) {} } }
+$("#sstatus").addEventListener("change", () => { P.status = $("#sstatus").value; savePrefs(); renderSaved(); });
+$("#ssort").addEventListener("change", () => { P.ssort = $("#ssort").value; savePrefs(); renderSaved(); });
+$("#schips").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-chip]"), n = e.target.closest("[data-chip-none]");
+  if (c) { const t = c.dataset.chip; S.saved.sel.has(t) ? S.saved.sel.delete(t) : S.saved.sel.add(t); renderSaved(); }
+  if (n) { S.saved.noWhy = !S.saved.noWhy; renderSaved(); }
+});
+
+// ── Card buttons
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const card = b.closest(".card"), id = card ? Number(card.dataset.id) : 0, act = b.dataset.act;
+  const cand = () => S.disc.cands.find((x) => x.hn_id === id), gem = () => S.saved.gems.find((x) => x.hn_id === id);
+  switch (act) {
+    case "d-like": return void (cand() && discLike(cand()));
+    case "d-pass": return void (cand() && discPass(cand()));
+    case "d-undo": return void (cand() && discUndo(cand()));
+    case "d-edit": return void (cand() && discEdit(cand()));
+    case "more": S.disc.shown += 30; return renderDisc();
+    case "retry": return void loadDiscover();
+    case "resort": return void loadDiscover();
+    case "widen": P.days = nextDays(P.days); savePrefs(); syncControls(); return void loadDiscover();
+    case "retry-saved": S.saved.loaded = false; return void loadSaved();
+    case "go-discover": return setTab("discover");
+    case "clear-filters": S.saved.sel.clear(); S.saved.noWhy = false; S.saved.q = ""; if (!savedView().length) { P.status = "all"; savePrefs(); } return renderSaved();
+    case "s-tag": { const t = b.dataset.tag; S.saved.sel.has(t) ? S.saved.sel.delete(t) : S.saved.sel.add(t); return renderSaved(); }
+    case "s-read": return void savedRead(id);
+    case "s-edit": return void (gem() && savedEdit(gem()));
+    case "s-rv-open": S.revisiting = id; renderSaved(); { const t = $(`#rv-${id}`); if (t) t.focus(); } return;
+    case "s-rv-cancel": S.revisiting = null; return renderSaved();
+    case "s-rv-save": { const g = gem(); const t = $(`#rv-${id}`); return void (g && savedRevisit(g, true, t ? t.value.trim() : "")); }
+    case "s-back": return void (gem() && savedRevisit(gem(), false));
+    case "s-remove": return void (gem() && savedRemove(gem()));
+  }
+});
+
+// ── Start
+function start() {
+  $("#app").hidden = false; syncControls();
+  setTab(P.tab);
+  loadDiscover();
+  if (P.tab !== "saved") loadSaved(true);        // also gives the sheet your own reasons and the saved count
+}
+KEY = resolveKey();
+if (KEY) start(); else showKeySetup("");
+</script>
+</body>
+</html>
