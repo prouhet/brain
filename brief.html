@@ -432,6 +432,25 @@
   .bdyou { display:block; font-size:12.5px; color:var(--text); margin-top:3px; overflow-wrap:anywhere; }
   .bdnolev { display:block; font-size:12.5px; color:var(--faint); margin-top:3px; }
   .bdladder { display:block; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace; font-size:12px; line-height:1.35; white-space:pre; overflow-x:auto; color:var(--dim); margin-top:4px; padding-bottom:2px; }
+  /* RSOTC "By bet": the setups grouped by what they actually bet on, with plain facts about each one's levels. */
+  .bdbetnote { font-size:13px; color:var(--dim); margin:4px 0 4px; overflow-wrap:anywhere; }
+  .bdrep { list-style:none; margin:2px 0 6px; padding:0; }
+  .bdrep li { font-size:13px; padding:3px 0; color:var(--text); overflow-wrap:anywhere; }
+  .bdrep li.conflict { color:var(--warn); }
+  .bdglyph { color:var(--faint); margin-right:6px; }
+  .bdrep li.conflict .bdglyph { color:var(--warn); }
+  .bdbet > summary { padding:9px 0 9px 16px; }
+  .bdbetsum { display:block; font-size:12.5px; color:var(--dim); margin-top:3px; overflow-wrap:anywhere; }
+  .bdn { color:var(--warn); font-weight:600; }
+  .bdmem { padding:8px 0 8px 16px; border-top:1px solid var(--line); }
+  .bdmem:first-of-type { border-top:0; padding-top:2px; }
+  .bdchips { display:flex; flex-wrap:wrap; gap:4px 6px; margin-top:4px; }
+  .bdchip { font-size:11.5px; padding:2px 8px; border-radius:999px; background:var(--surface2); color:var(--dim); overflow-wrap:anywhere; }
+  .bdchip.warn { background:rgba(180,83,42,.12); color:var(--warn); font-weight:600; }
+  .bdchip.good { color:var(--done); }
+  .bdinv { font-size:11.5px; color:var(--faint); border:1px solid var(--line2); border-radius:4px; padding:0 5px; }
+  .bdlv, .bdsame { display:block; font-size:12.5px; color:var(--dim); margin-top:3px; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+  .bdsame { color:var(--faint); }
   .h2link { color:inherit; text-decoration:none; border-bottom:1px dotted currentColor; }
   .h2link:hover, .h2link:focus-visible { border-bottom-style:solid; outline:none; }
 
@@ -484,6 +503,8 @@
     <nav class="toplinks" aria-label="Other pages">
       <a href="priorities.html" data-page="priorities">Priorities</a>
       <a href="capture.html" data-page="capture">Capture</a>
+      <a href="gems.html" data-page="gems">Gems</a>
+      <a href="https://drawer.studiostrong.fit/notes" target="_blank" rel="noopener">Notes</a>
     </nav>
   </div>
   <form class="keysetup" id="keysetup" hidden>
@@ -2502,6 +2523,44 @@ function bdItemHTML(it, byId) {
   if (!s) return `<div class="mkset bdset">${sum}</div>`;
   return `<details class="mkset bdset" data-id="${esc(s.id)}"><summary>${sum}</summary>${mkSetupDetail(s)}</details>`;
 }
+// ── By bet ───────────────────────────────────────────────────
+// The function (bets.ts) groups the setups by what they really bet on and attaches plain facts about each one's
+// levels. This only lays it out: nothing is ranked or re-worded, and nothing here says to buy, sell or hold.
+const BD_COUNTS = [["past_stop", "past stop", 1], ["near_stop", "near stop", 1], ["through_trigger", "through trigger", 1], ["against_entry", "down vs entry", 1], ["no_stop", "no stop", 0], ["targets_hit", "target hit", 0]];
+const bdPx = (x) => (typeof x === "number" && isFinite(x) ? x.toFixed(2) : "");
+function bdMemberHTML(m) {
+  const dir = m.direction === "long" ? "long" : "short";
+  const inv = m.inverse ? `<span class="bdinv" title="Inverse fund: going long it is a short bet on what it tracks">inverse fund</span>` : "";
+  const chips = (m.flags || []).map((f) => `<span class="bdchip ${f.tone === "warn" || f.tone === "good" ? f.tone : ""}">${esc(f.text)}</span>`).join("");
+  const past = (m.flags || []).some((f) => f.k === "past_stop");
+  const kind = m.stop_kind === "est" ? "est. stop" : m.stop_kind === "invalidation" ? "invalidation" : "stop";
+  const lv = m.price != null && m.stop != null
+    ? `<span class="bdlv">now ${bdPx(m.price)} · ${kind} ${bdPx(m.stop)}${m.risk_pct != null ? (past ? (m.risk_pct >= 0.1 ? ` (${m.risk_pct.toFixed(1)}% past it)` : " (just past it)") : ` (${m.risk_pct.toFixed(1)}% away)`) : ""}</span>`
+    : (m.price != null ? `<span class="bdlv">now ${bdPx(m.price)}</span>` : "");
+  const same = (m.same_as || []).length ? `<span class="bdsame">Same bet as ${esc(m.same_as.join(", "))}</span>` : "";
+  return `<div class="bdmem"><span class="mkrow1"><span class="mkdir ${dir}">${dir.toUpperCase()}</span><b>${esc(m.ticker)}</b>${inv}<span class="mkmeta">${esc(m.status || "")}</span></span>${chips ? `<span class="bdchips">${chips}</span>` : ""}${lv}${same}</div>`;
+}
+function bdBetsHTML(b) {
+  const t = b && b.bets;
+  if (!t || !(t.groups || []).length) return "";
+  const word = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const head = `<div class="pdhead"><span>By bet</span><span>${esc(word(t.themes, "theme", "themes"))}</span></div>`;
+  const big = t.biggest && t.biggest.rows > 1 ? ` Biggest: ${esc(t.biggest.label)} (${t.biggest.rows}).` : "";
+  const note = `<p class="bdbetnote">${esc(word(t.rows, "setup", "setups"))} in ${esc(word(t.themes, "theme", "themes"))}.${big}</p>`;
+  const rep = [...(t.conflicts || []).map((x) => ["conflict", "⇅", x]), ...(t.repeats || []).map((x) => ["", "⇄", x])];
+  const reps = rep.length ? `<ul class="bdrep">${rep.map(([k, g, x]) => `<li${k ? ` class="${k}"` : ""}><span class="bdglyph" aria-hidden="true">${g}</span>${esc(x)}</li>`).join("")}</ul>` : "";
+  const rows = t.groups.map((g) => {
+    const m = String(g.label || "").match(/^(Short|Long) (.+)$/);
+    const chip = m ? `<span class="mkdir ${g.side === "long" ? "long" : "short"}">${g.side === "long" ? "LONG" : "SHORT"}</span>` : "";
+    const name = m ? m[2] : g.label;
+    const sub = [word(g.rows, "setup", "setups"), g.open ? `${g.open} open` : "", g.watch ? `${g.watch} watching` : ""].filter(Boolean).join(" · ");
+    const facts = BD_COUNTS.filter(([k]) => (g.counts || {})[k] > 0)
+      .map(([k, txt, warn]) => `<span${warn ? ' class="bdn"' : ""}>${g.counts[k]} ${txt}</span>`).join(" · ");
+    return `<details class="mkset bdbet" data-id="bet-${esc(g.key)}"><summary><span class="mkrow1">${chip}<b>${esc(name)}</b></span><span class="bdbetsum">${esc(sub)}${facts ? ` · ${facts}` : ""}</span></summary>${(g.members || []).map(bdMemberHTML).join("")}</details>`;
+  }).join("");
+  return `${head}${note}${reps}${rows}${t.note ? `<p class="bdsub">${esc(t.note)}</p>` : ""}`;
+}
+
 function mkBoardBody(c) {
   const b = c.board, byId = {};
   (c.setups || []).forEach((s) => { byId[s.id] = s; });
@@ -2518,7 +2577,7 @@ function mkBoardBody(c) {
   const mine = (b.mine || []).map((m) => `${head(m.title, m.lines.length)}${m.lines.map((l) => `<p class="mkp">${mkInline(l)}</p>`).join("")}`).join("");
   const legend = b.legend
     ? `<details class="mkfull" data-mk="rsotc-legend"><summary>How to read a line</summary><div class="mkmd"><p>${esc(String(b.legend).replace(/^How to read a line:\s*/, ""))}</p></div></details>` : "";
-  return `${note}${top}${attn}${groups}${mine}${legend}`;
+  return `${note}${top}${attn}${bdBetsHTML(b)}${groups}${mine}${legend}`;
 }
 const mkBoardUsable = (c) => !!(c.board && (c.board.groups || []).some((g) => g.items && g.items.length));
 
@@ -2598,10 +2657,12 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // ── Links to the other pages ─────────────────────────────────
-// Priorities and Capture need the key in their address. This page is public (anyone can open it,
+// Priorities, Capture and Gems need the key in their address. This page is public (anyone can open it,
 // the key isn't needed to load it), so that key is never written into it: you paste it once, it's
 // kept in this browser's own storage, and it's added to the link when you tap. Opening the
 // priorities page with its key link also refreshes the saved copy.
+// Notes is the Drawer's notes library: it opens in a new tab with the Drawer login, so it has no
+// data-page and the handler below leaves it alone.
 const PAGE_KEY_STORE = "brain-key";
 const getPageKey = () => { try { return localStorage.getItem(PAGE_KEY_STORE) || ""; } catch (e) { return ""; } };
 const savePageKey = (k) => { try { localStorage.setItem(PAGE_KEY_STORE, k); return true; } catch (e) { return false; } };

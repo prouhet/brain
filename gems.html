@@ -139,6 +139,28 @@
   .chip .c { color:var(--faint); margin-left:4px; font-variant-numeric:tabular-nums; }
   .chip[aria-pressed=true] { background:var(--teal); border-color:var(--teal); color:var(--on-teal); font-weight:600; }
   .chip[aria-pressed=true] .c { color:inherit; opacity:.8; }
+  .tchips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px; }
+  .tchips:empty { display:none; }
+  .tchips .chip { font-size:12.5px; padding:4px 10px; min-height:30px; }
+  .clab { font-size:11px; font-weight:700; color:var(--faint); text-transform:uppercase; letter-spacing:.05em; align-self:center; margin-right:2px; flex:none; }
+  @media (max-width:639px) {
+    .tchips { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-16px; padding-right:16px; padding-bottom:2px; overscroll-behavior-x:contain; }
+    .tchips::-webkit-scrollbar { display:none; }
+    .tchips .chip { flex:none; white-space:nowrap; }
+  }
+  .pill.topic { font:inherit; font-size:11.5px; font-weight:600; text-transform:none; letter-spacing:0; border:1px solid transparent; cursor:pointer; line-height:1.4; }
+  .pill.topic:hover, .pill.topic[aria-pressed=true] { color:var(--teal); border-color:var(--teal); }
+  .pill.new { background:var(--teal); color:var(--on-teal); }
+  .dsearch { margin:6px 0 0; }
+  .stats .btn.link { padding:0 4px; min-height:0; font-size:13px; vertical-align:baseline; }
+  .hist { margin-top:20px; }
+  .hist h4 { font-size:14px; color:var(--dim); font-weight:600; margin:0 0 4px; }
+  .hist .hint { font-size:13px; color:var(--faint); margin:0 0 10px; }
+  .hcard { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:11px 13px; margin-bottom:8px; }
+  .hcard .ht { font-size:14.5px; font-weight:600; margin:6px 0 2px; overflow-wrap:anywhere; }
+  .hcard .snip { font-size:13px; margin-top:4px; -webkit-line-clamp:3; }
+  .hcard .acts { margin-top:8px; }
+  .hcard .acts .btn { min-height:36px; }
   .srow { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 4px; }
   .srow input { flex:1 1 100%; }
   .srow select { flex:1 1 0; width:auto; min-width:0; }
@@ -233,13 +255,17 @@
         </div>
         <div class="fbtns"><button type="button" class="btn sm" id="fApply">Apply</button><button type="button" class="btn sm ghost" id="fReset">Reset</button></div>
       </details>
+      <div class="dsearch"><input type="search" id="dq" placeholder="Search these posts" aria-label="Search these posts" autocomplete="off"></div>
+      <div class="tchips" id="dtopics" role="group" aria-label="Filter by topic"></div>
       <div class="stats" id="discStats" aria-live="polite"></div>
       <div id="discNote"></div>
       <div id="discList"></div>
       <details class="how">
         <summary>How this works</summary>
+        <p><b>When it refreshes.</b> Every time you open this page it asks Hacker News again (it remembers the answer for 5 minutes, so moving a slider is quick). Tap <b>Refresh</b> to look again right now. The list is live: new posts show up as they're written, and a post drops off once it picks up more votes or comments than your limits, or falls outside the days you picked. Posts that arrived since you last looked are marked <b>New</b>.</p>
+        <p><b>Topics.</b> Every post is filed under one or two of twelve topics, worked out from its words, so what you keep can be browsed and searched later. It's a good guess, not perfect. In Saved, searching also looks through the posts you opened in your browsing history, so you can ask "do I have anything for…?" and save the ones worth keeping.</p>
         <p>A post counts as <b>overlooked</b> when it has a lot of writing but few votes and comments. The overlooked score is its length divided by the attention it got, the same idea as pj4533.com/hn-overlooked.</p>
-        <p><b>For you</b> puts posts that read like the ones you hearted first. It compares words, and your own reasons count extra. Each match shows the words and the saved post behind it, so you can see why it's there.</p>
+        <p><b>For you</b> puts posts that read like the ones you hearted first. It compares words, and your own reasons count extra. Posts from your browsing history count too, a little less than a heart. Each match shows the words and the post behind it, so you can see why it's there.</p>
       </details>
     </section>
 
@@ -247,12 +273,14 @@
     <section id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
       <div class="stats" id="savedStats" aria-live="polite"></div>
       <div class="srow">
-        <input type="search" id="sq" placeholder="Search saved posts" aria-label="Search saved posts" autocomplete="off">
+        <input type="search" id="sq" placeholder="Search saved posts and your history" aria-label="Search saved posts and your browsing history" autocomplete="off">
         <select id="sstatus" aria-label="Show"><option value="revisit">To revisit</option><option value="done">Revisited</option><option value="all">All</option></select>
         <select id="ssort" aria-label="Order"><option value="new">Newest first</option><option value="old">Oldest first</option></select>
       </div>
+      <div class="tchips" id="stopics" role="group" aria-label="Filter by topic"></div>
       <div class="schips" id="schips" role="group" aria-label="Filter by reason"></div>
       <div id="savedList"></div>
+      <div class="hist" id="savedHist"></div>
     </section>
 
     <p class="foot">Idea from <a href="https://pj4533.com/hn-overlooked/" target="_blank" rel="noopener noreferrer">pj4533.com/hn-overlooked</a>. Posts come from Hacker News through Algolia's public search.</p>
@@ -299,6 +327,17 @@ const fmt = (n) => Number(n || 0).toLocaleString("en-US");
 const clip = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s; };
 const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many || one + "s"}`;
 const lc = (s) => String(s).toLowerCase();
+const TOPICS = { ai: "AI & agents", dev: "Developer tools", apps: "Everyday apps", biz: "Business & marketing", fitness: "Health & fitness", money: "Money & investing", learn: "Learning & writing", creative: "Games & creative", hardware: "Hardware & making", data: "Data & science", life: "Home & family", other: "Other" };
+const knownTopic = (t) => Object.prototype.hasOwnProperty.call(TOPICS, t);
+const topicLabel = (t) => (knownTopic(t) ? TOPICS[t] : "");
+const topicsOf = (x) => (x.topics || []).filter(knownTopic);
+const terms = (q) => { const out = []; for (const w of lc(q || "").split(/[^a-z0-9+#]+/)) { if (w.length >= 2 && !out.includes(w)) out.push(w); if (out.length >= 6) break; } return out; };   // same rule as the server
+const allIn = (text, ts) => ts.every((t) => text.includes(t));
+const topicCounts = (list) => { const n = {}; for (const x of list) for (const t of topicsOf(x)) n[t] = (n[t] || 0) + 1; return Object.entries(n).map(([topic, count]) => ({ topic, count })).sort((a, b) => b.count - a.count || topicLabel(a.topic).localeCompare(topicLabel(b.topic))); };
+const topicPills = (x, act, sel) => topicsOf(x).map((t) => `<button type="button" class="pill topic" data-act="${act}" data-topic="${esc(t)}" aria-pressed="${sel === t}" title="Show only ${esc(topicLabel(t))}">${esc(topicLabel(t))}</button>`).join("");
+const SEEN_KEY = "gems-last-seen";
+const readSeen = () => { try { const n = parseInt(localStorage.getItem(SEEN_KEY) || "", 10); return Number.isFinite(n) && n > 0 ? n : null; } catch (e) { return null; } };
+const writeSeen = (n) => { try { localStorage.setItem(SEEN_KEY, String(n)); } catch (e) {} };
 function ago(iso) {
   const t = Date.parse(iso); if (!t) return "";
   const m = Math.max(0, Math.round((Date.now() - t) / 60000));
@@ -362,8 +401,8 @@ async function api(action, body = {}, timeout = 45000) {
 
 // ── State
 const S = {
-  disc: { loading: false, error: "", cands: [], meta: null, shown: 30, changes: 0, newLikes: 0, token: 0, loaded: false },
-  saved: { loading: false, error: "", gems: [], tags: [], presets: PRESETS, loaded: false, q: "", sel: new Set(), noWhy: false, token: 0 },
+  disc: { loading: false, error: "", cands: [], meta: null, shown: 30, changes: 0, newLikes: 0, token: 0, loaded: false, q: "", topic: "", newOnly: false, prevSeen: null, seenSet: false },
+  saved: { loading: false, error: "", gems: [], tags: [], presets: PRESETS, loaded: false, q: "", sel: new Set(), noWhy: false, token: 0, topic: "", srv: { q: "", topic: "", ids: new Set(), hist: [], total: 0, loading: false, error: "", token: 0 } },
   bodies: {}, loadingBody: new Set(), revisiting: null,
 };
 const kindsArr = () => (P.kinds === "show" ? ["show"] : P.kinds === "ask" ? ["ask"] : ["ask", "show"]);
@@ -455,21 +494,43 @@ function sortCands() {
   if (P.sort === "taste" && m && m.taste_ready) c.sort((a, b) => ((b.taste && b.taste.score) || 0) - ((a.taste && a.taste.score) || 0) || b.passion - a.passion);
   else c.sort((a, b) => b.passion - a.passion || b.hn_id - a.hn_id);
 }
-async function loadDiscover() {
+async function loadDiscover(fresh) {
   const D = S.disc, token = ++D.token;
   D.loading = true; D.error = ""; renderDisc();
   try {
-    const d = await api("discover", { days: P.days, min_len: P.min_len, max_votes: P.max_votes, max_comments: P.max_comments, kinds: kindsArr(), sort: P.sort, limit: 300 });
+    const body = { days: P.days, min_len: P.min_len, max_votes: P.max_votes, max_comments: P.max_comments, kinds: kindsArr(), sort: P.sort, limit: 300 };
+    if (fresh === true) body.fresh = true;
+    const d = await api("discover", body);
     if (token !== D.token) return;
     D.cands = d.cands; D.meta = d.meta; D.shown = 30; D.changes = 0; D.newLikes = 0; D.loaded = true; sortCands();
+    if (!D.seenSet) { D.seenSet = true; D.prevSeen = readSeen(); writeSeen(Date.now()); }      // "New" means newer than your last visit, kept for the whole visit
+    if (D.topic && !D.cands.some((c) => (c.topics || []).includes(D.topic))) D.topic = "";
   } catch (e) { if (token !== D.token) return; if (e.status !== 401) D.error = e.message; }
   D.loading = false; renderDisc();
+}
+const isNew = (c) => !!S.disc.prevSeen && Date.parse(c.posted_at) > S.disc.prevSeen;
+function discView() {
+  const D = S.disc; let c = D.cands;
+  if (D.topic) c = c.filter((x) => (x.topics || []).includes(D.topic));
+  if (D.newOnly) c = c.filter(isNew);
+  const ts = terms(D.q);
+  if (ts.length) c = c.filter((x) => allIn(lc([x.title, x.snippet, ...(x.topics || []).map(topicLabel)].join(" \n ")), ts));
+  return c;
+}
+function renderDiscTopics() {
+  const D = S.disc, box = $("#dtopics");
+  if (!D.loaded || D.loading || D.error || !D.cands.length) { box.innerHTML = ""; return; }
+  const nNew = D.cands.filter(isNew).length;
+  const tcs = topicCounts(D.cands);
+  box.innerHTML = (nNew ? `<button type="button" class="chip" data-dnew aria-pressed="${D.newOnly}">New since your last visit<span class="c">${nNew}</span></button>` : "")
+    + (tcs.length ? `<span class="clab">Topic</span>` : "")
+    + tcs.map((t) => `<button type="button" class="chip" data-dt="${esc(t.topic)}" aria-pressed="${D.topic === t.topic}">${esc(topicLabel(t.topic))}<span class="c">${t.count}</span></button>`).join("");
 }
 function tasteHtml(t) {
   if (!t || t.label === "none") return "";
   const lab = { strong: "Strong match", some: "Some match", weak: "Weak match" }[t.label];
   const because = t.because && t.because.length ? `because <b>${t.because.map(esc).join(", ")}</b>` : "";
-  const like = t.like ? `${because ? " · " : ""}like <b>“${esc(clip(t.like.title.replace(/^(show|ask) hn:\s*/i, ""), 64))}”</b>` : "";
+  const like = t.like ? `${because ? " · " : ""}like <b>“${esc(clip(t.like.title.replace(/^(show|ask) hn:\s*/i, ""), 64))}”</b>${t.like.seed ? " from your history" : ""}` : "";
   const np = t.near_passed ? `<span class="np">Also close to one you passed on.</span>` : "";
   return `<div class="taste t-${esc(t.label)}"><span class="tl">${lab}</span>${because}${like}${np}</div>`;
 }
@@ -485,7 +546,7 @@ function discCard(c) {
   else if (c.state === "passed") foot = `<div class="state"><span>Hidden. You won't see this one again.</span><button type="button" class="btn link" data-act="d-undo">Undo</button></div>`;
   else foot = `<div class="acts"><button type="button" class="btn like" data-act="d-like">${HEART} Like</button><button type="button" class="btn ghost" data-act="d-pass">Not for me</button></div>`;
   return `<article class="card" data-id="${c.hn_id}">
-    <div class="ctop">${kindPill(c.kind)}<span class="pill score" title="Length divided by attention. Higher means more overlooked.">Overlooked ${fmt(Math.round(c.passion))}</span></div>
+    <div class="ctop">${isNew(c) ? `<span class="pill new">New</span>` : ""}${kindPill(c.kind)}${topicPills(c, "d-topic", S.disc.topic)}<span class="pill score" title="Length divided by attention. Higher means more overlooked.">Overlooked ${fmt(Math.round(c.passion))}</span></div>
     <h3 class="ct">${titleLink(c)}</h3>
     <div class="meta"><span>${plural(c.score, "vote")}</span><span>${plural(c.comments, "comment")}</span><span>${esc(ago(c.posted_at))}</span>${c.author ? `<span>by ${esc(c.author)}</span>` : ""}<span>${fmt(c.text_len)} characters</span><a href="${esc(safeUrl(c.hn_link))}" target="_blank" rel="noopener noreferrer">On Hacker News</a></div>
     <p class="snip">${esc(c.snippet)}</p>
@@ -504,13 +565,18 @@ function renderDisc() {
     list.innerHTML = `<div class="errbox"><span>${esc(D.error)}</span><button type="button" class="btn sm" data-act="retry">Try again</button></div>`; return;
   }
   const m = D.meta; if (!m) { list.innerHTML = ""; return; }
-  const hidden = m.hidden_seen ? ` · ${plural(m.hidden_seen, "post")} you already saved or passed on ${m.hidden_seen === 1 ? "is" : "are"} hidden` : "";
-  stats.textContent = `Looked at ${fmt(m.looked)} posts from the last ${m.days} days. ${fmt(m.matched)} had enough text${hidden}.`;
-  renderDiscNote();
+  const hidden = m.hidden_seen ? ` · ${plural(m.hidden_seen, "post")} you already saved, passed on or opened ${m.hidden_seen === 1 ? "is" : "are"} hidden` : "";
+  const nNew = D.cands.filter(isNew).length;
+  stats.innerHTML = `${esc(`Looked at ${fmt(m.looked)} posts from the last ${m.days} days. ${fmt(m.matched)} had enough text${hidden}.`)} ${nNew ? `<b>${esc(plural(nNew, "post"))} new since your last visit.</b> ` : ""}Updated ${esc(ago(m.at) || "just now")}. <button type="button" class="btn link" data-act="refresh">Refresh</button>`;
+  renderDiscTopics(); renderDiscNote();
   if (!D.cands.length) {
     list.innerHTML = `<div class="empty"><p>${m.matched ? "You've been through everything that matched. Try a longer window." : "Nothing matched these filters."}</p>${P.days < 30 ? `<button type="button" class="btn" data-act="widen">Look back ${nextDays(P.days)} days</button>` : ""}</div>`; return;
   }
-  const slice = D.cands.slice(0, D.shown), left = D.cands.length - slice.length;
+  const view = discView();
+  if (!view.length) {
+    list.innerHTML = `<div class="empty"><p>Nothing here matches that search or topic.</p><button type="button" class="btn ghost" data-act="d-clear">Clear search and topic</button></div>`; return;
+  }
+  const slice = view.slice(0, D.shown), left = view.length - slice.length;
   list.innerHTML = slice.map(discCard).join("") + (left > 0 ? `<div class="more"><button type="button" class="btn ghost" data-act="more">Show ${Math.min(30, left)} more <span style="opacity:.7">(${fmt(left)} left)</span></button></div>` : "");
 }
 function renderDiscNote() {
@@ -518,11 +584,12 @@ function renderDiscNote() {
   const need = m.min_likes || MIN_LIKES_DEFAULT;
   let msg = "", resort = false;
   if (!m.taste_ready) {
-    const have = Math.min(m.likes + D.newLikes, need);
+    const have = Math.min(m.likes + (m.seeds || 0) + D.newLikes, need);
     if (have >= need) { msg = `<span>You've hearted enough posts for <b>For you</b> to start working.</span>`; resort = true; }
     else msg = `<span>Learning what you like. <b>${have} of ${need}</b> hearts so far. After ${need}, posts like the ones you love float to the top.</span>`;
   } else if (P.sort === "taste") {
-    msg = `<span>Ordered by what you've liked: <b>${plural(m.likes, "heart")}</b>${m.passes ? `, ${plural(m.passes, "pass", "passes")}` : ""}. Each match shows why.</span>`;
+    const parts = []; if (m.likes) parts.push(`<b>${plural(m.likes, "heart")}</b>`); if (m.seeds) parts.push(`<b>${plural(m.seeds, "post")}</b> from your browsing history`); if (m.passes) parts.push(plural(m.passes, "pass", "passes"));
+    msg = `<span>Ordered by what you've liked: ${parts.join(", ")}. ${m.likes ? "Each match shows why." : "Heart a few and say why, and it sharpens."}</span>`;
     resort = D.changes > 0;
   } else {
     msg = `<span>Ordered by most overlooked. Pick <b>For you</b> to put your kind of post first.</span>`;
@@ -593,8 +660,12 @@ function savedView() {
   if (P.status === "revisit") g = g.filter((x) => !x.revisited_at); else if (P.status === "done") g = g.filter((x) => x.revisited_at);
   for (const t of V.sel) g = g.filter((x) => (x.why_tags || []).some((y) => lc(y) === t));
   if (V.noWhy) g = g.filter(noReason);
-  const q = lc(V.q.trim());
-  if (q) g = g.filter((x) => lc([x.title, x.snippet, x.why_note, x.followup, x.author, ...(x.why_tags || [])].join(" \n ")).includes(q));
+  if (V.topic) g = g.filter((x) => (x.topics || []).includes(V.topic));
+  const ts = terms(V.q);
+  if (ts.length) {
+    const srvOk = V.srv.q === ts.join(" ") ? V.srv.ids : new Set();      // the server also looked through the whole text of each saved post
+    g = g.filter((x) => srvOk.has(x.hn_id) || allIn(lc([x.title, x.snippet, x.why_note, x.followup, x.author, ...(x.why_tags || []), ...(x.topics || []).map(topicLabel)].join(" \n ")), ts));
+  }
   g.sort((a, b) => (Date.parse(a.liked_at) - Date.parse(b.liked_at)) * (P.ssort === "old" ? 1 : -1));
   return g;
 }
@@ -607,7 +678,7 @@ function savedCard(g) {
   const done = g.revisited_at ? `<div class="follow"><b>Revisited ${esc(dshort(g.revisited_at))}.</b> ${esc(g.followup || "")}</div>` : (g.followup ? `<div class="follow">${esc(g.followup)}</div>` : "");
   const form = S.revisiting === g.hn_id ? `<div class="mini"><label for="rv-${g.hn_id}" class="hint" style="font-size:13px;color:var(--dim)">What happened, or what did you do? (optional)</label><textarea id="rv-${g.hn_id}" maxlength="1000" rows="2" placeholder="e.g. Emailed the author, trying it this weekend"></textarea><div class="row"><button type="button" class="btn sm" data-act="s-rv-save">Mark revisited</button><button type="button" class="btn sm ghost" data-act="s-rv-cancel">Cancel</button></div></div>` : "";
   return `<article class="card" data-id="${g.hn_id}">
-    <div class="ctop">${kindPill(g.kind)}<span>saved ${esc(dshort(g.liked_at))}</span></div>
+    <div class="ctop">${kindPill(g.kind)}${topicPills(g, "s-topic", S.saved.topic)}<span>saved ${esc(dshort(g.liked_at))}</span></div>
     <h3 class="ct">${titleLink(g)}</h3>
     <div class="meta"><span>${plural(g.score, "vote")}</span><span>${plural(g.comments, "comment")}</span>${g.posted_at ? `<span>posted ${esc(dshort(g.posted_at))}</span>` : ""}${g.author ? `<span>by ${esc(g.author)}</span>` : ""}<a href="${esc(safeUrl(g.hn_link))}" target="_blank" rel="noopener noreferrer">On Hacker News</a></div>
     ${tags || none ? `<div class="tags">${tags}${none}</div>` : ""}
@@ -623,17 +694,31 @@ function savedCard(g) {
     </div>
   </article>`;
 }
+function renderHist() {
+  const V = S.saved, box = $("#savedHist"), r = V.srv;
+  const active = terms(V.q).length > 0 || !!V.topic;
+  if (!active || V.loading || V.error) { box.innerHTML = ""; return; }
+  if (r.loading && !r.hist.length) { box.innerHTML = `<h4>Your browsing history</h4><p class="hint">Looking…</p>`; return; }
+  if (r.error) { box.innerHTML = `<h4>Your browsing history</h4><p class="hint">${esc(r.error)}</p>`; return; }
+  if (!r.hist.length) { box.innerHTML = r.q || r.topic ? `<h4>Your browsing history</h4><p class="hint">Nothing from your browsing history matches.</p>` : ""; return; }
+  box.innerHTML = `<h4>${esc(plural(r.total - r.ids.size, "post"))} from your browsing history</h4><p class="hint">Posts you opened on Hacker News before. Save one to keep it with the others.</p>`
+    + r.hist.map((h) => `<article class="hcard" data-id="${h.hn_id}"><div class="ctop">${kindPill(h.kind)}${topicPills(h, "s-topic", V.topic)}</div><div class="ht">${titleLink(h)}</div><p class="snip">${esc(h.snippet)}</p><div class="acts"><button type="button" class="btn sm like" data-act="h-like">${HEART} Save</button></div></article>`).join("")
+    + (r.total - r.ids.size > r.hist.length ? `<p class="hint">Showing ${r.hist.length}. Add a word to narrow it down.</p>` : "");
+}
 function renderSaved() {
-  const V = S.saved, list = $("#savedList"), stats = $("#savedStats"), chips = $("#schips");
+  const V = S.saved, list = $("#savedList"), stats = $("#savedStats"), chips = $("#schips"), tchips = $("#stopics");
   $("#sq").value !== V.q && ($("#sq").value = V.q);
   $("#sstatus").value = P.status; $("#ssort").value = P.ssort;
-  if (V.loading) { stats.textContent = ""; chips.innerHTML = ""; list.innerHTML = `<div class="loading">Loading your saved posts…<i></i></div>`; return; }
-  if (V.error) { stats.textContent = ""; chips.innerHTML = ""; list.innerHTML = `<div class="errbox"><span>${esc(V.error)}</span><button type="button" class="btn sm" data-act="retry-saved">Try again</button></div>`; return; }
+  renderHist();
+  if (V.loading) { stats.textContent = ""; chips.innerHTML = ""; tchips.innerHTML = ""; list.innerHTML = `<div class="loading">Loading your saved posts…<i></i></div>`; return; }
+  if (V.error) { stats.textContent = ""; chips.innerHTML = ""; tchips.innerHTML = ""; list.innerHTML = `<div class="errbox"><span>${esc(V.error)}</span><button type="button" class="btn sm" data-act="retry-saved">Try again</button></div>`; return; }
+  const tcs = topicCounts(V.gems);
+  tchips.innerHTML = (tcs.length ? `<span class="clab">Topic</span>` : "") + tcs.map((t) => `<button type="button" class="chip" data-st="${esc(t.topic)}" aria-pressed="${V.topic === t.topic}">${esc(topicLabel(t.topic))}<span class="c">${t.count}</span></button>`).join("");
   const all = V.gems, withWhy = all.filter((g) => !noReason(g)).length, toRev = all.filter((g) => !g.revisited_at).length, done = all.length - toRev;
   stats.textContent = all.length ? `${plural(all.length, "post")} saved · ${withWhy} with a reason · ${toRev} to revisit` : "";
   const opts = $("#sstatus").options; opts[0].textContent = `To revisit (${toRev})`; opts[1].textContent = `Revisited (${done})`; opts[2].textContent = `All (${all.length})`;
   const noN = all.filter(noReason).length;
-  chips.innerHTML = V.tags.map((t) => `<button type="button" class="chip" data-chip="${esc(lc(t.tag))}" aria-pressed="${V.sel.has(lc(t.tag))}">${esc(t.tag)}<span class="c">${t.count}</span></button>`).join("")
+  chips.innerHTML = (V.tags.length || noN ? `<span class="clab">Reason</span>` : "") + V.tags.map((t) => `<button type="button" class="chip" data-chip="${esc(lc(t.tag))}" aria-pressed="${V.sel.has(lc(t.tag))}">${esc(t.tag)}<span class="c">${t.count}</span></button>`).join("")
     + (noN ? `<button type="button" class="chip" data-chip-none aria-pressed="${V.noWhy}">No reason yet<span class="c">${noN}</span></button>` : "");
   if (!all.length) {
     list.innerHTML = `<div class="empty"><p>Nothing saved yet. Heart a post in Discover, or paste a Hacker News link at the top.</p><button type="button" class="btn" data-act="go-discover">Go to Discover</button></div>`; return;
@@ -646,6 +731,33 @@ function renderSaved() {
 }
 function refreshSavedCard(id) { renderSaved(); const el = $(`#savedList .card[data-id="${id}"]`); if (el) { el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1200); } }
 S.open = new Set();
+let srvTimer = 0;
+function scheduleSrv(delay = 300) {
+  clearTimeout(srvTimer);
+  const V = S.saved, ts = terms(V.q), topic = V.topic;
+  if (!ts.length && !topic) { V.srv = { q: "", topic: "", ids: new Set(), hist: [], total: 0, loading: false, error: "", token: V.srv.token + 1 }; renderHist(); return; }
+  srvTimer = setTimeout(() => runSrv(ts.join(" "), topic), delay);
+}
+async function runSrv(q, topic) {
+  const V = S.saved, token = V.srv.token + 1;
+  V.srv = { ...V.srv, loading: true, error: "", token };
+  renderHist();
+  try {
+    const d = await api("search", { q, topic: topic || undefined, limit: 40 });
+    if (token !== V.srv.token) return;
+    V.srv = { q, topic, ids: new Set(d.results.filter((x) => x.state === "liked").map((x) => x.hn_id)), hist: d.results.filter((x) => x.state === "seed"), total: d.total, loading: false, error: "", token };
+  } catch (e) { if (token !== V.srv.token) return; V.srv = { ...V.srv, loading: false, error: e.status === 401 ? "" : "Couldn't search your history just now." }; }
+  renderSaved();
+}
+async function histLike(id) {
+  const h = S.saved.srv.hist.find((x) => x.hn_id === id); if (!h) return;
+  const r = await openWhy({ mode: "like", post: h }); if (!r) return;
+  try {
+    const d = await api("like", { hn_id: id, why_tags: r.skip ? [] : r.tags, why_note: r.skip ? "" : r.note });   // the post is already on file, so only the reason is sent
+    S.saved.srv = { ...S.saved.srv, hist: S.saved.srv.hist.filter((x) => x.hn_id !== id), ids: new Set([...S.saved.srv.ids, id]) };
+    applyGem(d.gem); S.disc.changes++; renderSaved(); toast("Saved.");
+  } catch (e) { if (e.status !== 401) failToast(e); }
+}
 async function savedRead(id) {
   if (S.open.has(id)) { S.open.delete(id); renderSaved(); return; }
   if (S.bodies[id] == null) {
@@ -732,7 +844,17 @@ $("#fApply").onclick = () => {
 };
 $("#fReset").onclick = () => { P.min_len = DEF.min_len; P.max_votes = DEF.max_votes; P.max_comments = DEF.max_comments; savePrefs(); syncControls(); loadDiscover(); };
 
-$("#sq").addEventListener("input", () => { S.saved.q = $("#sq").value; renderSavedList(); });
+$("#sq").addEventListener("input", () => { S.saved.q = $("#sq").value; renderSavedList(); scheduleSrv(); });
+$("#dq").addEventListener("input", () => { S.disc.q = $("#dq").value; S.disc.shown = 30; renderDisc(); });
+$("#dtopics").addEventListener("click", (e) => {
+  const t = e.target.closest("[data-dt]"), n = e.target.closest("[data-dnew]");
+  if (t) { S.disc.topic = S.disc.topic === t.dataset.dt ? "" : t.dataset.dt; S.disc.shown = 30; renderDisc(); }
+  if (n) { S.disc.newOnly = !S.disc.newOnly; S.disc.shown = 30; renderDisc(); }
+});
+$("#stopics").addEventListener("click", (e) => {
+  const t = e.target.closest("[data-st]"); if (!t) return;
+  S.saved.topic = S.saved.topic === t.dataset.st ? "" : t.dataset.st; renderSaved(); scheduleSrv(0);
+});
 function renderSavedList() { const st = $("#sq"), had = document.activeElement === st, pos = st.selectionStart; renderSaved(); if (had) { st.focus(); try { st.setSelectionRange(pos, pos); } catch (e) {} } }
 $("#sstatus").addEventListener("change", () => { P.status = $("#sstatus").value; savePrefs(); renderSaved(); });
 $("#ssort").addEventListener("change", () => { P.ssort = $("#ssort").value; savePrefs(); renderSaved(); });
@@ -745,7 +867,7 @@ $("#schips").addEventListener("click", (e) => {
 // ── Card buttons
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-act]"); if (!b) return;
-  const card = b.closest(".card"), id = card ? Number(card.dataset.id) : 0, act = b.dataset.act;
+  const card = b.closest(".card, .hcard"), id = card ? Number(card.dataset.id) : 0, act = b.dataset.act;
   const cand = () => S.disc.cands.find((x) => x.hn_id === id), gem = () => S.saved.gems.find((x) => x.hn_id === id);
   switch (act) {
     case "d-like": return void (cand() && discLike(cand()));
@@ -753,12 +875,17 @@ document.addEventListener("click", (e) => {
     case "d-undo": return void (cand() && discUndo(cand()));
     case "d-edit": return void (cand() && discEdit(cand()));
     case "more": S.disc.shown += 30; return renderDisc();
+    case "refresh": return void loadDiscover(true);
+    case "d-topic": S.disc.topic = S.disc.topic === b.dataset.topic ? "" : b.dataset.topic; S.disc.shown = 30; return renderDisc();
+    case "d-clear": S.disc.q = ""; S.disc.topic = ""; S.disc.newOnly = false; $("#dq").value = ""; return renderDisc();
+    case "s-topic": S.saved.topic = S.saved.topic === b.dataset.topic ? "" : b.dataset.topic; renderSaved(); return scheduleSrv(0);
+    case "h-like": return void histLike(id);
     case "retry": return void loadDiscover();
     case "resort": return void loadDiscover();
     case "widen": P.days = nextDays(P.days); savePrefs(); syncControls(); return void loadDiscover();
     case "retry-saved": S.saved.loaded = false; return void loadSaved();
     case "go-discover": return setTab("discover");
-    case "clear-filters": S.saved.sel.clear(); S.saved.noWhy = false; S.saved.q = ""; if (!savedView().length) { P.status = "all"; savePrefs(); } return renderSaved();
+    case "clear-filters": S.saved.sel.clear(); S.saved.noWhy = false; S.saved.q = ""; S.saved.topic = ""; if (!savedView().length) { P.status = "all"; savePrefs(); } scheduleSrv(0); return renderSaved();
     case "s-tag": { const t = b.dataset.tag; S.saved.sel.has(t) ? S.saved.sel.delete(t) : S.saved.sel.add(t); return renderSaved(); }
     case "s-read": return void savedRead(id);
     case "s-edit": return void (gem() && savedEdit(gem()));
