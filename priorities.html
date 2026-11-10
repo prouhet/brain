@@ -228,14 +228,25 @@
   .section-sub { font-size:11px; color:var(--text-faint); margin:-6px 0 12px; }
   .no-key { text-align:center; padding:60px 20px; color:var(--text-dim); }
   .no-key h2 { font-size:18px; font-weight:500; margin-bottom:8px; color:var(--text); }
+  .nk-form { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:18px; }
+  .nk-form input { flex:1 1 220px; max-width:380px; min-width:0; padding:10px 12px; border-radius:8px; border:1.5px solid var(--border2); background:var(--surface2); color:var(--text); font:inherit; font-size:14px; }
+  .nk-form button { padding:10px 16px; border-radius:8px; border:none; background:var(--teal); color:#fff; font:inherit; font-weight:500; cursor:pointer; }
   .state-msg { text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; }
 </style>
 </head>
 <body>
+<script src="nav.js?v=1"></script>
 <div class="wrapper">
 
   <div id="no-key" style="display:none;">
-    <div class="no-key"><h2>No key in URL</h2><p>Open this page with ?key=YOUR_KEY appended to the URL.</p></div>
+    <div class="no-key">
+      <h2>Key needed</h2>
+      <p id="nk-msg">No key saved on this device yet. Paste the key, or the whole link, from your latest morning email. It's saved on this device only, and the other pages will use it too.</p>
+      <form class="nk-form" id="nk-form">
+        <input type="text" id="nk-in" placeholder="Paste key or link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Page key">
+        <button type="submit">Save &amp; open</button>
+      </form>
+    </div>
   </div>
 
   <div id="dashboard" style="display:none;">
@@ -319,9 +330,28 @@
 
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/brain-priorities';
-const KEY = new URLSearchParams(window.location.search).get('key') || '';
-// Remember the key on this device so the Priorities / Capture links on the brief page can open this page
-try { if (KEY) localStorage.setItem('brain-key', KEY); } catch (e) { /* storage blocked: the brief page just asks again */ }
+// The key comes from the address (a link with ?key=) or, when there is none, from this browser's saved copy, so the
+// top bar's links work from every page. A key from the address is saved once the server has accepted it.
+const URL_KEY = new URLSearchParams(window.location.search).get('key') || '';
+const getSavedKey = () => { try { return localStorage.getItem('brain-key') || ''; } catch (e) { return ''; } };
+const KEY = URL_KEY || getSavedKey();
+function keyFromPaste(text) {
+  const t = String(text || '').trim();
+  const m = t.match(/[?&]key=([^&#\s]+)/);          // accepts the whole link or just the key
+  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
+  return /^[A-Za-z0-9_-]{16,}$/.test(k) ? k : '';
+}
+function needKey(msg) {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('nk-msg').textContent = msg + " Paste the key, or the whole link, from your latest morning email. It's saved on this device only, and the other pages will use it too.";
+  document.getElementById('no-key').style.display = 'block';
+}
+document.getElementById('nk-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const k = keyFromPaste(document.getElementById('nk-in').value);
+  if (!k) { document.getElementById('nk-msg').textContent = "That doesn't look like a key. Paste the key, or the whole link."; return; }
+  location.href = 'priorities.html?key=' + encodeURIComponent(k);   // saved when the server accepts it on reload
+});
 
 // ── Theme ─────────────────────────────────────────────────────
 function applyTheme(dark) {
@@ -330,10 +360,11 @@ function applyTheme(dark) {
 }
 function toggleTheme() {
   const isDark = document.body.classList.toggle('dark');
-  localStorage.setItem('brain-theme', isDark ? 'dark' : 'light');
+  try { localStorage.setItem('brain-theme', isDark ? 'dark' : 'light'); } catch (e) { /* storage blocked: the choice just isn't remembered */ }
   document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
 }
-applyTheme(localStorage.getItem('brain-theme') === 'dark');
+let savedTheme = ''; try { savedTheme = localStorage.getItem('brain-theme') || ''; } catch (e) { /* storage blocked */ }
+applyTheme(savedTheme === 'dark');
 
 const OWNER_CFG = {
   dave:   { initials:'D',  bg:'rgba(43,125,148,0.25)',   color:'#3a9ab5' },
@@ -1205,10 +1236,11 @@ async function load() {
 
   try {
     const res = await fetch(`${API_BASE}?key=${encodeURIComponent(KEY)}`);
-    if (res.status === 401) { showError('Invalid key in URL.'); return; }
+    if (res.status === 401) { needKey(URL_KEY ? "This link's key isn't valid anymore." : "The key saved on this device isn't valid anymore."); return; }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
+    if (URL_KEY && getSavedKey() !== URL_KEY) { try { localStorage.setItem('brain-key', URL_KEY); } catch (e) { /* storage blocked: the address carries it */ } }
     renderData(data);
   } catch(e) {
     showError(e.message);
@@ -1227,7 +1259,7 @@ function esc(s) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  if (!KEY) { document.getElementById('no-key').style.display='block'; return; }
+  if (!KEY) { needKey('No key saved on this device yet.'); return; }
   document.getElementById('dashboard').style.display = 'block';
   document.getElementById('owner-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });

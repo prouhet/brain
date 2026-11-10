@@ -33,10 +33,6 @@
   /* Header */
   .top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 12px; margin-bottom:6px; }
   .datenav { display:flex; gap:6px; }
-  /* Short links to the other two pages, top right */
-  .toplinks { display:flex; gap:6px; }
-  .toplinks a { font:inherit; font-size:13px; color:var(--teal); background:var(--teal-dim); border:1px solid transparent; border-radius:8px; padding:6px 10px; text-decoration:none; }
-  .toplinks a:hover, .toplinks a:focus-visible { border-color:var(--teal); outline:none; }
   .keysetup { margin:8px 0 4px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
   .keysetup[hidden] { display:none; }
   .keysetup p { font-size:13px; color:var(--dim); }
@@ -493,6 +489,7 @@
 </style>
 </head>
 <body>
+<script src="nav.js?v=1"></script>
 <div class="wrap">
   <div class="top">
     <div class="datenav">
@@ -500,20 +497,12 @@
       <button id="today">Today</button>
       <button id="next" aria-label="Next day">Next ›</button>
     </div>
-    <nav class="toplinks" aria-label="Other pages">
-      <a href="priorities.html" data-page="priorities">Priorities</a>
-      <a href="capture.html" data-page="capture">Capture</a>
-      <a href="gems.html" data-page="gems">Gems</a>
-      <a href="act.html" data-page="act">Act</a>
-      <a href="https://drawer.studiostrong.fit/notes" target="_blank" rel="noopener">Notes</a>
-    </nav>
   </div>
   <form class="keysetup" id="keysetup" hidden>
-    <p>One-time setup: paste the key, or the whole link, for your <b id="keysetuppage">Priorities</b> page. It's saved on this device only, so the key never sits in this page's code.</p>
+    <p id="keymsg">Paste the key, or the whole link, from your morning email. It's saved on this device only, so the key never sits in this page's code, and the other pages will use it too.</p>
     <div class="krow">
       <input type="text" id="keyin" placeholder="Paste key or link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Page key">
       <button class="btn" type="submit">Save &amp; open</button>
-      <button class="btn quiet" type="button" id="keycancel">Cancel</button>
     </div>
   </form>
   <h1 id="date">Loading…</h1>
@@ -556,7 +545,19 @@
 <script>
 const FN = "https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1/morning-brief";
 const params = new URLSearchParams(location.search);
-const KEY = params.get("key") || "";
+// The key comes from the address (the morning email link) or, when there is none, from this browser's saved copy,
+// so every other page can link back here without carrying it. It's saved (below) only once the server accepts it.
+const PAGE_KEY_STORE = "brain-key";
+const getPageKey = () => { try { return localStorage.getItem(PAGE_KEY_STORE) || ""; } catch (e) { return ""; } };
+const savePageKey = (k) => { try { localStorage.setItem(PAGE_KEY_STORE, k); return true; } catch (e) { return false; } };
+function keyFromPaste(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/[?&]key=([^&#\s]+)/);          // accepts the whole link or just the key
+  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
+  return /^[A-Za-z0-9_-]{16,}$/.test(k) ? k : "";
+}
+const URL_KEY = params.get("key") || "";
+const KEY = URL_KEY || getPageKey();
 let DATE = params.get("date") || "";
 let TODAY = "";
 let scope = "business";
@@ -742,16 +743,18 @@ document.addEventListener("click", async (e) => {
 });
 
 async function load() {
-  if (!KEY) { $("#date").textContent = "Missing key"; $("#main").innerHTML = '<div class="empty"><p>Open this page from the link or QR code in your morning email.</p></div>'; return; }
+  if (!KEY) { needKey("No key saved on this device yet."); return; }
   const { ok, status, data } = await api("GET");
   TODAY = data.today || TODAY;
   if (!DATE) DATE = TODAY;
-  history.replaceState(null, "", `?key=${encodeURIComponent(KEY)}&date=${DATE}`);
+  // The key stays in the address only when it came from the address (storage may be blocked on this device); a saved key stays out of it.
+  history.replaceState(null, "", URL_KEY ? `?key=${encodeURIComponent(KEY)}&date=${DATE}` : `?date=${DATE}`);
   $("#date").textContent = longDate(DATE);
   $("#adddate").min = DATE;
   if (TODAY && !addRoot()) buildAddOpts();
   $("#next").disabled = DATE >= TODAY;
-  if (status === 401) { $("#main").innerHTML = '<div class="empty"><p>This link\'s key isn\'t valid anymore. Use the link in your latest morning email.</p></div>'; return; }
+  if (status === 401) { needKey(URL_KEY ? "This link's key isn't valid anymore." : "The key saved on this device isn't valid anymore."); return; }
+  if (ok && URL_KEY && getPageKey() !== URL_KEY) savePageKey(URL_KEY);   // the server took it: the other pages can use it now
   videosGate();
   pastdueGate();
   fromdoreenGate();
@@ -2657,42 +2660,24 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && M.started && M.show && Date.now() - M.at > MK_REFRESH_MS) mkRefresh();
 });
 
-// ── Links to the other pages ─────────────────────────────────
-// Priorities, Capture, Gems and Act need the key in their address. This page is public (anyone can open it,
-// the key isn't needed to load it), so that key is never written into it: you paste it once, it's
-// kept in this browser's own storage, and it's added to the link when you tap. Opening the
-// priorities page with its key link also refreshes the saved copy.
-// Notes is the Drawer's notes library: it opens in a new tab with the Drawer login, so it has no
-// data-page and the handler below leaves it alone.
-const PAGE_KEY_STORE = "brain-key";
-const getPageKey = () => { try { return localStorage.getItem(PAGE_KEY_STORE) || ""; } catch (e) { return ""; } };
-const savePageKey = (k) => { try { localStorage.setItem(PAGE_KEY_STORE, k); return true; } catch (e) { return false; } };
-let pendingPage = "";
-function keyFromPaste(text) {
-  const t = String(text || "").trim();
-  const m = t.match(/[?&]key=([^&#\s]+)/);          // accepts the whole link or just the key
-  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
-  return /^[A-Za-z0-9_-]{16,}$/.test(k) ? k : "";
-}
-const openPage = (page, key) => { location.href = `${page}.html?key=${encodeURIComponent(key)}`; };
-document.querySelector(".toplinks").addEventListener("click", (e) => {
-  const a = e.target.closest("[data-page]"); if (!a) return;
-  e.preventDefault();
-  const key = getPageKey();
-  if (key) { openPage(a.dataset.page, key); return; }
-  pendingPage = a.dataset.page;
-  $("#keysetuppage").textContent = a.textContent;
+// ── The key box ──────────────────────────────────────────────
+// The links to the other pages are the shared bar at the top (nav.js). This page is public (anyone can open it,
+// the key isn't needed to load it), so the key is never written into it: it comes from the address or this
+// browser's own saved copy. The box below shows only when there is no usable key.
+function needKey(msg) {
+  $("#date").textContent = "Key needed";
+  $("#headline").textContent = ""; $("#progress").textContent = "";
+  $("#main").innerHTML = "";
+  $("#keymsg").textContent = msg + " Paste the key, or the whole link, from your latest morning email. It's saved on this device only, and the other pages will use it too.";
   $("#keysetup").hidden = false; $("#keyin").focus();
-});
+}
 $("#keysetup").addEventListener("submit", (e) => {
   e.preventDefault();
   const k = keyFromPaste($("#keyin").value);
   if (!k) { toast("That doesn't look like a key. Paste the key or the whole link."); return; }
-  if (!savePageKey(k)) toast("This browser won't save it, so you'll be asked again next time.");
-  $("#keyin").value = ""; $("#keysetup").hidden = true;
-  openPage(pendingPage || "priorities", k);
+  $("#keyin").value = "";   // saved only after the server accepts it on reload; a wrong one is refused there and asked for again
+  location.href = `brief.html?key=${encodeURIComponent(k)}`;
 });
-$("#keycancel").onclick = () => { $("#keyin").value = ""; $("#keysetup").hidden = true; };
 
 // Date navigation
 $("#prev").onclick = () => { DATE = shiftDate(DATE || TODAY, -1); load(); };

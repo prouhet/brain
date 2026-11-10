@@ -41,6 +41,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background-size:var(--grid-size) var(--grid-size)}
 .wrapper{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:24px 20px 48px;width:100%}
 
+/* Key box (only when there is no usable key) */
+.nk{margin-bottom:20px;padding:14px 16px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.nk[hidden]{display:none}
+.nk p{font-size:13px;line-height:1.5;color:var(--text-dim)}
+.nk-row{display:flex;gap:8px;flex-wrap:wrap}
+.nk-row input{flex:1 1 200px;min-width:0;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font:inherit;font-size:14px}
+.nk-row button{padding:10px 16px;border-radius:8px;border:none;background:var(--teal);color:#fff;font:inherit;font-weight:500;cursor:pointer}
+
 /* Header */
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
 .logo{display:flex;align-items:center;gap:10px}
@@ -132,7 +140,17 @@ textarea::placeholder{color:var(--text-faint)}
 </style>
 </head>
 <body>
+<script src="nav.js?v=1"></script>
 <div class="wrapper">
+
+  <!-- Shown only when there is no usable key on this device -->
+  <form class="nk" id="nk" hidden>
+    <p id="nk-msg"></p>
+    <div class="nk-row">
+      <input type="text" id="nk-in" placeholder="Paste key or link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Page key">
+      <button type="submit">Save &amp; open</button>
+    </div>
+  </form>
 
   <!-- Header -->
   <div class="header">
@@ -274,7 +292,28 @@ textarea::placeholder{color:var(--text-faint)}
 </div>
 <script>
 const API_BASE = 'https://rzkrydqtgmuyeaipronh.supabase.co/functions/v1';
-const KEY = new URLSearchParams(window.location.search).get('key') || '';
+// The key comes from the address (a link with ?key=) or, when there is none, from this browser's saved copy, so the
+// top bar's links work from every page. A key from the address is saved once the server has accepted it.
+const URL_KEY = new URLSearchParams(window.location.search).get('key') || '';
+const getSavedKey = () => { try { return localStorage.getItem('brain-key') || ''; } catch (e) { return ''; } };
+const KEY = URL_KEY || getSavedKey();
+function saveUrlKey() { if (URL_KEY && getSavedKey() !== URL_KEY) { try { localStorage.setItem('brain-key', URL_KEY); } catch (e) { /* storage blocked: the address carries it */ } } }
+function keyFromPaste(text) {
+  const t = String(text || '').trim();
+  const m = t.match(/[?&]key=([^&#\s]+)/);          // accepts the whole link or just the key
+  let k = t; if (m) { try { k = decodeURIComponent(m[1]); } catch (e) { k = m[1]; } }
+  return /^[A-Za-z0-9_-]{16,}$/.test(k) ? k : '';
+}
+function needKey(msg) {
+  document.getElementById('nk-msg').textContent = msg + " Paste the key, or the whole link, from your latest morning email. It's saved on this device only, and the other pages will use it too.";
+  document.getElementById('nk').hidden = false;
+}
+document.getElementById('nk').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const k = keyFromPaste(document.getElementById('nk-in').value);
+  if (!k) { document.getElementById('nk-msg').textContent = "That doesn't look like a key. Paste the key, or the whole link."; return; }
+  location.href = 'capture.html?key=' + encodeURIComponent(k);   // saved when the server accepts it on reload
+});
 
 // ── Theme ─────────────────────────────────────────────────────
 function applyTheme(dark) {
@@ -283,10 +322,11 @@ function applyTheme(dark) {
 }
 function toggleTheme() {
   const isDark = document.body.classList.toggle('dark');
-  localStorage.setItem('brain-theme', isDark ? 'dark' : 'light');
+  try { localStorage.setItem('brain-theme', isDark ? 'dark' : 'light'); } catch (e) { /* storage blocked: the choice just isn't remembered */ }
   document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
 }
-applyTheme(localStorage.getItem('brain-theme') === 'dark');
+let savedTheme = ''; try { savedTheme = localStorage.getItem('brain-theme') || ''; } catch (e) { /* storage blocked */ }
+applyTheme(savedTheme === 'dark');
 
 let currentType     = 'observation';
 let currentScope    = 'business';
@@ -605,7 +645,7 @@ async function toggleMic() {
 async function capture() {
   const rawContent = document.getElementById('content').value.trim();
   if (!rawContent) { showToast('Please enter something first.','error'); return; }
-  if (!KEY) { showToast('No key in URL — add ?key=YOUR_KEY','error'); return; }
+  if (!KEY) { needKey('No key saved on this device yet.'); window.scrollTo(0,0); return; }
 
   const content = stripKeywordPrefix(rawContent);
   const recurVal = getRecurValue();
@@ -628,7 +668,9 @@ async function capture() {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
     });
     const data = await res.json();
+    if (res.status === 401) { needKey(URL_KEY ? "This link's key isn't valid anymore." : "The key saved on this device isn't valid anymore."); window.scrollTo(0,0); throw new Error('Key not accepted'); }
     if (!res.ok) throw new Error(data.error||'Server error');
+    saveUrlKey();
 
     document.getElementById('content').value='';
     document.getElementById('override-indicator').style.display='none';
@@ -665,7 +707,9 @@ async function capture() {
 async function loadRecent() {
   try {
     const res = await fetch(`${API_BASE}/brain-priorities?key=${encodeURIComponent(KEY)}`);
+    if (res.status === 401) { needKey(URL_KEY ? "This link's key isn't valid anymore." : "The key saved on this device isn't valid anymore."); return; }
     if (!res.ok) return;
+    saveUrlKey();
     const data = await res.json();
     const list = document.getElementById('recent-list');
     if (data.business_count!==undefined) {
@@ -686,7 +730,7 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 document.addEventListener('DOMContentLoaded',()=>{
   updatePlaceholder();
   renderWhenChips();
-  loadRecent();
+  if (KEY) loadRecent(); else needKey('No key saved on this device yet.');
   const ta=document.getElementById('content');
   ta.addEventListener('input',()=>applyKeywordOverrides(ta.value));
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlCmd)){e.preventDefault();capture();} });
