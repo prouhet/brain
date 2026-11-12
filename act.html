@@ -64,6 +64,18 @@
   .chip { font-size:13px; background:var(--surface); border:1px solid var(--line2); border-radius:999px; padding:5px 12px; cursor:pointer; color:var(--dim); min-height:36px; }
   .chip:hover { border-color:var(--teal); color:var(--teal); }
   .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .est { margin-top:10px; padding:10px 12px; border:1px dashed var(--line2); border-radius:10px; background:var(--surface); }
+  .est .lbl { margin:0 0 4px; }
+  .est .hint { margin:4px 0 0; }
+  .est .sub { font-size:12.5px; color:var(--dim); margin:10px 0 0; }
+  .chip.est-chip { border-style:dashed; }
+  .chip.est-chip:hover { border-style:solid; }
+  .stopsrc { display:inline-block; font-size:12.5px; color:var(--dim); margin-top:6px; }
+  .stopsrc.is-est { color:var(--warn); }
+  .chip[aria-pressed="true"] { border-style:solid; border-color:var(--teal); color:var(--teal); background:var(--surface); font-weight:600; }
+  .num.est-line { color:var(--dim); }
+  .acct .est-fld { display:flex; align-items:center; gap:8px; }
+  .acct .est-fld input { width:7.5em; }
   .seg { display:inline-flex; border:1px solid var(--line2); border-radius:10px; overflow:hidden; background:var(--surface); }
   .seg button { background:none; border:0; padding:8px 14px; font-size:14px; color:var(--dim); cursor:pointer; min-height:44px; border-right:1px solid var(--line); }
   .seg button:last-child { border-right:0; }
@@ -227,7 +239,7 @@
       <p class="headline">Turn one of Randy's setups into the three Schwab orders you place yourself: entry, stop, target.</p>
     </div>
   </header>
-  <p class="rule"><b>This page never places an order or moves money.</b> You place every order at Schwab. The prices are Randy's or yours, and the share count comes from the risk number you set. It isn't investment advice.</p>
+  <p class="rule"><b>This page never places an order or moves money.</b> You place every order at Schwab. The prices are Randy's or yours, and the share count comes from the risk number you set. Where Randy gave no stop, it can show estimates, always marked as estimates and never filled in for you. It isn't investment advice.</p>
 
   <form class="keysetup" id="keysetup" hidden>
     <p id="keymsg">One-time setup: paste your page key, or the whole link you were given. It's saved on this device only, so the key never sits in this page's code.</p>
@@ -277,6 +289,10 @@
           <p class="hint" style="font-size:12.5px;color:var(--faint);margin-top:6px" id="riskHint">You choose this number. The page doesn't suggest one.</p>
         </div>
         <div class="budget" id="budget" aria-live="polite"></div>
+        <label class="fld">Estimated stop, when Randy gives none
+          <span class="est-fld"><input type="text" inputmode="decimal" id="acctEst" placeholder="2" aria-describedby="acctEstHint"><span aria-hidden="true">% from his entry</span></span>
+          <span class="hint" id="acctEstHint">Your own number, 2 to start. It's used only on setups where Randy gave no stop, and shown as a button you tap, marked as an estimate. Never filled in for you.</span>
+        </label>
         <label class="check"><input type="checkbox" id="acctMargin"><span>It's a margin account<small>Selling short needs one at Schwab, with at least $2,000 in the account.</small></span></label>
         <label class="check"><input type="checkbox" id="acctFut"><span>Approved for futures at Schwab<small>Futures and indexes are shown as levels only. This page doesn't size or ticket them yet.</small></span></label>
         <div class="acts" style="margin-top:0">
@@ -291,6 +307,7 @@
           <li>If that many shares would cost more than your account size, it's cut to what the account can buy.</li>
           <li>The loss at the stop and the gain at the target are those shares times the distance. A stop order isn't guaranteed to fill at the stop price.</li>
           <li>A short entry, a gap or a thin market can fill worse than any number shown here.</li>
+          <li>Where Randy gave no stop, the page can show estimates: your own percent from his entry, and for each firm target the farthest stop that still leaves 2:1 (his rule, which he treats as a maximum). They're marked as estimates, appear only as buttons you tap, and are never filled in for you.</li>
         </ul>
       </details>
     </section>
@@ -482,6 +499,7 @@ async function loadBoard() {
 const GROUPS = [
   { key: "plan", title: "You have a plan", sub: "Open these under My plans.", open: true },
   { key: "ready", title: "Ready to plan", sub: "Randy gave an entry, a stop and a target, and this account can place it.", open: true },
+  { key: "estimate", title: "Ready to plan with an estimated stop", sub: "Randy gave an entry and a target but no stop. Open one to use an estimate (marked as one) or enter your own.", open: true },
   { key: "needs", title: "Needs your levels", sub: "Randy left something out. You can still plan it by entering the missing number yourself.", open: true },
   { key: "blocked", title: "Can't be placed here", sub: "Shown for reference only.", open: false },
 ];
@@ -490,9 +508,10 @@ function setupCard(s) {
   if (s.price != null) bits.push(h("span", { class: "num" }, "Now " + px(s.price)));
   if (s.randy.entry != null) bits.push(h("span", { class: "num" }, "Entry " + px(s.randy.entry) + (s.pct.to_entry != null ? ` (${where(s.pct.to_entry)})` : "")));
   if (s.randy.stop != null) bits.push(h("span", { class: "num" }, "Stop " + px(s.randy.stop)));
+  else if (s.group === "estimate" && s.est && s.est.pct) bits.push(h("span", { class: "num est-line" }, "Est. stop " + px(s.est.pct.price)));
   const nt = s.randy.targets.filter((t) => t.price != null && !t.hit).length;
   if (nt) bits.push(plural(nt, "target"));
-  const l3 = s.plan ? `Your plan: ${STATE_LABEL[s.plan.state] || s.plan.state}` : s.group === "blocked" ? (s.placeable.blockers[0] || "") : s.missing.length ? `Randy hasn't given: ${s.missing.join(", ")}` : "";
+  const l3 = s.plan ? `Your plan: ${STATE_LABEL[s.plan.state] || s.plan.state}` : s.group === "blocked" ? (s.placeable.blockers[0] || "") : s.group === "estimate" && s.est && s.est.pct ? `Randy gave no stop. Estimate ${px(s.est.pct.price)} (${s.est.pct.label}), not his.` : s.missing.length ? `Randy hasn't given: ${s.missing.join(", ")}` : "";
   return h("button", { type: "button", class: "setup", data: { id: s.id, ticker: s.ticker }, "aria-label": `${s.ticker} ${dirWord(s.direction)}. Open` },
     h("span", { class: "l1" }, h("span", { class: "tk" }, s.ticker), h("span", { class: "pill " + dirWord(s.direction) }, dirWord(s.direction)), h("span", { class: "pill st" }, s.status), s.tf ? h("span", { class: "pill" }, s.tf) : null),
     h("span", { class: "l2" }, bits.map((b, i) => [i ? " · " : "", b])),
@@ -532,10 +551,10 @@ $("#setupList").addEventListener("click", (e) => {
 
 // ═══ Setup sheet ══════════════════════════════════════════════
 const sheet = $("#sheet");
-const F = { setup: null, plan: null, targets: [], pick: null, token: 0, timer: 0, calc: null, calcErr: "", saving: false, refs: {} };
+const F = { setup: null, plan: null, targets: [], pick: null, token: 0, timer: 0, calc: null, calcErr: "", saving: false, refs: {}, est: null, estFor: null, estErr: "", estTimer: 0, estTok: 0 };
 function closeSheets() { for (const d of [sheet, $("#ask")]) if (d.open) d.close(); }
 $("#sheetX").onclick = () => sheet.close();
-sheet.addEventListener("close", () => { clearTimeout(F.timer); F.token++; F.setup = null; });
+sheet.addEventListener("close", () => { clearTimeout(F.timer); clearTimeout(F.estTimer); F.token++; F.estTok++; F.setup = null; F.est = null; F.estFor = null; F.estErr = ""; });
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
 
 function randyLevels(s) {
@@ -555,7 +574,7 @@ function randyLevels(s) {
 function openSetup(s, plan) {
   F.setup = s; F.plan = plan; F.calc = null; F.calcErr = ""; F.saving = false; F.token++;
   F.targets = s.randy.targets.filter((t) => t.price != null && !t.hit);
-  F.pick = null;
+  F.pick = null; F.est = null; F.estFor = null; F.estErr = ""; clearTimeout(F.estTimer); F.estTok++;
   const body = clear($("#sheetBody")), foot = clear($("#sheetFoot"));
   $("#sheetTitle").textContent = `${s.ticker} ${dirWord(s.direction)}`;
   const sub = clear($("#sheetSub"));
@@ -587,7 +606,10 @@ function openSetup(s, plan) {
   const stopChips = h("div", { class: "chips" });
   if (s.randy.stop != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipStop", onclick: () => setField(stop, s.randy.stop) }, `Randy's stop ${px(s.randy.stop)}`));
   if (s.randy.invalidation != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipInval", onclick: () => setField(stop, s.randy.invalidation) }, `Randy's invalidation ${px(s.randy.invalidation)}`));
-  const stopHint = s.randy.stop == null ? "Randy hasn't given a stop on this one. Enter your own." : "Your stop is your call. Tap Randy's number to use it, or type yours.";
+  const noStop = s.randy.stop == null;
+  const stopHint = noStop ? "Randy hasn't given a stop on this one. Tap an estimate below (marked as one), or enter your own." : "Your stop is your call. Tap Randy's number to use it, or type yours.";
+  const estBox = noStop ? h("div", { class: "est", id: "estBox", "aria-live": "polite" }) : null;
+  if (noStop && s.randy.entry != null && entryV === String(s.randy.entry) && s.est) { F.est = s.est; F.estFor = s.randy.entry; }
 
   // targets
   const tbox = h("div", { id: "tbox" });
@@ -620,7 +642,7 @@ function openSetup(s, plan) {
     h("span", { class: "lbl" }, plan ? "Edit your plan" : "Your plan"),
     h("div", { class: "form" },
       h("div", null, h("label", { class: "fld", for: "fEntry" }, "Entry price", entry), entryChips),
-      h("div", null, h("label", { class: "fld", for: "fStop" }, "Stop price", stop, h("span", { class: "hint" }, stopHint)), stopChips),
+      h("div", null, h("label", { class: "fld", for: "fStop" }, "Stop price", stop, h("span", { class: "hint" }, stopHint)), stopChips, estBox),
       h("div", null, h("span", { class: "lbl", style: "margin-top:0" }, "Target"),
         F.targets.length ? null : h("p", { class: "hint", style: "margin-bottom:8px" }, "Randy hasn't given a target with a price. Enter your own."),
         tbox, h("p", { class: "hint", id: "tHint" }, F.targets.length ? "Pick one, or use your own. Nothing is picked for you." : "")),
@@ -640,12 +662,58 @@ function openSetup(s, plan) {
   syncPick();
   for (const el of [entry, stop, shares, note]) el.addEventListener("input", () => schedule());
   etype.addEventListener("change", () => schedule(0));
+  if (noStop) {
+    entry.addEventListener("input", () => { renderEst(); scheduleEst(); });
+    stop.addEventListener("input", renderEst);
+  }
 
   foot.append(h("div", { class: "why", id: "saveWhy" }),
     h("button", { type: "button", class: "btn ghost", onclick: () => sheet.close() }, "Cancel"),
     h("button", { type: "button", class: "btn grow", id: "savePlan", onclick: savePlan }, plan ? "Save changes" : "Save plan"));
   if (!sheet.open) sheet.showModal();
   renderResults(); schedule(0);
+  if (noStop) { renderEst(); if (F.estFor == null && numIn(entry.value) > 0) scheduleEst(0); }
+}
+// Estimated stops: only offered where Randy gave none. Each is a button; nothing is ever filled in for you.
+function scheduleEst(ms = 400) { clearTimeout(F.estTimer); if (!F.setup || F.setup.randy.stop != null) return; F.estTimer = setTimeout(loadEst, ms); }
+async function loadEst() {
+  if (!F.setup || F.setup.randy.stop != null || !F.refs.entry) return;
+  const entry = numIn(F.refs.entry.value);
+  const tok = ++F.estTok;
+  if (!(entry > 0)) { F.est = null; F.estFor = null; F.estErr = ""; renderEst(); return; }
+  try {
+    const r = await api("estimates", { setup_id: F.setup.id, entry });
+    if (tok !== F.estTok || !F.setup) return;
+    F.est = r.applies ? r.estimates : null; F.estFor = entry; F.estErr = "";
+  } catch (e) {
+    if (tok !== F.estTok || !F.setup || e.status === 401) return;
+    F.est = null; F.estFor = null; F.estErr = e.message;
+  }
+  renderEst();
+}
+function renderEst() {
+  const box = $("#estBox"); if (!box || !F.setup || !F.refs.entry) return;
+  clear(box);
+  box.append(h("span", { class: "lbl" }, "Estimated stops, not Randy's"));
+  const entryN = numIn(F.refs.entry.value), stopN = numIn(F.refs.stop.value);
+  if (!(entryN > 0)) { box.append(h("p", { class: "hint" }, "Enter an entry price and the estimates appear here.")); return; }
+  if (F.estErr && F.estFor == null) { box.append(h("p", { class: "hint", id: "estErr" }, "Couldn't work out estimates: " + F.estErr + " You can still enter your own stop.")); return; }
+  if (!F.est || F.estFor !== entryN) { box.append(h("p", { class: "hint", id: "estWait" }, "Working out estimates for this entry…")); return; }
+  const e = F.est, all = [];
+  if (e.pct) all.push([e.pct, "chipEstPct"]);
+  e.rr2.forEach((x, i) => all.push([x, "chipEst2_" + i]));
+  if (!all.length) { box.append(h("p", { class: "hint", id: "estNone" }, "No estimate fits this entry. Enter your own stop.")); return; }
+  const chips = h("div", { class: "chips" });
+  let on = null;
+  for (const [x, id] of all) {
+    const pressed = stopN != null && !Number.isNaN(stopN) && Math.abs(stopN - x.price) < 1e-9;
+    if (pressed && !on) on = x;
+    chips.append(h("button", { type: "button", class: "chip est-chip", id, "aria-pressed": pressed ? "true" : "false", onclick: () => setField(F.refs.stop, x.price) }, `${x.label} · ${px(x.price)} (${x.dist_pct}%)`));
+  }
+  box.append(chips);
+  box.append(h("p", { class: "hint", id: "estBasis" }, on ? on.basis : "Tap one to try it. Nothing is filled in for you. The 2:1 chips use Randy's rule: a stop no farther than half the distance to that target."));
+  const pct = S.settings && S.settings.stop_est_pct != null ? S.settings.stop_est_pct : 2;
+  box.append(h("p", { class: "sub" }, `The ${pct}% chip is your own setting (change it in My account). Randy often judges stops on a daily close, but a Schwab stop order triggers the moment the price touches it.`));
 }
 function setField(input, n) { input.value = String(n); input.dispatchEvent(new Event("input", { bubbles: true })); input.focus(); }
 function syncPick() { for (const [k, r] of Object.entries(F.refs)) if (r && r.row) r.row.classList.toggle("on", (k === "mineSlot" && F.pick === "mine") || (k.startsWith("t") && F.pick === Number(k.slice(1)))); }
@@ -721,6 +789,7 @@ function renderResults() {
       if (sz.shares == null && sz.needs) { box.append(h("div", { class: "banner info", id: "rNeeds" }, h("span", null, sz.needs), h("button", { type: "button", class: "btn sm", onclick: () => { sheet.close(); setTab("account"); } }, "My account"))); why = sz.needs; }
       if (c.entry_words) box.append(h("div", { class: "entrywords", id: "rEntry" }, h("b", null, c.entry_type ? c.entry_type[0].toUpperCase() + c.entry_type.slice(1) + " entry. " : ""), c.entry_words));
       if (c.warnings.length) box.append(h("ul", { class: "msgs warn", id: "rWarn" }, c.warnings.map((x) => h("li", null, x))));
+      if (c.stop_basis_text && String(c.stop_basis).startsWith("estimate")) box.append(h("p", { class: "stopsrc is-est", id: "rBasis" }, `Stop source: ${c.stop_basis_text}. Randy gave no stop on this setup, so check it against the chart before you use it.`));
       if (!c.placeable.ok) { box.append(h("ul", { class: "msgs err" }, c.placeable.blockers.map((x) => h("li", null, x)))); why = c.placeable.blockers[0]; }
       else if (f.target == null || Number.isNaN(f.target)) why = why || "Pick a target.";
       if (c.ticket) box.append(ticketView(c.ticket, c.cautions));
@@ -828,6 +897,7 @@ function planCard(p) {
   if (p.state === "closed") cells.push(lvCell("Exit", px(p.exit_price), p.exit_reason ? "by " + p.exit_reason : ""));
   else cells.push(lvCell("Shares", String(p.state === "filled" ? p.fill_shares : p.shares), p.state === "filled" ? (p.at_risk != null ? `risk ${usd(p.at_risk)} at the stop` : "") : `risk ${usd(p.risk_dollars)} at the stop`));
   card.append(h("div", { class: "lv" }, cells));
+  if (p.stop_basis_text && String(p.stop_basis).startsWith("estimate")) card.append(h("div", { class: "stopsrc is-est", id: "pBasis" }, `Stop source: ${p.stop_basis_text}.`));
   if (p.state === "closed") {
     card.append(h("div", { class: "live" }, h("b", { class: p.realized >= 0 ? "gainc" : "lossc" }, usdS(p.realized)), p.realized_pct != null ? ` (${pctS(p.realized_pct)})` : "", p.closed_at ? ` · closed ${dateShort(p.closed_at)}` : ""));
   } else if (live && p.price != null) {
@@ -952,6 +1022,7 @@ function fillAccount() {
   $("#acctFunded").checked = !!s.funded; $("#acctMargin").checked = !!s.margin_ok; $("#acctFut").checked = !!s.futures_ok;
   setRiskMode(s.risk_mode === "percent" ? "percent" : "dollars", true);
   $("#riskVal").value = s.risk_value != null ? String(s.risk_value) : "";
+  $("#acctEst").value = s.stop_est_pct != null ? String(s.stop_est_pct) : "2";
 }
 function renderBudget() {
   const b = $("#budget"); clear(b);
@@ -961,16 +1032,17 @@ function renderBudget() {
 }
 $("#modeDollars").onclick = () => setRiskMode("dollars");
 $("#modePercent").onclick = () => setRiskMode("percent");
-for (const id of ["#acctSize", "#riskVal", "#acctFunded", "#acctMargin", "#acctFut"]) $(id).addEventListener("input", () => { S.acctDirty = true; $("#acctMsg").textContent = ""; });
+for (const id of ["#acctSize", "#riskVal", "#acctEst", "#acctFunded", "#acctMargin", "#acctFut"]) $(id).addEventListener("input", () => { S.acctDirty = true; $("#acctMsg").textContent = ""; });
 $("#acctForm").addEventListener("submit", async (e) => {
   e.preventDefault(); if (S.acctSaving) return;
-  const size = numIn($("#acctSize").value), risk = numIn($("#riskVal").value);
+  const size = numIn($("#acctSize").value), risk = numIn($("#riskVal").value), estPct = numIn($("#acctEst").value);
   const msg = $("#acctMsg");
   if (Number.isNaN(size) || (size != null && size < 0)) { msg.textContent = "Account size has to be a number, 0 or more."; return; }
   if (Number.isNaN(risk) || (risk != null && risk <= 0)) { msg.textContent = "Risk per trade has to be more than 0."; return; }
+  if (Number.isNaN(estPct) || (estPct != null && (estPct <= 0 || estPct > 50))) { msg.textContent = "The stop estimate has to be a percent above 0 and up to 50."; return; }
   S.acctSaving = true; $("#acctSave").disabled = true; msg.textContent = "Saving…";
   try {
-    const d = await api("settings", { set: { account_size: size, funded: $("#acctFunded").checked, risk_mode: riskMode, risk_value: risk, margin_ok: $("#acctMargin").checked, futures_ok: $("#acctFut").checked } });
+    const d = await api("settings", { set: { account_size: size, funded: $("#acctFunded").checked, risk_mode: riskMode, risk_value: risk, margin_ok: $("#acctMargin").checked, futures_ok: $("#acctFut").checked, stop_est_pct: estPct } });
     S.acctDirty = false; S.settingsSaved = true; S.settingsError = null; absorb({ settings: d.settings, risk_budget: d.risk_budget, settings_saved: true, settings_error: null });
     msg.textContent = "Saved."; toast("Account saved.");
     await Promise.all([loadBoard(), loadPlans()]);
