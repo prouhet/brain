@@ -127,6 +127,22 @@
   .pill.short { background:var(--loss-dim); color:var(--loss); }
   .pill.st { background:var(--teal-dim); color:var(--teal); }
   .pill.warn { background:var(--warn-dim); color:var(--warn); }
+  /* Price line (the same ✕ ▼ ◆ T1… line the hourly RSOTC setup alerts show) and the date Randy first called it */
+  .setup .when { margin-left:auto; font-size:12px; color:var(--faint); white-space:nowrap; }
+  .setup .rrl { display:block; font-size:12.5px; color:var(--dim); margin-top:7px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .ladder { display:block; font:clamp(10.5px,3.4vw,13px)/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre; overflow-x:auto; max-width:100%; color:var(--text); margin-top:3px; padding:6px 8px; background:var(--surface2); border-radius:8px; scrollbar-width:none; }
+  .ladder::-webkit-scrollbar { display:none; }
+  .ladder .gx { color:var(--loss); font-weight:700; }
+  .ladder .gy { color:var(--teal); font-weight:700; }
+  .ladder .gnow { font-weight:700; }
+  .lwarn { display:block; font-size:12.5px; margin-top:5px; color:var(--warn); overflow-wrap:anywhere; }
+  .lbox { background:var(--surface2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .lbox .rrl { margin-top:0; }
+  .lbox .ladder { background:transparent; padding:6px 0 2px; font-size:clamp(10.5px,3.4vw,14px); }
+  .lchips { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:13px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  .lchips span { white-space:nowrap; }
+  .lbox .lnote { font-size:12px; color:var(--faint); margin:8px 0 0; }
+  .whenline { font-size:13px; color:var(--dim); margin-top:4px; }
 
   /* Cards, plans */
   .card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:10px; }
@@ -307,6 +323,7 @@
           <li>If that many shares would cost more than your account size, it's cut to what the account can buy.</li>
           <li>The loss at the stop and the gain at the target are those shares times the distance. A stop order isn't guaranteed to fill at the stop price.</li>
           <li>A short entry, a gap or a thin market can fill worse than any number shown here.</li>
+          <li>The price line on each setup (✕ stop, ▼ entry, ◆ price now, T1… targets) and its RR are the same ones the hourly RSOTC setup alerts show. The date on each setup is the day Randy first posted or showed it, as logged by those alerts; a video can be logged a day after it came out.</li>
           <li>Where Randy gave no stop, the page can show estimates: your own percent from his entry, and for each firm target the farthest stop that still leaves 2:1 (his rule, which he treats as a maximum). They're marked as estimates, appear only as buttons you tap, and are never filled in for you.</li>
         </ul>
       </details>
@@ -361,6 +378,12 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
 const numIn = (s) => { const t = String(s ?? "").replace(/[$,\s]/g, ""); if (t === "") return null; const n = Number(t); return Number.isFinite(n) ? n : NaN; };
 const where = (pct) => (pct == null ? "" : pct === 0 ? "at the price now" : `${Math.abs(pct).toFixed(1)}% ${pct > 0 ? "above" : "below"} now`);
 const dateShort = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+// Dates that come as plain YYYY-MM-DD are read as local calendar days (new Date("2026-11-05") would be UTC and can show the day before).
+const ymd = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); if (!m) return null; const d = new Date(+m[1], +m[2] - 1, +m[3]); return d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? d : null; };
+const dayShort = (s) => { const d = ymd(s); return d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + (d.getFullYear() !== new Date().getFullYear() ? ", " + d.getFullYear() : "") : ""; };
+const dayLong = (s) => { const d = ymd(s); return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : ""; };
+const daysAgo = (s) => { const d = ymd(s); if (!d) return null; const t = new Date(); return Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()) - d) / 864e5); };
+const agoText = (n) => (n == null ? "" : n <= 0 ? "today" : n === 1 ? "yesterday" : `${n} days ago`);
 const dirWord = (d) => (d === "short" ? "short" : "long");
 const STATE_LABEL = { planned: "Planned", placed: "Placed at Schwab", filled: "Open trade", closed: "Closed", skipped: "Skipped" };
 
@@ -395,11 +418,11 @@ function resolveKey() {
 
 // ── Talking to the function
 class ApiError extends Error { constructor(m, status, data) { super(m); this.status = status; this.data = data; } }
-async function api(action, body = {}, timeout = 45000) {
+async function api(action, body = {}, timeout = 45000, url = FN) {
   const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), timeout);
   let res;
   try {
-    res = await fetch(`${FN}?key=${encodeURIComponent(KEY)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...body }), signal: ctl.signal });
+    res = await fetch(`${url}?key=${encodeURIComponent(KEY)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...body }), signal: ctl.signal });
   } catch (e) {
     throw new ApiError(e && e.name === "AbortError" ? "That took too long. Try again." : "Couldn't reach the server. Check your connection and try again.", 0);
   } finally { clearTimeout(timer); }
@@ -412,7 +435,7 @@ async function api(action, body = {}, timeout = 45000) {
 // ── State
 const S = {
   gopen: {},
-  board: null, boardErr: "", boardLoading: false,
+  board: null, boardErr: "", boardLoading: false, extras: null, extrasErr: false,
   plans: null, plansErr: "", plansLoading: false, showSkipped: false,
   settings: null, riskBudget: null, mode: "planning", settingsSaved: false, settingsError: null,
   tab: P.tab, q: "", busy: new Set(), acctDirty: false, acctSaving: false,
@@ -495,7 +518,48 @@ async function loadBoard() {
   catch (e) { if (e.status === 401) return; S.boardErr = e.message; }
   finally { S.boardLoading = false; }
   renderSetups(); renderTabCounts();
+  loadExtras();
 }
+
+// ── Price lines + the date Randy first called each setup. Comes from a small read-only function that runs the SAME SQL the hourly
+//    "RSOTC setup alerts" use, so this page and the alerts always agree. If it fails, the cards just show without it.
+const LADDERS = FN.replace(/rsotc-act$/, "rsotc-ladders");
+let extrasSeq = 0;
+async function loadExtras() {
+  if (!S.board || !S.board.setups || !S.board.setups.length) return;
+  const seq = ++extrasSeq, prices = {}, ids = [];
+  for (const s of S.board.setups) { ids.push(s.id); if (s.price != null) prices[s.ticker] = s.price; }
+  try {
+    const d = await api("ladders", { prices, ids }, 20000, LADDERS);
+    if (seq !== extrasSeq) return;
+    S.extras = d.items || {}; S.extrasErr = false;
+  } catch (e) {
+    if (e.status === 401 || seq !== extrasSeq) return;
+    S.extrasErr = true;
+  }
+  renderSetups(); fillSheetExtras();
+}
+// Splits the text the SQL returns into: RR text, a warning if any, the level list, and the drawn line.
+function parseLadder(txt) {
+  if (!txt) return null;
+  const lines = String(txt).split("\n").filter((l) => l && !l.startsWith("★"));
+  const li = lines.findIndex((l, i) => i > 0 && (l.startsWith("`") || l.startsWith("(no levels")));
+  if (li < 0) return null;
+  const head = (lines[0] || "").replace(/\*\*/g, "").split(" · ");
+  let rr = head.slice(2).join(" · ").replace(/^RR\s*/, ""), warn = "";
+  const wi = rr.search(/\s[⚠⚑]/);
+  if (wi >= 0) { warn = rr.slice(wi).trim(); rr = rr.slice(0, wi).trim(); }
+  const info = li > 1 ? lines[1].split(/ {2,}/).map((x) => x.trim()).filter(Boolean) : [];
+  const line = lines[li].startsWith("`") ? lines[li].replace(/^`|`$/g, "") : "";
+  return { rr, warn, info, line };
+}
+// ✕ stop in red, ▼ entry in teal, ◆ now in bold. Text nodes only.
+function glyphs(str) {
+  return String(str).split(/([✕▼◆])/).map((p) => p === "✕" ? h("span", { class: "gx" }, p) : p === "▼" ? h("span", { class: "gy" }, p) : p === "◆" ? h("span", { class: "gnow" }, p) : p);
+}
+function ladderLabel(L) { return "Price line, stop on the left and targets on the right: " + (L.info.length ? L.info.join(", ") : "no levels to draw yet") + "."; }
+function recDate(s) { const x = S.extras && S.extras[s.id]; return x && ymd(x.first) ? x : null; }
+
 const GROUPS = [
   { key: "plan", title: "You have a plan", sub: "Open these under My plans.", open: true },
   { key: "ready", title: "Ready to plan", sub: "Randy gave an entry, a stop and a target, and this account can place it.", open: true },
@@ -512,9 +576,15 @@ function setupCard(s) {
   const nt = s.randy.targets.filter((t) => t.price != null && !t.hit).length;
   if (nt) bits.push(plural(nt, "target"));
   const l3 = s.plan ? `Your plan: ${STATE_LABEL[s.plan.state] || s.plan.state}` : s.group === "blocked" ? (s.placeable.blockers[0] || "") : s.group === "estimate" && s.est && s.est.pct ? `Randy gave no stop. Estimate ${px(s.est.pct.price)} (${s.est.pct.label}), not his.` : s.missing.length ? `Randy hasn't given: ${s.missing.join(", ")}` : "";
-  return h("button", { type: "button", class: "setup", data: { id: s.id, ticker: s.ticker }, "aria-label": `${s.ticker} ${dirWord(s.direction)}. Open` },
-    h("span", { class: "l1" }, h("span", { class: "tk" }, s.ticker), h("span", { class: "pill " + dirWord(s.direction) }, dirWord(s.direction)), h("span", { class: "pill st" }, s.status), s.tf ? h("span", { class: "pill" }, s.tf) : null),
+  const rec = recDate(s), L = S.extras ? parseLadder((S.extras[s.id] || {}).ladder) : null;
+  const rrText = L && L.rr && !/^—/.test(L.rr) ? "RR " + L.rr : "";
+  return h("button", { type: "button", class: "setup", data: { id: s.id, ticker: s.ticker }, "aria-label": `${s.ticker} ${dirWord(s.direction)}${rec ? ". Recommended " + dayShort(rec.first) : ""}. Open` },
+    h("span", { class: "l1" }, h("span", { class: "tk" }, s.ticker), h("span", { class: "pill " + dirWord(s.direction) }, dirWord(s.direction)), h("span", { class: "pill st" }, s.status), s.tf ? h("span", { class: "pill" }, s.tf) : null,
+      rec ? h("span", { class: "when", title: `Randy first called this ${dayLong(rec.first)} (${agoText(daysAgo(rec.first))})` }, "Recommended " + dayShort(rec.first)) : null),
     h("span", { class: "l2" }, bits.map((b, i) => [i ? " · " : "", b])),
+    L && L.line ? h("span", { class: "rrl" }, rrText) : null,
+    L && L.line ? h("span", { class: "ladder", role: "img", "aria-label": ladderLabel(L) }, glyphs(L.line)) : null,
+    L && L.warn ? h("span", { class: "lwarn" }, L.warn) : null,
     l3 ? h("span", { class: "l3" }, l3) : null);
 }
 function renderSetups() {
@@ -525,6 +595,7 @@ function renderSetups() {
   stats.append(h("span", { id: "priceNote" }, b.prices_ok ? b.price_note : "Prices unavailable right now. You can still type your own."),
     h("button", { type: "button", class: "btn link", id: "refreshSetups", onclick: () => { loadBoard(); loadPlans(); }, disabled: S.boardLoading }, S.boardLoading ? "Refreshing…" : "Refresh"),
     h("span", null, "Not ranked. Sorted by ticker."));
+  if (S.extrasErr && !S.extras) stats.append(h("span", { id: "extrasNote" }, "Price lines and dates are unavailable right now."));
   if (S.boardErr) list.append(h("div", { class: "errbox" }, h("span", null, "Couldn't refresh: " + S.boardErr)));
   if (!S.settingsSaved || S.riskBudget == null) {
     list.append(h("div", { class: "banner info", id: "needAcct" }, h("span", null, h("b", null, "Set your risk number first. "), "Tell the page your account size and the most you're willing to lose on one trade. Until then it shows Randy's levels but no share counts."),
@@ -557,6 +628,28 @@ $("#sheetX").onclick = () => sheet.close();
 sheet.addEventListener("close", () => { clearTimeout(F.timer); clearTimeout(F.estTimer); F.token++; F.estTok++; F.setup = null; F.est = null; F.estFor = null; F.estErr = ""; });
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
 
+// Fills the date line and the "where it stands" box in the open sheet (and again if the data arrives after it opened).
+function fillSheetExtras() {
+  const s = F.setup, when = $("#sheetWhen"), host = $("#ladderHost");
+  if (!s || !when || !host) return;
+  clear(when); clear(host);
+  const x = S.extras && S.extras[s.id];
+  if (!x) return;
+  if (ymd(x.first)) {
+    when.append(`Randy first called this ${dayLong(x.first)} (${agoText(daysAgo(x.first))}).`);
+    if (ymd(x.last) && x.last !== x.first) when.append(` Latest change ${dayLong(x.last)}.`);
+  }
+  const L = parseLadder(x.ladder);
+  if (!L) return;
+  const box = h("div", { class: "lbox", id: "ladderBox" });
+  if (L.rr) box.append(h("span", { class: "rrl" }, "RR " + L.rr.replace(/^—\s*/, "— ")));
+  if (L.line) box.append(h("span", { class: "ladder", role: "img", "aria-label": ladderLabel(L) }, glyphs(L.line)));
+  if (L.info.length) box.append(h("div", { class: "lchips" }, L.info.map((t) => h("span", null, glyphs(t)))));
+  if (L.warn) box.append(h("span", { class: "lwarn" }, L.warn));
+  box.append(h("p", { class: "lnote" }, "Stop on the left, Randy's targets on the right. ◆ is the price now; ▼ is the entry or trigger. RR is the reward ÷ risk on Randy's levels (\"now\" is from today's price). Same line as the hourly RSOTC setup alerts."));
+  host.append(h("span", { class: "lbl" }, "Where it stands"), box);
+}
+
 function randyLevels(s) {
   const r = s.randy, rows = [];
   const row = (k, v, t) => h("div", { class: "r" }, h("b", null, k), h("span", { class: "num" }, v), t ? h("span", { class: "t" }, t) : null);
@@ -580,8 +673,11 @@ function openSetup(s, plan) {
   const sub = clear($("#sheetSub"));
   sub.append(`Randy has it as ${s.status}${s.tf ? ", " + s.tf : ""}. ` + (s.price != null ? `Price now ${px(s.price)} (${S.board ? S.board.price_note : ""}).` : "No price right now."));
   if (safeUrl(s.randy.link)) sub.append(" ", h("a", { href: safeUrl(s.randy.link), target: "_blank", rel: "noopener noreferrer" }, "Randy's post ↗"));
+  sub.append(h("div", { class: "whenline", id: "sheetWhen" }));
+  body.append(h("div", { id: "ladderHost" }));
   body.append(h("span", { class: "lbl" }, "Randy's levels"), ...randyLevels(s).filter(Boolean));
   F.refs = {};
+  fillSheetExtras();
 
   if (s.plan && !plan) {
     body.append(h("div", { class: "blocked" }, h("b", null, `You already have a plan on this (${(STATE_LABEL[s.plan.state] || s.plan.state).toLowerCase()}). `), "Open it under My plans."));
