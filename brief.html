@@ -498,6 +498,7 @@
     font-size:14px; padding:9px 14px; border-radius:8px; display:none; max-width:90vw;
   }
   #toast.show { display:block; }
+  #toast .toastact { background:none; border:0; color:inherit; font:inherit; font-weight:700; text-decoration:underline; padding:8px 6px; margin:-8px -2px -8px 4px; min-height:36px; cursor:pointer; }
   .empty { padding:40px 0; color:var(--dim); }
   .empty p + p { margin-top:8px; }
   /* ── Calm view (opt-in; Classic is unchanged) ── */
@@ -691,9 +692,14 @@ document.addEventListener("click", (e) => {
   foldSave();
 });
 
-function toast(msg) {
+function toast(msg, action) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+  if (action) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "toastact"; b.textContent = action.label;
+    b.addEventListener("click", () => { t.classList.remove("show"); clearTimeout(toast._t); action.fn(); });
+    t.append(" ", b);
+  }
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), action ? 8000 : 2600);
 }
 function longDate(d) {
   return new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone:"UTC", weekday:"long", month:"long", day:"numeric" });
@@ -915,6 +921,7 @@ function itemHTML(it) {
           <button type="button" role="menuitem" data-act="pin" aria-label="Pin item ${it.n} to the top">Pin</button>`}
           ${it.section === "client" ? "" : `<button type="button" role="menuitem" data-act="doreen" aria-label="Item ${it.n} is Doreen's — set it aside">Doreen's</button>`}
           <hr>
+          ${it.done || it.recurring || it.section === "client" || it.extra === "doreen" ? "" : `<button type="button" role="menuitem" data-act="drop" aria-label="Drop item ${it.n} — not doing this">Drop</button>`}
           <button type="button" role="menuitem" data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
         </div>
       </div>
@@ -1318,6 +1325,9 @@ $("#main").addEventListener("click", async (e) => {
   if (act === "not-task") {
     await markNotTask(it);
   }
+  if (act === "drop") {
+    await dropItem(it);
+  }
   if (act === "doreen") {
     await setAsideForDoreen(it);
   }
@@ -1367,6 +1377,23 @@ async function markNotTask(it) {
     render();
     toast(`Moved to notes: "${label}"`);
   } else toast(r.data.error || "Couldn't update. Try again.");
+}
+
+// Drop: "not doing this". Archives the task (the same drop as the Past due card: brief-pastdue) and takes it off the list with an
+// Undo for a few seconds. It stays gone after a reload: the morning-brief function leaves dropped tasks out.
+async function dropItem(it) {
+  if (!it || it._dropping) return;
+  it._dropping = true;
+  const r = await pdApi({ action: "drop", id: it.id });
+  it._dropping = false;
+  if (!r.ok) { toast(r.data.error || "Couldn't drop it. Try again."); return; }
+  const prev = r.data.prev || null, label = (it.full_text || it.title || "").slice(0, 40);
+  brief.items = brief.items.filter(i => i.id !== it.id);
+  render();
+  toast(`Dropped: "${label}"`, prev ? { label: "Undo", fn: async () => {
+    const u = await pdApi({ action: "undo", id: it.id, prev });
+    if (u.ok) { toast("Put back"); await load(); } else toast(u.data.error || "Couldn't undo that. Try again.");
+  } } : null);
 }
 
 // Follow-up: a finished task sometimes has a next step on a later day (call the
@@ -2332,7 +2359,7 @@ const CM_FN = FN.replace(/morning-brief$/, "brief-lanes");
 const CM_VIEW_STORE = "brief-view";
 const CM_REFRESH_MS = 5 * 60 * 1000;
 const CM_CAP = 8, CM_SEARCH_MAX = 30;
-const cmGetView = () => { try { return localStorage.getItem(CM_VIEW_STORE) === "calm" ? "calm" : "classic"; } catch (e) { return "classic"; } };
+const cmGetView = () => { try { return localStorage.getItem(CM_VIEW_STORE) === "classic" ? "classic" : "calm"; } catch (e) { return "calm"; } };
 const cmSaveView = (v) => { try { localStorage.setItem(CM_VIEW_STORE, v); } catch (e) {} };
 const CM = {
   view: (() => { const q = params.get("view"); if (q === "calm" || q === "classic") { cmSaveView(q); return q; } return cmGetView(); })(),
