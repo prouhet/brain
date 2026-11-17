@@ -214,6 +214,16 @@
   .rl .r b { min-width:74px; font-weight:600; }
   .rl .r .t { color:var(--dim); font-size:13px; flex:1 1 100%; overflow-wrap:anywhere; }
   .rnote { font-size:13.5px; color:var(--dim); white-space:pre-wrap; overflow-wrap:anywhere; max-height:150px; overflow:auto; padding:9px 11px; background:var(--surface2); border-radius:8px; margin-top:6px; }
+  .takeas { margin-bottom:14px; }
+  .takeas .lbl { margin:0 0 2px; }
+  .takeas .hint { margin:6px 0 0; }
+  .takeas.busy { opacity:.6; pointer-events:none; }
+  .vianote { font-size:13.5px; color:var(--dim); margin:0 0 10px; overflow-wrap:anywhere; }
+  .vianote.warn { color:var(--warn); }
+  .rl .r .to { color:var(--dim); }
+  .rl .r .cv { font-weight:600; }
+  .pill.etf { background:var(--surface2); color:var(--dim); }
+  .setup .etfs { display:block; font-size:12.5px; margin-top:5px; color:var(--dim); overflow-wrap:anywhere; }
   .blocked { margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--warn-dim); border:1px solid var(--line2); font-size:14px; }
   .blocked ul { padding-left:18px; } .blocked li { margin:3px 0; }
   .form { display:grid; gap:14px; }
@@ -325,6 +335,9 @@
           <li>A short entry, a gap or a thin market can fill worse than any number shown here.</li>
           <li>The price line on each setup (✕ stop, ▼ entry, ◆ price now, T1… targets) and its RR are the same ones the hourly RSOTC setup alerts show. The date on each setup is the day Randy first posted or showed it, as logged by those alerts; a video can be logged a day after it came out.</li>
           <li>Where Randy gave no stop, the page can show estimates: your own percent from his entry, and for each firm target the farthest stop that still leaves 2:1 (his rule, which he treats as a maximum). They're marked as estimates, appear only as buttons you tap, and are never filled in for you.</li>
+          <li>Shorts, and ideas on a futures contract or an index, can be taken as an ETF you buy: SQQQ, QID or PSQ for a QQQ short, SCO for a crude short, SOXS or SSG for a SOXX short, a bear fund for a single stock. Buying one is an ordinary long order, so it needs no margin account. Pick one under "Take it as" in the setup.</li>
+          <li>For an ETF, Randy's levels are converted with today's two prices: the fund's level is its price × (1 + its multiple × the underlying's percent change from now to Randy's level). That is a straight-line estimate. They are marked as estimates, appear only as buttons you tap, and are never filled in for you. Inverse and leveraged funds reset every day, so over more than a day they can drift well away from their multiple. Where a fund doesn't follow its underlying in a straight line (the VIX funds) or is only a basket the idea belongs to, the levels aren't converted and you enter your own.</li>
+          <li>An ETF plan stays tied to Randy's setup, so what he changes still shows. When it fills, the trade goes into your open trades under the ETF's own ticker, not as a copy of his setup.</li>
         </ul>
       </details>
     </section>
@@ -565,8 +578,11 @@ const GROUPS = [
   { key: "ready", title: "Ready to plan", sub: "Randy gave an entry, a stop and a target, and this account can place it.", open: true },
   { key: "estimate", title: "Ready to plan with an estimated stop", sub: "Randy gave an entry and a target but no stop. Open one to use an estimate (marked as one) or enter your own.", open: true },
   { key: "needs", title: "Needs your levels", sub: "Randy left something out. You can still plan it by entering the missing number yourself.", open: true },
-  { key: "blocked", title: "Can't be placed here", sub: "Shown for reference only.", open: false },
+  { key: "etf", title: "Can be placed as an ETF", sub: "Shorts and futures ideas this account can't place as Randy has them. Open one and take it as an ETF you buy (SQQQ for a QQQ short, SCO for a crude short, a bear fund for a stock short). His levels are converted to the fund as estimates.", open: true },
+  { key: "blocked", title: "Can't be placed here", sub: "No ETF stand-in for these. Shown for reference only.", open: false },
 ];
+const levText = (n) => (n < 0 ? "−" : "") + Math.abs(n) + "×";
+const etfList = (vs) => vs.map((v) => `${v.t} ${levText(v.lev)}`).join(" · ");
 function setupCard(s) {
   const bits = [];
   if (s.price != null) bits.push(h("span", { class: "num" }, "Now " + px(s.price)));
@@ -575,7 +591,7 @@ function setupCard(s) {
   else if (s.group === "estimate" && s.est && s.est.pct) bits.push(h("span", { class: "num est-line" }, "Est. stop " + px(s.est.pct.price)));
   const nt = s.randy.targets.filter((t) => t.price != null && !t.hit).length;
   if (nt) bits.push(plural(nt, "target"));
-  const l3 = s.plan ? `Your plan: ${STATE_LABEL[s.plan.state] || s.plan.state}` : s.group === "blocked" ? (s.placeable.blockers[0] || "") : s.group === "estimate" && s.est && s.est.pct ? `Randy gave no stop. Estimate ${px(s.est.pct.price)} (${s.est.pct.label}), not his.` : s.missing.length ? `Randy hasn't given: ${s.missing.join(", ")}` : "";
+  const l3 = s.plan ? `Your plan: ${STATE_LABEL[s.plan.state] || s.plan.state}${s.plan.etf ? ", as " + s.plan.etf : ""}` : s.group === "blocked" ? (s.placeable.blockers[0] || "") : s.group === "etf" ? "Can't be placed as Randy has it. Take it as an ETF you buy instead." : s.group === "estimate" && s.est && s.est.pct ? `Randy gave no stop. Estimate ${px(s.est.pct.price)} (${s.est.pct.label}), not his.` : s.missing.length ? `Randy hasn't given: ${s.missing.join(", ")}` : "";
   const rec = recDate(s), L = S.extras ? parseLadder((S.extras[s.id] || {}).ladder) : null;
   const rrText = L && L.rr && !/^—/.test(L.rr) ? "RR " + L.rr : "";
   return h("button", { type: "button", class: "setup", data: { id: s.id, ticker: s.ticker }, "aria-label": `${s.ticker} ${dirWord(s.direction)}${rec ? ". Recommended " + dayShort(rec.first) : ""}. Open` },
@@ -585,7 +601,8 @@ function setupCard(s) {
     L && L.line ? h("span", { class: "rrl" }, rrText) : null,
     L && L.line ? h("span", { class: "ladder", role: "img", "aria-label": ladderLabel(L) }, glyphs(L.line)) : null,
     L && L.warn ? h("span", { class: "lwarn" }, L.warn) : null,
-    l3 ? h("span", { class: "l3" }, l3) : null);
+    l3 ? h("span", { class: "l3" }, l3) : null,
+    s.vehicles && s.vehicles.length && !s.plan ? h("span", { class: "etfs" }, "ETF versions: " + etfList(s.vehicles)) : null);
 }
 function renderSetups() {
   const stats = clear($("#setupStats")), list = clear($("#setupList"));
@@ -622,10 +639,10 @@ $("#setupList").addEventListener("click", (e) => {
 
 // ═══ Setup sheet ══════════════════════════════════════════════
 const sheet = $("#sheet");
-const F = { setup: null, plan: null, targets: [], pick: null, token: 0, timer: 0, calc: null, calcErr: "", saving: false, refs: {}, est: null, estFor: null, estErr: "", estTimer: 0, estTok: 0 };
+const F = { setup: null, base: null, switching: false, plan: null, targets: [], pick: null, token: 0, timer: 0, calc: null, calcErr: "", saving: false, refs: {}, est: null, estFor: null, estErr: "", estTimer: 0, estTok: 0 };
 function closeSheets() { for (const d of [sheet, $("#ask")]) if (d.open) d.close(); }
 $("#sheetX").onclick = () => sheet.close();
-sheet.addEventListener("close", () => { clearTimeout(F.timer); clearTimeout(F.estTimer); F.token++; F.estTok++; F.setup = null; F.est = null; F.estFor = null; F.estErr = ""; });
+sheet.addEventListener("close", () => { clearTimeout(F.timer); clearTimeout(F.estTimer); F.token++; F.estTok++; F.setup = null; F.base = null; F.est = null; F.estFor = null; F.estErr = ""; });
 sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.close(); });
 
 // Fills the date line and the "where it stands" box in the open sheet (and again if the data arrives after it opened).
@@ -647,7 +664,7 @@ function fillSheetExtras() {
   if (L.info.length) box.append(h("div", { class: "lchips" }, L.info.map((t) => h("span", null, glyphs(t)))));
   if (L.warn) box.append(h("span", { class: "lwarn" }, L.warn));
   box.append(h("p", { class: "lnote" }, "Stop on the left, Randy's targets on the right. ◆ is the price now; ▼ is the entry or trigger. RR is the reward ÷ risk on Randy's levels (\"now\" is from today's price). Same line as the hourly RSOTC setup alerts."));
-  host.append(h("span", { class: "lbl" }, "Where it stands"), box);
+  host.append(h("span", { class: "lbl" }, s.via ? `Where it stands on ${s.via.underlying}` : "Where it stands"), box);
 }
 
 function randyLevels(s) {
@@ -664,46 +681,92 @@ function randyLevels(s) {
   return [box, r.notes ? h("div", { class: "rnote" }, r.notes) : null, r.last_event ? h("p", { class: "hint", style: "margin-top:8px" }, "Latest from Randy: " + r.last_event) : null];
 }
 
-function openSetup(s, plan) {
+// An ETF view of a setup: Randy's own levels on his ticker, each with the converted level on the ETF beside it.
+function viaLevels(s) {
+  const v = s.via, o = v.randy, c = s.randy, rows = [];
+  const cv = (x) => (v.converted ? (x != null ? h("span", { class: "cv num" }, "≈ " + px(x)) : h("span", { class: "to" }, "can't convert")) : null);
+  const row = (k, orig, conv, t) => h("div", { class: "r" }, h("b", null, k), h("span", { class: "num" }, orig), v.converted ? h("span", { class: "to" }, "→") : null, conv, t ? h("span", { class: "t" }, t) : null);
+  rows.push(row("Entry", o.entry != null ? px(o.entry) : "not given", o.entry != null ? cv(c.entry) : null, o.entry_note || (s.randy.entry_note)));
+  rows.push(row("Stop", o.stop != null ? px(o.stop) : "not given", o.stop != null ? cv(c.stop) : null, s.randy.stop_note));
+  if (o.invalidation != null) rows.push(row("Invalidation", px(o.invalidation), cv(c.invalidation), "Randy's level where the idea is wrong."));
+  for (const t of o.targets) {
+    const ct = c.targets.find((x) => x.label === t.label);
+    const val = t.price != null ? px(t.price) + (t.zone ? ` (zone ${px(t.zone[0])}–${px(t.zone[1])})` : "") : "no price (a drawn line)";
+    rows.push(row(t.label, val + (t.hit ? " · hit " + t.hit : "") + (t.potential ? " · possible" : ""), t.price != null ? cv(ct ? ct.price : null) : null, t.note));
+  }
+  return [h("div", { class: "rl", id: "viaLevels" }, rows)];
+}
+// "Take it as": Randy's trade as he has it, or one of the ETFs that stand in for it. A fund is a plain buy, so it needs no margin account.
+function takeAsRow(base, via) {
+  if (!base || !base.vehicles || !base.vehicles.length) return null;
+  const chips = h("div", { class: "chips", role: "group", "aria-label": "Take it as" });
+  chips.append(h("button", { type: "button", class: "chip", id: "takeDirect", "aria-pressed": via ? "false" : "true", onclick: () => { if (via) openSetup(base, null); } }, `${base.ticker} ${dirWord(base.direction)}, as Randy has it`));
+  for (const v of base.vehicles) {
+    chips.append(h("button", { type: "button", class: "chip", id: "take_" + v.t, "aria-pressed": via && via.t === v.t ? "true" : "false", title: v.name, onclick: () => pickVehicle(v.t) }, `${v.t} ${levText(v.lev)}`));
+  }
+  const hint = via ? `${via.name}. Buying it is an ordinary long order: no margin account and no short sale.`
+    : base.placeable && !base.placeable.ok ? "Can't be placed as Randy has it here. Pick an ETF to take it that way." : "Or take it as an ETF: you buy the fund instead of selling short.";
+  return h("div", { class: "takeas", id: "takeAs" }, h("span", { class: "lbl" }, "Take it as"), chips, h("p", { class: "hint", id: "takeHint" }, hint));
+}
+async function pickVehicle(t) {
+  const base = F.base; if (!base || F.switching) return;
+  F.switching = true; const row = $("#takeAs"); if (row) row.classList.add("busy");
+  try {
+    const r = await api("vehicle", { setup_id: base.id, vehicle: t });
+    if (sheet.open && F.base === base) openSetup(r.setup, null, base);
+  } catch (e) { if (e.status !== 401) failToast(e); }
+  finally { F.switching = false; const r2 = $("#takeAs"); if (r2) r2.classList.remove("busy"); }
+}
+
+function openSetup(s, plan, base) {
+  const via = s.via || null;
+  F.base = via ? (base || F.base) : s;
   F.setup = s; F.plan = plan; F.calc = null; F.calcErr = ""; F.saving = false; F.token++;
   F.targets = s.randy.targets.filter((t) => t.price != null && !t.hit);
   F.pick = null; F.est = null; F.estFor = null; F.estErr = ""; clearTimeout(F.estTimer); F.estTok++;
   const body = clear($("#sheetBody")), foot = clear($("#sheetFoot"));
   $("#sheetTitle").textContent = `${s.ticker} ${dirWord(s.direction)}`;
   const sub = clear($("#sheetSub"));
-  sub.append(`Randy has it as ${s.status}${s.tf ? ", " + s.tf : ""}. ` + (s.price != null ? `Price now ${px(s.price)} (${S.board ? S.board.price_note : ""}).` : "No price right now."));
+  if (via) sub.append(`Randy's ${via.underlying} ${dirWord(via.underlying_dir)}, taken as ${via.name}. He has it as ${s.status}${s.tf ? ", " + s.tf : ""}. ` + (s.price != null ? `${s.ticker} is ${px(s.price)} now${via.underlying_price != null ? `, ${via.underlying} ${px(via.underlying_price)}` : ""} (${S.board ? S.board.price_note : ""}).` : `No price for ${s.ticker} right now.`));
+  else sub.append(`Randy has it as ${s.status}${s.tf ? ", " + s.tf : ""}. ` + (s.price != null ? `Price now ${px(s.price)} (${S.board ? S.board.price_note : ""}).` : "No price right now."));
   if (safeUrl(s.randy.link)) sub.append(" ", h("a", { href: safeUrl(s.randy.link), target: "_blank", rel: "noopener noreferrer" }, "Randy's post ↗"));
   sub.append(h("div", { class: "whenline", id: "sheetWhen" }));
+  if (!plan && !s.plan) { const ta = takeAsRow(F.base, via); if (ta) body.append(ta); }
   body.append(h("div", { id: "ladderHost" }));
-  body.append(h("span", { class: "lbl" }, "Randy's levels"), ...randyLevels(s).filter(Boolean));
+  if (via) {
+    body.append(h("span", { class: "lbl" }, `Randy's levels on ${via.underlying}${via.converted ? ", converted to " + via.t : ""}`), ...viaLevels(s));
+    if (s.randy.notes) body.append(h("div", { class: "rnote" }, s.randy.notes));
+    body.append(h("p", { class: "vianote", id: "viaWords", style: "margin-top:10px" }, via.words));
+    if (via.cautions.length) body.append(h("p", { class: "vianote warn", id: "viaCaution" }, via.cautions.join(" ")));
+  } else body.append(h("span", { class: "lbl" }, "Randy's levels"), ...randyLevels(s).filter(Boolean));
   F.refs = {};
   fillSheetExtras();
 
   if (s.plan && !plan) {
-    body.append(h("div", { class: "blocked" }, h("b", null, `You already have a plan on this (${(STATE_LABEL[s.plan.state] || s.plan.state).toLowerCase()}). `), "Open it under My plans."));
+    body.append(h("div", { class: "blocked" }, h("b", null, `You already have a plan on this (${(STATE_LABEL[s.plan.state] || s.plan.state).toLowerCase()}${s.plan.etf ? ", as " + s.plan.etf : ""}). `), "Open it under My plans."));
     foot.append(h("button", { type: "button", class: "btn ghost", onclick: () => sheet.close() }, "Close"), h("button", { type: "button", class: "btn grow", onclick: () => { sheet.close(); setTab("plans"); } }, "Open My plans"));
     if (!sheet.open) sheet.showModal(); return;
   }
   if (!s.placeable.ok) {
-    body.append(h("div", { class: "blocked", id: "blockedBox" }, h("b", null, "This can't be placed from here."), h("ul", null, s.placeable.blockers.map((x) => h("li", null, x)))));
+    body.append(h("div", { class: "blocked", id: "blockedBox" }, h("b", null, via ? "This can't be placed from here." : s.vehicles && s.vehicles.length ? "This can't be placed as Randy has it." : "This can't be placed from here."), h("ul", null, s.placeable.blockers.map((x) => h("li", null, x))), !via && s.vehicles && s.vehicles.length ? h("p", { style: "margin-top:6px" }, "Pick an ETF under “Take it as” above to plan it that way.") : null));
     foot.append(h("button", { type: "button", class: "btn grow", onclick: () => sheet.close() }, "Close"));
     if (!sheet.open) sheet.showModal(); return;
   }
   if (s.placeable.notes.length) body.append(h("ul", { class: "msgs warn" }, s.placeable.notes.map((x) => h("li", null, x))));
 
   // ---- the form
-  const entryV = plan ? String(plan.entry) : s.randy.entry != null ? String(s.randy.entry) : "";
+  const entryV = plan ? String(plan.entry) : !via && s.randy.entry != null ? String(s.randy.entry) : "";
   const stopV = plan ? String(plan.stop) : "";
   const entry = h("input", { type: "text", inputmode: "decimal", id: "fEntry", value: entryV, placeholder: "Entry price", autocomplete: "off" });
   const stop = h("input", { type: "text", inputmode: "decimal", id: "fStop", value: stopV, placeholder: "Your stop price", autocomplete: "off" });
   const entryChips = h("div", { class: "chips" });
-  if (s.randy.entry != null) entryChips.append(h("button", { type: "button", class: "chip", onclick: () => setField(entry, s.randy.entry) }, `Randy's entry ${px(s.randy.entry)}`));
+  if (s.randy.entry != null) entryChips.append(h("button", { type: "button", class: "chip", id: via ? "chipEntry" : null, onclick: () => setField(entry, s.randy.entry) }, via ? `Randy's entry, converted ≈ ${px(s.randy.entry)}` : `Randy's entry ${px(s.randy.entry)}`));
   if (s.price != null) entryChips.append(h("button", { type: "button", class: "chip", id: "chipNow", onclick: () => setField(entry, s.price) }, `Price now ${px(s.price)}`));
   const stopChips = h("div", { class: "chips" });
-  if (s.randy.stop != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipStop", onclick: () => setField(stop, s.randy.stop) }, `Randy's stop ${px(s.randy.stop)}`));
-  if (s.randy.invalidation != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipInval", onclick: () => setField(stop, s.randy.invalidation) }, `Randy's invalidation ${px(s.randy.invalidation)}`));
+  if (s.randy.stop != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipStop", onclick: () => setField(stop, s.randy.stop) }, via ? `Randy's stop, converted ≈ ${px(s.randy.stop)}` : `Randy's stop ${px(s.randy.stop)}`));
+  if (s.randy.invalidation != null) stopChips.append(h("button", { type: "button", class: "chip", id: "chipInval", onclick: () => setField(stop, s.randy.invalidation) }, via ? `Randy's invalidation, converted ≈ ${px(s.randy.invalidation)}` : `Randy's invalidation ${px(s.randy.invalidation)}`));
   const noStop = s.randy.stop == null;
-  const stopHint = noStop ? "Randy hasn't given a stop on this one. Tap an estimate below (marked as one), or enter your own." : "Your stop is your call. Tap Randy's number to use it, or type yours.";
+  const stopHint = noStop ? (via && !via.converted ? `Randy's levels aren't converted for ${via.t}. Tap an estimate below (marked as one), or enter your own from its chart.` : "Randy hasn't given a stop on this one. Tap an estimate below (marked as one), or enter your own.") : via ? "Your stop is your call. Tap the converted number to use it, or type yours." : "Your stop is your call. Tap Randy's number to use it, or type yours.";
   const estBox = noStop ? h("div", { class: "est", id: "estBox", "aria-live": "polite" }) : null;
   if (noStop && s.randy.entry != null && entryV === String(s.randy.entry) && s.est) { F.est = s.est; F.estFor = s.randy.entry; }
 
@@ -713,7 +776,7 @@ function openSetup(s, plan) {
     const rr = h("span", { class: "rr" }, ""), gain = h("span", { class: "gain" }, ""), bad = h("span", { class: "bad", hidden: true });
     const radio = h("input", { type: "radio", name: "tgt", value: String(i), "aria-label": `${t.label} ${px(t.price)}` });
     const row = h("label", { class: "trow", data: { i: String(i) } }, radio,
-      h("span", { class: "main" }, h("b", null, `${t.label} ${px(t.price)}`), t.zone ? h("small", null, `Zone ${px(t.zone[0])}–${px(t.zone[1])}, entered at the near edge`) : null, t.potential ? h("small", null, "Randy marked this one as possible") : null),
+      h("span", { class: "main" }, h("b", null, via ? `${t.label} ≈ ${px(t.price)}` : `${t.label} ${px(t.price)}`), via ? h("small", null, (() => { const o = via.randy.targets.find((x) => x.label === t.label); return o && o.price != null ? `Randy's ${via.underlying} ${t.label}: ${px(o.price)}, converted` : "Converted"; })()) : null, t.zone ? h("small", null, `Zone ${px(t.zone[0])}–${px(t.zone[1])}, entered at the near edge`) : null, t.potential ? h("small", null, "Randy marked this one as possible") : null),
       h("span", { class: "st" }, rr, " ", gain), bad);
     radio.addEventListener("change", () => { F.pick = i; syncPick(); schedule(0); });
     F.refs["t" + i] = { row, rr, gain, bad, radio };
@@ -740,7 +803,7 @@ function openSetup(s, plan) {
       h("div", null, h("label", { class: "fld", for: "fEntry" }, "Entry price", entry), entryChips),
       h("div", null, h("label", { class: "fld", for: "fStop" }, "Stop price", stop, h("span", { class: "hint" }, stopHint)), stopChips, estBox),
       h("div", null, h("span", { class: "lbl", style: "margin-top:0" }, "Target"),
-        F.targets.length ? null : h("p", { class: "hint", style: "margin-bottom:8px" }, "Randy hasn't given a target with a price. Enter your own."),
+        F.targets.length ? null : h("p", { class: "hint", style: "margin-bottom:8px" }, via && !via.converted ? `Enter your own target from ${via.t}'s chart.` : "Randy hasn't given a target with a price. Enter your own."),
         tbox, h("p", { class: "hint", id: "tHint" }, F.targets.length ? "Pick one, or use your own. Nothing is picked for you." : "")),
       h("details", { class: "more" }, h("summary", null, "More: shares and order type"),
         h("div", { class: "form" },
@@ -778,7 +841,7 @@ async function loadEst() {
   const tok = ++F.estTok;
   if (!(entry > 0)) { F.est = null; F.estFor = null; F.estErr = ""; renderEst(); return; }
   try {
-    const r = await api("estimates", { setup_id: F.setup.id, entry });
+    const r = await api("estimates", { setup_id: F.setup.id, entry, ...(F.setup.via ? { vehicle: F.setup.via.t, anchor: F.setup.via.anchor || undefined } : {}) });
     if (tok !== F.estTok || !F.setup) return;
     F.est = r.applies ? r.estimates : null; F.estFor = entry; F.estErr = "";
   } catch (e) {
@@ -825,6 +888,7 @@ function readForm() {
   if (target != null && !Number.isNaN(target)) body.target = target;
   if (shares != null && !Number.isNaN(shares)) body.shares = shares;
   if (F.refs.etype.value !== "auto") body.entry_type = F.refs.etype.value;
+  if (F.setup.via) { body.vehicle = F.setup.via.t; if (F.setup.via.anchor) body.anchor = F.setup.via.anchor; }
   return { body, entry, stop, target, shares };
 }
 function schedule(ms = 350) { clearTimeout(F.timer); F.timer = setTimeout(runCalc, ms); renderResults(); }
@@ -885,10 +949,12 @@ function renderResults() {
       if (sz.shares == null && sz.needs) { box.append(h("div", { class: "banner info", id: "rNeeds" }, h("span", null, sz.needs), h("button", { type: "button", class: "btn sm", onclick: () => { sheet.close(); setTab("account"); } }, "My account"))); why = sz.needs; }
       if (c.entry_words) box.append(h("div", { class: "entrywords", id: "rEntry" }, h("b", null, c.entry_type ? c.entry_type[0].toUpperCase() + c.entry_type.slice(1) + " entry. " : ""), c.entry_words));
       if (c.warnings.length) box.append(h("ul", { class: "msgs warn", id: "rWarn" }, c.warnings.map((x) => h("li", null, x))));
-      if (c.stop_basis_text && String(c.stop_basis).startsWith("estimate")) box.append(h("p", { class: "stopsrc is-est", id: "rBasis" }, `Stop source: ${c.stop_basis_text}. Randy gave no stop on this setup, so check it against the chart before you use it.`));
+      const sv = F.setup.via;
+      if (c.stop_basis_text && String(c.stop_basis).startsWith("converted")) box.append(h("p", { class: "stopsrc is-est", id: "rBasis" }, `Stop source: ${c.stop_basis_text}. Check it against the ${c.ticker} chart before you use it.`));
+      else if (c.stop_basis_text && String(c.stop_basis).startsWith("estimate")) box.append(h("p", { class: "stopsrc is-est", id: "rBasis" }, sv && sv.randy.stop != null ? `Stop source: ${c.stop_basis_text}. Randy's stop isn't converted for ${sv.t}, so check it against the chart before you use it.` : `Stop source: ${c.stop_basis_text}. Randy gave no stop on this setup, so check it against the chart before you use it.`));
       if (!c.placeable.ok) { box.append(h("ul", { class: "msgs err" }, c.placeable.blockers.map((x) => h("li", null, x)))); why = c.placeable.blockers[0]; }
       else if (f.target == null || Number.isNaN(f.target)) why = why || "Pick a target.";
-      if (c.ticket) box.append(ticketView(c.ticket, c.cautions));
+      if (c.ticket) box.append(ticketView(c.ticket, sv ? c.cautions.filter((x) => !sv.cautions.includes(x)) : c.cautions));
       else if (!why) why = "Pick a target.";
     }
   }
@@ -922,7 +988,7 @@ async function savePlan() {
   try {
     await api("plan_save", body);
     sheet.close();
-    toast(F.plan ? "Plan updated." : "Plan saved. It's under My plans.", { action: () => setTab("plans"), label: "View" });
+    toast(F.plan ? "Plan updated." : F.setup && F.setup.via ? `Plan saved as ${F.setup.via.t}. It's under My plans.` : "Plan saved. It's under My plans.", { action: () => setTab("plans"), label: "View" });
     await Promise.all([loadPlans(), loadBoard()]);
   } catch (e) {
     if (e.status === 401) return;
@@ -984,7 +1050,9 @@ function planCard(p) {
   const card = h("article", { class: "card plan", data: { id: p.id, state: p.state, ticker: p.ticker } });
   card.append(h("div", { class: "ctop" }, h("h3", null, p.ticker), h("span", { class: "pill " + dirWord(p.direction) }, dirWord(p.direction)), h("span", { class: "pill st" }, STATE_LABEL[p.state] || p.state),
     p.randy_status && !["open"].includes(p.randy_status) ? h("span", { class: "pill" }, "Randy: " + p.randy_status) : null,
+    p.vehicle ? h("span", { class: "pill etf", title: p.vehicle.words }, `ETF for ${p.vehicle.underlying} ${dirWord(p.vehicle.underlying_dir)}`) : null,
     p.setup_id == null ? h("span", { class: "pill warn" }, "Randy's setup is gone") : null));
+  if (p.vehicle) card.append(h("p", { class: "vianote", style: "margin:8px 0 0" }, p.vehicle.words + (p.vehicle.cautions.length ? " " + p.vehicle.cautions.join(" ") : "")));
   const cells = [];
   if (p.state === "filled" || p.state === "closed") {
     cells.push(lvCell(p.direction === "short" ? "Sold short at" : "Bought at", px(p.fill_price), plural(p.fill_shares, "share")));
@@ -993,7 +1061,7 @@ function planCard(p) {
   if (p.state === "closed") cells.push(lvCell("Exit", px(p.exit_price), p.exit_reason ? "by " + p.exit_reason : ""));
   else cells.push(lvCell("Shares", String(p.state === "filled" ? p.fill_shares : p.shares), p.state === "filled" ? (p.at_risk != null ? `risk ${usd(p.at_risk)} at the stop` : "") : `risk ${usd(p.risk_dollars)} at the stop`));
   card.append(h("div", { class: "lv" }, cells));
-  if (p.stop_basis_text && String(p.stop_basis).startsWith("estimate")) card.append(h("div", { class: "stopsrc is-est", id: "pBasis" }, `Stop source: ${p.stop_basis_text}.`));
+  if (p.stop_basis_text && (String(p.stop_basis).startsWith("estimate") || String(p.stop_basis).startsWith("converted"))) card.append(h("div", { class: "stopsrc is-est", id: "pBasis" }, `Stop source: ${p.stop_basis_text}.`));
   if (p.state === "closed") {
     card.append(h("div", { class: "live" }, h("b", { class: p.realized >= 0 ? "gainc" : "lossc" }, usdS(p.realized)), p.realized_pct != null ? ` (${pctS(p.realized_pct)})` : "", p.closed_at ? ` · closed ${dateShort(p.closed_at)}` : ""));
   } else if (live && p.price != null) {
@@ -1008,7 +1076,7 @@ function planCard(p) {
     card.append(h("div", { class: "live" }, bits));
   }
   if (live && pastStop(p)) card.append(h("div", { class: "alert" }, h("b", null, "The price is at or past your stop. "), p.state === "filled" ? "If your stop order is in at Schwab, check whether it filled." : "A stop order placed now would trigger at once."));
-  if (p.changes.length) card.append(h("div", { class: "chg" }, h("b", null, "Randy changed things since you made this plan"), h("ul", null, p.changes.map((x) => h("li", null, x))), h("div", { style: "margin-top:4px;color:var(--dim)" }, "Check his post, then decide whether to keep, edit or skip the plan. Any change to the orders is made at Schwab, by you.")));
+  if (p.changes.length) card.append(h("div", { class: "chg" }, h("b", null, p.vehicle ? `Randy changed his ${p.vehicle.underlying} setup since you made this plan` : "Randy changed things since you made this plan"), h("ul", null, p.changes.map((x) => h("li", null, x))), h("div", { style: "margin-top:4px;color:var(--dim)" }, "Check his post, then decide whether to keep, edit or skip the plan. Any change to the orders is made at Schwab, by you.")));
   if (p.note) card.append(h("div", { class: "pnote" }, p.note));
   if ((p.state === "planned" || p.state === "placed") && p.ticket) {
     card.append(h("details", { class: "steps" }, h("summary", null, "Schwab steps"), p.entry_words ? h("p", { class: "hint", style: "font-size:13px;color:var(--dim);margin:0 0 6px" }, p.entry_words) : null, ticketView(p.ticket, null)));
@@ -1097,9 +1165,17 @@ async function editNote(p) {
   if (!v) return;
   try { await api("plan_note", { id: p.id, note: v.note }); toast("Note saved."); await loadPlans(); } catch (e) { if (e.status === 401) return; failToast(e); }
 }
-function editPlan(p) {
+async function editPlan(p) {
   const s = S.board && S.board.setups.find((x) => x.id === p.setup_id);
   if (!s) { toast("Randy's setup isn't open anymore, so this plan can't be edited. Skip it or delete it.", { bad: true }); return; }
+  if (p.vehicle) {
+    // An ETF plan opens on the same conversion it was made with, so the levels it shows match what was saved.
+    try {
+      const r = await api("vehicle", { setup_id: p.setup_id, vehicle: p.vehicle.t, anchor: p.vehicle.p_u != null && p.vehicle.p_v != null ? { p_u: p.vehicle.p_u, p_v: p.vehicle.p_v } : undefined });
+      openSetup({ ...r.setup, plan: null }, p, s);
+    } catch (e) { if (e.status !== 401) failToast(e); }
+    return;
+  }
   openSetup({ ...s, plan: null }, p);
 }
 
