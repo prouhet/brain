@@ -500,6 +500,78 @@
   #toast.show { display:block; }
   .empty { padding:40px 0; color:var(--dim); }
   .empty p + p { margin-top:8px; }
+  /* ── Calm view (opt-in; Classic is unchanged) ── */
+  #viewbar { margin:12px 0 0; display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+  #viewbar[hidden] { display:none; }
+  .cmviewlbl { font-size:12.5px; color:var(--faint); }
+  .cmseg { display:flex; border:1px solid var(--line2); border-radius:999px; overflow:hidden; background:var(--surface); }
+  .cmseg button { font:inherit; font-size:14px; min-height:40px; padding:0 16px; border:0; background:none; color:var(--dim); cursor:pointer; }
+  .cmseg button[aria-pressed=true] { background:var(--teal); color:#fff; font-weight:600; }
+  .cmseg button:focus-visible { outline:2px solid var(--teal); outline-offset:-3px; }
+  .cmseg.wide { margin:14px 0 4px; }
+  .cmseg.wide button { flex:1; }
+  .cmhint { font-size:14px; color:var(--dim); margin:-2px 0 10px; }
+  body.calm .wrap { display:flex; flex-direction:column; }
+  body.calm #viewbar { order:5; } body.calm #yourday { order:10; } body.calm #cm-top { order:11; }
+  body.calm #cm-every { order:20; } body.calm #fitness { order:21; } body.calm #videos { order:22; }
+  body.calm #cm-sunday { order:25; }
+  body.calm #cm-projects { order:30; } body.calm #cm-quick { order:31; } body.calm #cm-thanks { order:32; }
+  body.calm #fromdoreen { order:33; } body.calm #cm-coming { order:34; } body.calm #pastdue { order:35; }
+  body.calm #cm-items { order:40; } body.calm #markets { order:45; }
+  body.calm #asktitle { order:50; } body.calm .wrap > details.ask { order:51; }
+  body.calm #cm-classic { order:58; } body.calm #main { order:59; }
+  body.calm #progress { display:none; }
+  body.calm #main { display:none; } body.calm.showclassic #main { display:block; }
+  body.calm #cm-ahead { order:34; display:none; } body.calm.sunday #cm-ahead { display:block; }
+  body.calm.sunday #cm-projects, body.calm.sunday #cm-quick, body.calm.sunday #cm-coming { display:none; }
+  .cmplain { font-size:15px; padding:4px 0; overflow-wrap:anywhere; }
+  .cmstat { font-size:15px; margin:2px 0; } .cmstat b { color:var(--teal); }
+  .cmrep { padding:2px 0 4px; }
+  .cmlabel { font-size:13px; font-weight:600; color:var(--teal); }
+  .cmask { font-size:15.5px; margin:4px 0 10px; }
+  .cmchoices { display:flex; flex-wrap:wrap; gap:8px; }
+  .cmlesson { font-size:14px; color:var(--dim); margin-top:10px; }
+  .cmtally { font-size:12.5px; color:var(--faint); margin-top:8px; }
+  .cmlink { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:48px; padding:6px 0; border-bottom:1px solid var(--line); color:var(--text); text-decoration:none; }
+  .cmlink:focus-visible { outline:2px solid var(--teal); outline-offset:2px; border-radius:6px; }
+  .cmlink small { display:block; font-size:13px; color:var(--dim); }
+  .cmlink .cmgo { color:var(--teal); font-size:14px; white-space:nowrap; }
+  .cmproj { padding:14px; }
+  .cmphead { display:flex; gap:10px; justify-content:space-between; align-items:flex-start; }
+  .cmptitle { font-weight:600; font-size:16.5px; overflow-wrap:anywhere; }
+  .cmpnow { font-size:14.5px; margin-top:2px; } .cmpnow b { color:var(--teal); font-weight:600; }
+  .cmdate { font-size:12.5px; white-space:nowrap; padding:3px 9px; border-radius:999px; background:var(--teal-dim); color:var(--teal); font-weight:600; }
+  .cmdate.soon { background:rgba(180,83,42,.13); color:var(--warn); }
+  .cmthen { font-size:13.5px; color:var(--dim); margin-top:4px; }
+  .cmgates > summary { cursor:pointer; list-style:none; font-size:13.5px; color:var(--teal); min-height:40px; display:flex; align-items:center; }
+  .cmgates > summary::-webkit-details-marker { display:none; }
+  .cmgates > summary::before { content:"›"; display:inline-block; width:14px; transition:transform .15s; color:var(--faint); }
+  .cmgates[open] > summary::before { transform:rotate(90deg); }
+  .cmstrip { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 6px; }
+  .cmgate { font-size:12.5px; padding:4px 10px; border-radius:999px; border:1px solid var(--line2); color:var(--dim); }
+  .cmgate.now { border-color:var(--teal); background:var(--teal-dim); color:var(--teal); font-weight:600; }
+  .cmgate.done { text-decoration:line-through; opacity:.6; }
+  .cmacts { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .cmitem .title { font-size:15.5px; }
+  .cmmeta { font-size:13px; color:var(--dim); margin-top:2px; }
+  .cmcatlabel { font-size:12px; color:var(--faint); margin-top:2px; }
+  .cmbadge { font-size:11.5px; padding:1px 8px; border-radius:999px; background:var(--surface2); color:var(--dim); margin-left:6px; }
+  .cmcat { padding:8px 14px; }
+  .cmcat > summary { min-height:44px; }
+  .cmmore { display:block; width:100%; margin:6px 0 2px; }
+  .cmsearch { width:100%; font:inherit; font-size:15px; padding:10px 12px; border-radius:10px; border:1px solid var(--line2); background:var(--surface); color:var(--text); margin:2px 0 10px; }
+  .cmsearch:focus-visible { outline:2px solid var(--teal); outline-offset:1px; }
+  .menu .cmmenulabel { font-size:12px; color:var(--faint); padding:6px 12px 2px; }
+  .cmday { font-size:13px; font-weight:600; color:var(--teal); margin:12px 0 0; }
+  .cmday:first-child { margin-top:2px; }
+  .cmsw { padding:10px 0; border-bottom:1px solid var(--line); } .cmsw:last-child { border-bottom:0; }
+  .cmswbtns { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:8px; }
+  @media (min-width:560px) { .cmswbtns { grid-template-columns:repeat(4,auto); justify-content:start; } }
+  .cmswbtns .btn { min-height:40px; padding:0 14px; }
+  .cmswdone { font-size:14px; color:var(--dim); margin-top:6px; }
+  .cmpick { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .cmnote { font-size:13px; color:var(--faint); margin-top:8px; }
+  .cmclassicbtn { width:100%; margin:18px 0 8px; }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
@@ -523,6 +595,7 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
+  <div id="viewbar" hidden></div>
   <div id="yourday"></div>
   <h2 id="asktitle">Ask your Brain</h2>
   <details class="ask" id="ask">
@@ -540,6 +613,16 @@
   <div id="markets"></div>
   <div id="videos"></div>
   <div id="fitness"></div>
+  <div id="cm-top"></div>
+  <div id="cm-every"></div>
+  <div id="cm-sunday"></div>
+  <div id="cm-projects"></div>
+  <div id="cm-quick"></div>
+  <div id="cm-thanks"></div>
+  <div id="cm-coming"></div>
+  <div id="cm-ahead"></div>
+  <div id="cm-items"></div>
+  <div id="cm-classic"></div>
   <main id="main"></main>
 </div>
 
@@ -775,6 +858,7 @@ async function load() {
   pastdueGate();
   fromdoreenGate();
   focusGate();
+  cmGate();
   marketsGate();
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
@@ -804,6 +888,7 @@ async function load() {
   fitness = applySuggestion(padFitness(data.fitness), brief?.fitness_suggestion, DATE === TODAY);
   render();
   renderFitness();
+  cmRender();
 }
 
 function itemHTML(it) {
@@ -1191,7 +1276,7 @@ document.addEventListener("keydown", (e) => {
   const open = document.querySelector(".more.open"); if (!open) return;
   if (e.key === "Escape") { const tg = open.querySelector(".moretoggle"); closeMenus(); tg.focus(); return; }
   if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-    const btns = [...open.querySelectorAll(".menu button[data-act], .menu button[data-fact], .menu button[data-fcact]")]; if (!btns.length) return;
+    const btns = [...open.querySelectorAll(".menu button[data-act], .menu button[data-fact], .menu button[data-fcact], .menu button[data-cmact], .menu button[data-cmmove]")]; if (!btns.length) return;
     const i = btns.indexOf(document.activeElement);
     btns[(i + (e.key === "ArrowDown" ? 1 : -1) + btns.length) % btns.length].focus(); e.preventDefault();
   }
@@ -2182,7 +2267,8 @@ function fcRowHTML(it) {
     </div>${form}
   </div>`;
 }
-function renderFC() {
+function renderFC() { try { renderFC1(); } finally { cmRender(); } }
+function renderFC1() {
   const host = $("#yourday"); if (!host || !FC.started) return;
   if (fcTyping()) { FC.dirty = true; return; }       // a background update never redraws under someone who is typing
   FC.dirty = false;
@@ -2237,6 +2323,382 @@ $("#main").addEventListener("click", async (e) => {
   const el = btn.closest(".item"); const it = el && brief && brief.items.find((i) => i.id === el.dataset.id); if (!it) return;
   await fcFromMain(it, btn.dataset.act);
 });
+
+// ── Calm view ────────────────────────────────────────────────
+// A second way to see the same Brain: your day first, then projects with steps, quick wins, thank-yous owed, what is
+// coming up, and every open item by category. Classic (everything above) is unchanged and one tap away. Today's page only.
+// Lists come from the brief-lanes function; Pinned / Your day / check-offs reuse the brief-focus calls above.
+const CM_FN = FN.replace(/morning-brief$/, "brief-lanes");
+const CM_VIEW_STORE = "brief-view";
+const CM_REFRESH_MS = 5 * 60 * 1000;
+const CM_CAP = 8, CM_SEARCH_MAX = 30;
+const cmGetView = () => { try { return localStorage.getItem(CM_VIEW_STORE) === "calm" ? "calm" : "classic"; } catch (e) { return "classic"; } };
+const cmSaveView = (v) => { try { localStorage.setItem(CM_VIEW_STORE, v); } catch (e) {} };
+const CM = {
+  view: (() => { const q = params.get("view"); if (q === "calm" || q === "classic") { cmSaveView(q); return q; } return cmGetView(); })(),
+  started: false, loaded: false, err: "", d: null, run: 0, at: 0, busy: {}, dirty: false,
+  sunday: null, open: {}, showAll: {}, q: "", done: {}, swept: {}, more: false, skipOpen: false, classic: false, idx: new Map(),
+};
+const CM_HOSTS = ["#cm-top", "#cm-every", "#cm-sunday", "#cm-projects", "#cm-quick", "#cm-thanks", "#cm-coming", "#cm-ahead", "#cm-items", "#cm-classic"];
+const cmOn = () => !!KEY && !!TODAY && DATE === TODAY;
+
+async function cmApi(body) {
+  try {
+    const res = await fetch(`${CM_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+function cmClear() { for (const h of CM_HOSTS) { const el = $(h); if (el) el.innerHTML = ""; } }
+function cmGate() {
+  const on = cmOn();
+  const vb = $("#viewbar"); vb.hidden = !on;
+  const calm = on && CM.view === "calm";
+  document.body.classList.toggle("calm", calm);
+  if (!calm) { CM.started = false; CM.run++; CM.loaded = false; CM.err = ""; CM.d = null; cmClear(); document.body.classList.remove("sunday", "showclassic"); CM.classic = false; renderViewbar(); return; }
+  renderViewbar();
+  if (!CM.started) { CM.started = true; cmRefresh(); }
+  else if (CM.loaded) cmRefreshSoon(3000);   // load() runs after adds and Doreen answers: pick up what changed
+}
+function renderViewbar() {
+  const vb = $("#viewbar"); if (vb.hidden) { vb.innerHTML = ""; return; }
+  vb.innerHTML = `<span class="cmviewlbl" id="cmviewlbl">View</span><div class="cmseg" role="group" aria-labelledby="cmviewlbl">
+    <button type="button" data-cmview="classic" aria-pressed="${CM.view === "classic"}">Classic</button>
+    <button type="button" data-cmview="calm" aria-pressed="${CM.view === "calm"}">Calm</button></div>`;
+}
+async function cmRefresh() {
+  const run = ++CM.run;
+  const r = await cmApi({ action: "list" });
+  if (run !== CM.run) return;
+  CM.at = Date.now();
+  if (r.ok && Array.isArray(r.data.cats)) {
+    CM.d = r.data; CM.err = ""; CM.loaded = true; CM.done = {}; CM.swept = {};
+    if (CM.sunday === null) CM.sunday = r.data.dow === 0;
+  } else if (!CM.loaded) CM.err = (r.data && r.data.error) || "Couldn't load your lists.";
+  cmRender();
+}
+let cmSoonTimer = 0;
+function cmRefreshSoon(ms) { if (!CM.started) return; clearTimeout(cmSoonTimer); cmSoonTimer = setTimeout(() => { if (CM.started && !cmTyping()) cmRefresh(); }, ms || 1500); }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && CM.started && CM.loaded && Date.now() - CM.at > CM_REFRESH_MS && !cmTyping()) cmRefresh();
+});
+function cmTyping() { const a = document.activeElement; return !!(a && a.tagName === "INPUT" && a.classList.contains("cmsearch")); }
+
+// ── small pieces ─────────────────────────────────────────────
+const cmLaneName = (k) => { const l = CM.d && CM.d.lanes.find((x) => x.key === k); return l ? l.name : k; };
+const cmDayIds = () => new Set(FC.loaded ? [...FC.pinned, ...FC.day].filter((x) => !x.done).map((x) => x.id) : []);
+function cmDayLabel(it) {
+  if (it.due_in === null || it.due_in === undefined) return "";
+  const n = it.due_in;
+  return n === 0 ? "Today" : n === 1 ? "Tomorrow" : n > 1 ? shortDate(it.due) : `${shortDate(it.due)} (late)`;
+}
+function cmMeta(it, o) {
+  const bits = [];
+  if (o.ageFirst && it.age >= 14) bits.push(`<div class="cmmeta">${esc(o.ageText(it.age))}</div>`);
+  else if (it.due) bits.push(fcDueHTML(it));
+  else if (it.snooze) bits.push(`<div class="cmmeta">Snoozed until ${esc(shortDate(it.snooze))}</div>`);
+  else if (o.age && it.age >= 14) bits.push(`<div class="cmmeta">${esc(o.ageText ? o.ageText(it.age) : "Added " + fdAge(it.age))}</div>`);
+  if (o.cat) bits.push(`<div class="cmcatlabel">${esc(cmLaneName(it.lane))}</div>`);
+  return bits.join("");
+}
+function cmRowHTML(it, o = {}) {
+  const id = esc(it.id), t = esc(it.title), done = !!CM.done[it.id];
+  const onDay = cmDayIds().has(it.id);
+  const moves = o.move ? (CM.d.lanes || []).filter((l) => l.key !== it.lane).map((l) => `<button type="button" role="menuitem" data-cmmove="${esc(l.key)}" aria-label="Move to ${esc(l.name)}: ${t}">${esc(l.name)}</button>`).join("") : "";
+  const menu = `<div class="more"><button type="button" class="moretoggle" aria-haspopup="menu" aria-expanded="false" aria-label="Actions: ${t}">⋯</button>
+    <div class="menu" role="menu">
+      ${onDay ? "" : `<button type="button" role="menuitem" data-cmact="focus" aria-label="Add to my day: ${t}">Add to my day</button>`}
+      <button type="button" role="menuitem" data-cmact="pin" aria-label="Pin to the top: ${t}">Pin</button>
+      ${moves ? `<hr><div class="cmmenulabel">Move to</div>${moves}` : ""}
+    </div></div>`;
+  return `<div class="item cmitem${done ? " done" : ""}" data-cm="${id}">
+    <div class="row">
+      <button type="button" class="check" data-cmact="check" aria-pressed="${done}" aria-label="${esc(o.checkLabel || "Check off")}: ${t}"><span class="box">${CHECK_SVG}</span></button>
+      <div class="text"><span class="title">${t}</span>${cmMeta(it, o)}${o.dayMark && onDay ? `<div class="cmmeta">On your day</div>` : ""}</div>
+      ${menu}
+    </div></div>`;
+}
+const cmNone = (s) => `<div class="fcempty">${s}</div>`;
+
+// ── Mon–Sat sections ─────────────────────────────────────────
+function segHTML() {
+  return `<div class="cmseg wide" role="group" aria-label="Which days">
+    <button type="button" data-cmday="week" aria-pressed="${!CM.sunday}">Monday to Saturday</button>
+    <button type="button" data-cmday="sun" aria-pressed="${!!CM.sunday}">Sunday</button></div>`;
+}
+function everyHTML(d) {
+  const r = d.rep, w = r.week;
+  const pressed = (k) => r.result === k;
+  return `<h2>Every day</h2><div class="fitcard">
+    <a class="cmlink" href="act.html"><span>Act<small>Your trade setups and orders</small></span><span class="cmgo">Open ›</span></a>
+    <div class="cmrep"><div class="cmlabel" style="margin-top:12px">Marketing rep</div>
+      <p class="cmask">${esc(r.ask)}</p>
+      <div class="cmchoices" role="group" aria-label="How did the ask go?">
+        <button type="button" class="chip" data-cmrep="asked" aria-pressed="${pressed("asked")}">I asked</button>
+        <button type="button" class="chip" data-cmrep="yes" aria-pressed="${pressed("yes")}">Got a yes</button>
+        <button type="button" class="chip" data-cmrep="no" aria-pressed="${pressed("no")}">Got a no</button></div>
+      ${r.lesson ? `<p class="cmlesson">${esc(r.lesson)}</p>` : ""}
+      <p class="cmtally">This week: ${w.asks} of 3 asks · ${w.yes} yes · ${w.no} no</p></div></div>`;
+}
+function dueChip(p) {
+  if (!p.due) return "";
+  const n = p.due_in, soon = n <= 3;
+  const txt = n < 0 ? `Late · ${shortDate(p.due)}` : n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : `Due ${shortDate(p.due)} · ${n} days`;
+  return `<span class="cmdate${soon ? " soon" : ""}">${esc(txt)}</span>`;
+}
+function projCardHTML(p, skipped) {
+  const key = esc(p.key), dayIds = cmDayIds();
+  const avail = p.tasks.filter((t) => !dayIds.has(t.id) && !CM.done[t.id]);
+  const strip = p.gates.map((g) => `<span class="cmgate ${g.state}">${esc(g.name || "Step " + g.n)}${g.state === "done" ? "" : g.open > 1 ? ` · ${g.open}` : ""}</span>`).join("");
+  const rows = p.tasks.map((t) => cmRowHTML({ id: t.id, title: t.title, due: t.due, due_in: t.due_in, lane: "", age: 0, snooze: "" }, { dayMark: true })).join("");
+  const acts = skipped
+    ? `<div class="cmacts"><button type="button" class="btn quiet" data-cmact="unskip">Bring back</button></div>`
+    : `<div class="cmacts"><button type="button" class="btn" data-cmact="projdo"${avail.length ? "" : " disabled"}>${avail.length ? "Do this today" : "On your day"}</button>
+        <button type="button" class="btn quiet" data-cmact="skip">Not today</button></div>`;
+  return `<div class="fitcard cmproj" data-cmp="${key}">
+    <div class="cmphead"><div><div class="cmptitle">${esc(p.name)}</div>${p.now ? `<div class="cmpnow"><b>Now:</b> ${esc(p.now.name || "Step " + p.now.n)}</div>` : ""}</div>${dueChip(p)}</div>
+    ${p.then ? `<div class="cmthen">Then: ${esc(p.then)}</div>` : ""}
+    <details class="cmgates" data-cmopen="proj:${key}"${CM.open["proj:" + p.key] ? " open" : ""}><summary>${p.open} left in ${p.gates.length} steps</summary>
+      <div class="cmstrip">${strip}</div>${rows}</details>
+    ${acts}</div>`;
+}
+function projectsHTML(d) {
+  const skipped = new Set(d.skipped || []);
+  let list = d.projects.filter((p) => !skipped.has(p.key));
+  const skippedList = d.projects.filter((p) => skipped.has(p.key));
+  const picked = list.filter((p) => p.picked), rest = list.filter((p) => !p.picked);
+  const main = picked.length ? picked : list, more = picked.length ? rest : [];
+  let html = `<h2>Pick your next move</h2>`;
+  if (!d.projects.length) return html + `<div class="fitcard">${cmNone("No projects yet. When related tasks are grouped as a project, it shows here with its steps. Ask Claude to group a set of tasks.")}</div>`;
+  html += `<p class="cmhint">One project at a time, one step at a time. Pick what fits today.</p>`;
+  html += main.length ? main.map((p) => projCardHTML(p, false)).join("") : `<div class="fitcard">${cmNone("Nothing left for today. Skipped ones come back tomorrow.")}</div>`;
+  if (more.length) html += `<details class="fitcard cmcat" data-cmopen="more"${CM.open.more ? " open" : ""}><summary><span><span class="chev">›</span> More projects</span><span class="foldmeta">${more.length}</span></summary>${more.map((p) => projCardHTML(p, false)).join("")}</details>`;
+  if (skippedList.length) html += `<details class="fitcard cmcat" data-cmopen="skipped"${CM.open.skipped ? " open" : ""}><summary><span><span class="chev">›</span> Skipped for today · back tomorrow</span><span class="foldmeta">${skippedList.length}</span></summary>${skippedList.map((p) => projCardHTML(p, true)).join("")}</details>`;
+  return html;
+}
+function quickHTML(d, hide) {
+  const list = d.quick.filter((x) => !hide.has(x.id));
+  if (!list.length) return "";
+  return `<h2>Quick wins</h2><p class="cmhint">Short jobs. Do one when you have a few minutes.</p><div class="fitcard">${list.map((x) => cmRowHTML(x, { add: true, age: true })).join("")}</div>`;
+}
+function thanksHTML(d, hide) {
+  const list = d.thanks.filter((x) => !hide.has(x.id));
+  if (!list.length) return "";
+  return `<h2>Thank-yous owed</h2><div class="fitcard">${list.map((x) => cmRowHTML(x, { add: true, age: true, ageFirst: true, checkLabel: "Sent", ageText: (n) => `Waiting ${fdAge(n).replace(" ago", "")}` })).join("")}</div>`;
+}
+function comingHTML(d, hide) {
+  const list = d.coming.filter((x) => !hide.has(x.id));
+  if (!list.length) return "";
+  let day = "", html = "";
+  for (const x of list) {
+    if (x.due !== day) { day = x.due; html += `<div class="cmday">${esc(cmDayLabel(x))}</div>`; }
+    html += cmRowHTML({ ...x, due: "", due_in: null }, { add: true });
+  }
+  return `<h2>Coming up · next 10 days</h2><div class="fitcard">${html}</div>`;
+}
+
+// ── All your items ───────────────────────────────────────────
+function catHTML(c, forceOpen) {
+  const shown = CM.showAll[c.key] ? c.items : c.items.slice(0, CM_CAP);
+  const body = c.items.length ? shown.map((x) => cmRowHTML(x, { add: false, age: true, move: true })).join("") : cmNone("Nothing here.");
+  const more = c.items.length > shown.length ? `<button type="button" class="btn quiet cmmore" data-cmact="showall" data-cmcat="${esc(c.key)}">Show all ${c.items.length}</button>` : "";
+  const badge = c.badge ? `<span class="cmbadge">${esc(c.badge)}</span>` : "";
+  return `<details class="fitcard cmcat" data-cmopen="cat:${esc(c.key)}"${CM.open["cat:" + c.key] ? " open" : ""}><summary><span><span class="chev">›</span> ${esc(c.name)}${badge}</span><span class="foldmeta">${c.count}</span></summary>${body}${more}</details>`;
+}
+function cmSearchResults() {
+  const q = CM.q.trim().toLowerCase(); if (!q) return "";
+  const words = q.split(/\s+/);
+  const hits = [];
+  for (const c of CM.d.cats) for (const x of c.items) { const t = x.title.toLowerCase(); if (words.every((w) => t.includes(w))) hits.push(x); }
+  if (!hits.length) return `<div class="fitcard">${cmNone("Nothing matches that.")}</div>`;
+  return `<div class="cmhint">${hits.length} match${hits.length === 1 ? "" : "es"}${hits.length > CM_SEARCH_MAX ? `, showing ${CM_SEARCH_MAX}` : ""}</div><div class="fitcard">${hits.slice(0, CM_SEARCH_MAX).map((x) => cmRowHTML(x, { age: true, move: true, cat: true })).join("")}</div>`;
+}
+function itemsHTML(d) {
+  const q = CM.q.trim();
+  return `<h2>All your items · ${d.counts.open}</h2>
+    <input type="search" class="cmsearch" placeholder="Search all ${d.counts.open} items" aria-label="Search all your items" value="${esc(CM.q)}" autocomplete="off">
+    <div id="cm-res">${q ? cmSearchResults() : d.cats.map((c) => catHTML(c)).join("")}</div>`;
+}
+
+// ── Sunday ───────────────────────────────────────────────────
+function sundayHTML(d) {
+  const w = d.week, r = d.rep.week;
+  const look = `<h2>Look back</h2><div class="fitcard"><div class="cmstat"><b>${w.done}</b> thing${w.done === 1 ? "" : "s"} checked off this week${w.dropped ? ` · ${w.dropped} dropped` : ""}</div>
+    <div class="cmstat">Marketing rep: <b>${r.asks}</b> ask${r.asks === 1 ? "" : "s"} · ${r.yes} yes · ${r.no} no</div></div>`;
+  const picks = d.projects.length
+    ? `<h2>Choose next week's projects</h2><div class="fitcard"><p class="cmhint" style="margin:0 0 4px">Pick up to ${w.pick_max}. Projects you pick show first all week; the rest wait in "More projects".</p>
+        <div class="cmpick">${d.projects.map((p) => `<button type="button" class="chip" data-cmpick="${esc(p.key)}" aria-pressed="${w.pick.includes(p.key)}">${esc(p.name)}</button>`).join("")}</div></div>`
+    : `<h2>Choose next week's projects</h2><div class="fitcard">${cmNone("No projects yet.")}</div>`;
+  const sw = w.sweep.items.length
+    ? `<h2>Sweep</h2><div class="fitcard"><p class="cmhint" style="margin:0 0 4px">Old items nobody has touched in a month. Keep asks again in 30 days; Park moves it to Someday; Drop closes it. ${w.sweep.left ? `${w.sweep.left} more wait for later weeks.` : ""}</p>${w.sweep.items.map(sweepRowHTML).join("")}</div>`
+    : `<h2>Sweep</h2><div class="fitcard">${cmNone("Nothing old enough to sweep.")}</div>`;
+  return look + picks + sw;
+}
+function aheadHTML(d) {
+  const w = d.week;
+  return w.ahead.length
+    ? `<h2>The week ahead</h2><div class="fitcard">${(() => { let day = "", h = ""; for (const x of w.ahead) { if (x.due !== day) { day = x.due; h += `<div class="cmday">${esc(shortDate(x.due))}</div>`; } h += `<div class="cmplain">${esc(x.title)}${x.repeat ? ` <span class="cmmeta">· ${esc(x.repeat)}</span>` : ""}</div>`; } return h; })()}</div>`
+    : `<h2>The week ahead</h2><div class="fitcard">${cmNone("Nothing dated in the next 7 days.")}</div>`;
+}
+function sweepRowHTML(x) {
+  const s = CM.swept[x.id], t = esc(x.title);
+  const dn = s
+    ? `<div class="cmswdone">${esc(s.label)} <button type="button" class="fclink" data-cmact="sw-undo" aria-label="Undo: ${t}">Undo</button></div>`
+    : `<div class="cmswbtns"><button type="button" class="btn quiet" data-cmact="sw-keep" aria-label="Keep: ${t}">Keep</button>
+        <button type="button" class="btn quiet" data-cmact="sw-snooze" aria-label="Snooze a week: ${t}">Snooze a week</button>
+        <button type="button" class="btn quiet" data-cmact="sw-park" aria-label="Park in Someday: ${t}">Park</button>
+        <button type="button" class="btn quiet" data-cmact="sw-drop" aria-label="Drop: ${t}">Drop</button></div>`;
+  return `<div class="cmsw" data-cm="${esc(x.id)}"><div class="title">${t}</div><div class="cmmeta">${esc("Added " + fdAge(x.age))}</div>${dn}</div>`;
+}
+
+// ── draw ─────────────────────────────────────────────────────
+function cmIndex(d) {
+  const m = new Map();
+  const put = (x) => { if (x && x.id && !m.has(x.id)) m.set(x.id, x); };
+  d.cats.forEach((c) => c.items.forEach(put));
+  d.projects.forEach((p) => p.tasks.forEach((t) => put({ ...t, lane: "" })));
+  [...d.quick, ...d.thanks, ...d.coming, ...d.week.sweep.items, ...d.week.ahead].forEach(put);
+  CM.idx = m;
+}
+function cmRender() {
+  if (!CM.started) return;
+  if (cmTyping()) { CM.dirty = true; return; }
+  CM.dirty = false;
+  document.body.classList.toggle("sunday", !!CM.sunday);
+  renderViewbar();
+  const brIn = brief ? brief.items.filter((i) => !i.pushed && !i.extra).length : 0;
+  $("#cm-classic").innerHTML = `<button type="button" class="btn quiet cmclassicbtn" data-cmact="classic" aria-expanded="${CM.classic}">${CM.classic ? "Hide" : "Show"} the classic list${brIn ? ` · ${brIn} items` : ""}</button>`;
+  if (!CM.loaded) {
+    $("#cm-top").innerHTML = CM.err ? `<div class="fitcard"><div class="vempty">${esc(CM.err)} <button class="btn quiet" data-cmact="retry" type="button">Try again</button></div></div>` : `<p class="cmhint">Loading your lists…</p>`;
+    for (const h of CM_HOSTS) if (h !== "#cm-top" && h !== "#cm-classic") $(h).innerHTML = "";
+    return;
+  }
+  const d = CM.d, hide = fdHideSet();
+  cmIndex(d);
+  $("#cm-top").innerHTML = segHTML();
+  $("#cm-every").innerHTML = everyHTML(d);
+  $("#cm-sunday").innerHTML = CM.sunday ? sundayHTML(d) : "";
+  $("#cm-projects").innerHTML = CM.sunday ? "" : projectsHTML(d);
+  $("#cm-quick").innerHTML = CM.sunday ? "" : quickHTML(d, hide);
+  $("#cm-thanks").innerHTML = thanksHTML(d, hide);
+  $("#cm-coming").innerHTML = CM.sunday ? "" : comingHTML(d, hide);
+  $("#cm-ahead").innerHTML = CM.sunday ? aheadHTML(d) : "";
+  $("#cm-items").innerHTML = itemsHTML(d);
+}
+
+// ── actions ──────────────────────────────────────────────────
+const cmFind = (id) => CM.idx.get(id);
+function cmMarkRow(id, want) {
+  document.querySelectorAll(`[data-cm="${id}"]`).forEach((el) => {
+    el.classList.toggle("done", want);
+    const c = el.querySelector(".check"); if (c) c.setAttribute("aria-pressed", String(want));
+  });
+}
+async function cmCheck(id) {
+  const it = cmFind(id); if (!it || CM.busy[id]) return;
+  const want = !CM.done[id];
+  CM.done[id] = want; cmMarkRow(id, want);
+  CM.busy[id] = true;
+  const d = await fcDo(want ? "done" : "undone", id);
+  delete CM.busy[id];
+  if (!d) { CM.done[id] = !want; cmMarkRow(id, !want); return; }
+  if (want) toast(`Checked off: "${fcShort(it.title)}"`);
+  if (fcFind(id)) fcRefresh();
+  cmRefreshSoon();
+}
+async function cmMove(id, lane) {
+  const it = cmFind(id); if (!it || CM.busy["mv" + id]) return;
+  CM.busy["mv" + id] = true;
+  const r = await cmApi({ action: "move", id, lane });
+  delete CM.busy["mv" + id];
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't move it. Try again."); return; }
+  for (const c of CM.d.cats) { const i = c.items.findIndex((x) => x.id === id); if (i >= 0) { c.items.splice(i, 1); c.count = c.items.length; } }
+  const to = CM.d.cats.find((c) => c.key === lane);
+  if (to) { to.items.unshift({ ...it, lane }); to.count = to.items.length; }
+  cmRender();
+  toast(`Moved to ${cmLaneName(lane)}: "${fcShort(it.title)}"`);
+}
+async function cmProjDo(key) {
+  const p = CM.d.projects.find((x) => x.key === key); if (!p) return;
+  const dayIds = cmDayIds();
+  const t = p.tasks.find((x) => !dayIds.has(x.id) && !CM.done[x.id]); if (!t) return;
+  await fcFromMain({ id: t.id, title: t.title }, "focus");
+}
+async function cmSkip(key, undo) {
+  const r = await cmApi({ action: "skip", key, ...(undo ? { undo: true } : {}) });
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't save. Try again."); return; }
+  CM.d.skipped = r.data.skipped; cmRender();
+  const p = CM.d.projects.find((x) => x.key === key);
+  toast(undo ? `Back on the list: ${p ? p.name : "project"}` : `Skipped for today: ${p ? p.name : "project"}`);
+}
+async function cmRep(result) {
+  const cur = CM.d.rep.result;
+  const r = await cmApi({ action: "rep", result: cur === result ? "clear" : result });
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't save. Try again."); return; }
+  CM.d.rep = r.data.rep; cmRender();
+}
+async function cmPick(key) {
+  const w = CM.d.week, on = w.pick.includes(key);
+  const keys = on ? w.pick.filter((k) => k !== key) : [...w.pick, key];
+  if (keys.length > w.pick_max) { toast(`That's ${w.pick_max} already. Take one off first.`); return; }
+  const r = await cmApi({ action: "week", keys });
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't save. Try again."); return; }
+  w.pick = r.data.pick; CM.d.projects.forEach((p) => { p.picked = w.pick.includes(p.key); }); cmRender();
+}
+const SW_LABEL = { keep: "Kept. It asks again in 30 days.", snooze: "Snoozed for a week.", park: "Parked in Someday.", drop: "Dropped." };
+async function cmSweep(id, how) {
+  if (CM.busy["sw" + id]) return; CM.busy["sw" + id] = true;
+  const r = await cmApi({ action: "sweep", id, how, ...(how === "snooze" ? { days: 7 } : {}) });
+  delete CM.busy["sw" + id];
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't save. Try again."); return; }
+  CM.swept[id] = { how, prev: r.data.prev, label: SW_LABEL[how] }; cmRender();
+}
+async function cmUnsweep(id) {
+  const s = CM.swept[id]; if (!s || CM.busy["sw" + id]) return; CM.busy["sw" + id] = true;
+  const r = await cmApi({ action: "unsweep", id, prev: s.prev });
+  delete CM.busy["sw" + id];
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't undo. Try again."); return; }
+  delete CM.swept[id]; cmRender();
+}
+function cmSetView(v) { if (v === CM.view) return; CM.view = v; cmSaveView(v); cmGate(); if (v === "classic") window.scrollTo(0, 0); }
+
+async function cmClick(e) {
+  const vw = e.target.closest("[data-cmview]"); if (vw) { cmSetView(vw.dataset.cmview); return; }
+  const dy = e.target.closest("[data-cmday]"); if (dy) { CM.sunday = dy.dataset.cmday === "sun"; cmRender(); return; }
+  const rp = e.target.closest("[data-cmrep]"); if (rp) { await cmRep(rp.dataset.cmrep); return; }
+  const pk = e.target.closest("[data-cmpick]"); if (pk) { await cmPick(pk.dataset.cmpick); return; }
+  const mv = e.target.closest("[data-cmmove]");
+  const b = e.target.closest("[data-cmact]");
+  if (!mv && !b) return;
+  const row = e.target.closest("[data-cm]"); const id = row && row.dataset.cm;
+  if (mv) { if (id) await cmMove(id, mv.dataset.cmmove); return; }
+  const act = b.dataset.cmact;
+  if (act === "retry") { CM.err = ""; cmRender(); cmRefresh(); return; }
+  if (act === "classic") { CM.classic = !CM.classic; document.body.classList.toggle("showclassic", CM.classic); cmRender(); return; }
+  if (act === "showall") { CM.showAll[b.dataset.cmcat] = true; cmRender(); return; }
+  const proj = e.target.closest("[data-cmp]"); const pkey = proj && proj.dataset.cmp;
+  if (act === "projdo") { await cmProjDo(pkey); return; }
+  if (act === "skip") { await cmSkip(pkey, false); return; }
+  if (act === "unskip") { await cmSkip(pkey, true); return; }
+  if (!id) return;
+  if (act === "check") { await cmCheck(id); return; }
+  const it = cmFind(id); if (!it) return;
+  if (act === "focus" || act === "pin") { await fcFromMain({ id, title: it.title }, act); return; }
+  if (act === "sw-undo") { await cmUnsweep(id); return; }
+  if (act.startsWith("sw-")) { await cmSweep(id, act.slice(3)); return; }
+}
+for (const h of CM_HOSTS.concat(["#viewbar"])) $(h).addEventListener("click", cmClick);
+// Open and shut sections are remembered for this visit (details "toggle" does not bubble, so listen while it goes down).
+for (const h of ["#cm-projects", "#cm-items"]) $(h).addEventListener("toggle", (e) => { const k = e.target.dataset && e.target.dataset.cmopen; if (k) CM.open[k] = e.target.open; }, true);
+$("#cm-items").addEventListener("input", (e) => {
+  if (!e.target.classList.contains("cmsearch")) return;
+  CM.q = e.target.value; $("#cm-res").innerHTML = CM.q.trim() ? cmSearchResults() : CM.d.cats.map((c) => catHTML(c)).join("");
+});
+$("#cm-items").addEventListener("focusout", () => { setTimeout(() => { if (CM.dirty && !cmTyping()) cmRender(); }, 700); });
+// Checking something off in the classic list (when it is open under Calm) keeps the Calm lists honest too.
+$("#main").addEventListener("click", (e) => { if (CM.started && e.target.closest(".check")) cmRefreshSoon(3000); });
 
 // ── From Doreen ──────────────────────────────────────────────
 // Tasks Doreen sent you that you haven't answered. Each one is accepted (you confirm or set the day it's due)
