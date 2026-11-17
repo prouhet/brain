@@ -77,6 +77,21 @@
   .day-head { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:16px 0 6px; }
   .day-head.overdue { color:var(--warn); }
 
+  /* Pinned and Your day (top of the page) */
+  .fcpin { border:2px solid var(--teal); padding-top:6px; padding-bottom:6px; }
+  .fcday { padding-top:10px; padding-bottom:6px; }
+  .fchead { font-size:13px; font-weight:600; color:var(--teal); margin-bottom:2px; }
+  .fcempty { font-size:14px; color:var(--dim); padding:4px 0 8px; }
+  .fcitem:last-child { border-bottom:0; }
+  .fcdue { font-size:13px; color:var(--dim); margin-top:2px; }
+  .fcdue.late { color:var(--warn); }
+  .fcnext { display:flex; flex-wrap:wrap; align-items:center; column-gap:4px; font-size:14px; color:var(--dim); margin-top:2px; }
+  .fcnext b { color:var(--text); font-weight:600; }
+  .fclink { font:inherit; font-size:14px; color:var(--teal); background:none; border:0; padding:0 8px; margin-left:-4px; cursor:pointer; text-decoration:underline; min-height:40px; min-width:44px; }
+  .fclink:focus-visible { outline:2px solid var(--teal); outline-offset:2px; border-radius:4px; }
+  .fcform { display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px 44px; }
+  .fcform input { flex:1 1 200px; min-width:0; font:inherit; font-size:14px; color:var(--text); background:var(--surface2); border:1px solid var(--line2); border-radius:8px; padding:8px; }
+
   /* Items — mirrors the paper: box, number, text */
   .item { border-bottom:1px solid var(--line); }
   .row { display:grid; grid-template-columns:44px 1fr auto; align-items:start; padding:10px 0; }
@@ -508,6 +523,7 @@
   <h1 id="date">Loading…</h1>
   <p class="headline" id="headline"></p>
   <p class="progress" id="progress"></p>
+  <div id="yourday"></div>
   <h2 id="asktitle">Ask your Brain</h2>
   <details class="ask" id="ask">
     <summary><span><span class="chev">›</span> Type a question</span></summary>
@@ -758,6 +774,7 @@ async function load() {
   videosGate();
   pastdueGate();
   fromdoreenGate();
+  focusGate();
   marketsGate();
   if (!ok) {
     brief = null; $("#headline").textContent = ""; $("#progress").textContent = "";
@@ -809,6 +826,8 @@ function itemHTML(it) {
           ${it.done ? `<button type="button" role="menuitem" data-act="followup" aria-label="Item ${it.n} is done — set a follow-up for it">Follow up</button>` : ""}
           ${it.done || it.pushed ? "" : `<button type="button" role="menuitem" data-act="push" aria-label="Move item ${it.n} to tomorrow">Tomorrow</button>
           <span class="pick"><button type="button" role="menuitem" tabindex="-1" aria-hidden="true">Pick day</button><input type="date" class="pickdate" min="${shiftDate(TODAY, 1)}" aria-label="Pick a day to move item ${it.n} to"></span>`}
+          ${it.done || it.recurring || it.section === "client" || it.extra === "doreen" ? "" : `<button type="button" role="menuitem" data-act="focus" aria-label="Add item ${it.n} to my day">Add to my day</button>
+          <button type="button" role="menuitem" data-act="pin" aria-label="Pin item ${it.n} to the top">Pin</button>`}
           ${it.section === "client" ? "" : `<button type="button" role="menuitem" data-act="doreen" aria-label="Item ${it.n} is Doreen's — set it aside">Doreen's</button>`}
           <hr>
           <button type="button" role="menuitem" data-act="not-task" aria-label="Item ${it.n} is not a task — move to notes">Not a task</button>
@@ -1172,7 +1191,7 @@ document.addEventListener("keydown", (e) => {
   const open = document.querySelector(".more.open"); if (!open) return;
   if (e.key === "Escape") { const tg = open.querySelector(".moretoggle"); closeMenus(); tg.focus(); return; }
   if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-    const btns = [...open.querySelectorAll(".menu button[data-act], .menu button[data-fact]")]; if (!btns.length) return;
+    const btns = [...open.querySelectorAll(".menu button[data-act], .menu button[data-fact], .menu button[data-fcact]")]; if (!btns.length) return;
     const i = btns.indexOf(document.activeElement);
     btns[(i + (e.key === "ArrowDown" ? 1 : -1) + btns.length) % btns.length].focus(); e.preventDefault();
   }
@@ -2058,6 +2077,167 @@ $("#pastdue").addEventListener("submit", (e) => {
   pdAct(form.dataset.pdform, "recommit", to);
 });
 
+// ── Pinned and Your day ──────────────────────────────────────
+// Pinned: the few things that must happen, shown here every day until they are done, however old they are (the
+// 14-day overdue rule and the ranking can't hide them). Your day: what you picked for today from the "⋯" menu on any
+// task; it starts empty each day. Both live on the task itself (brief-focus function); a task shown here is left
+// out of the lists below so it never shows twice. Today's page only.
+const FC_FN = FN.replace(/morning-brief$/, "brief-focus");
+const FC_REFRESH_MS = 5 * 60 * 1000;
+const FC = { started: false, loaded: false, err: "", pinned: [], day: [], limits: { pinned: 3, day: 7 }, run: 0, at: 0, edit: null, busy: {}, dirty: false };
+
+async function fcApi(body) {
+  try {
+    const res = await fetch(`${FC_FN}?key=${encodeURIComponent(KEY)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok && data.ok !== false, status: res.status, data };
+  } catch (e) { return { ok: false, status: 0, data: { error: "Couldn't reach the Brain. Check your connection and try again." } }; }
+}
+function focusGate() {
+  const show = !!KEY && !!TODAY && DATE === TODAY;
+  if (!show) { FC.started = false; FC.run++; FC.loaded = false; FC.err = ""; FC.pinned = []; FC.day = []; FC.edit = null; $("#yourday").innerHTML = ""; return; }
+  if (!FC.started) { FC.started = true; fcRefresh(); }
+}
+async function fcRefresh() {
+  const run = ++FC.run;
+  const r = await fcApi({ action: "list" });
+  if (run !== FC.run) return;
+  FC.at = Date.now();
+  if (r.ok && Array.isArray(r.data.pinned) && Array.isArray(r.data.day)) {
+    FC.pinned = r.data.pinned; FC.day = r.data.day; FC.err = ""; FC.loaded = true;
+    if (r.data.limits) FC.limits = r.data.limits;
+  } else if (!FC.loaded) FC.err = (r.data && r.data.error) || "Couldn't load your pinned and day lists.";
+  renderFC(); fdRenderMain();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && FC.started && FC.loaded && Date.now() - FC.at > FC_REFRESH_MS && !fcTyping()) fcRefresh();
+});
+// Ids left out of the main lists: everything shown in Pinned or Your day (only once they have loaded).
+const fcHideIds = () => (FC.loaded ? [...FC.pinned, ...FC.day].map((x) => x.id) : []);
+const fcFind = (id) => FC.pinned.find((x) => x.id === id) || FC.day.find((x) => x.id === id);
+const fcShort = (s) => fdClip(String(s || ""), 40);
+function fcTyping() { const a = document.activeElement; return !!(a && a.tagName === "INPUT" && $("#yourday").contains(a)); }
+// Close the next-step box. The cursor leaves it first, because the page never redraws under someone who is typing.
+function fcStopEdit() { FC.edit = null; const a = document.activeElement; if (a && a.tagName === "INPUT" && $("#yourday").contains(a)) a.blur(); }
+
+// Put an item the server just returned into the right list (Pinned wins over Your day), keeping its place if it was already there.
+function fcPut(item) {
+  if (!FC.loaded) { fcRefresh(); return; }
+  const put = (list) => { const i = list.findIndex((x) => x.id === item.id); if (i >= 0) list[i] = item; else list.push(item); };
+  FC.pinned = FC.pinned.filter((x) => x.id !== item.id || item.pinned);
+  FC.day = FC.day.filter((x) => x.id !== item.id || (!item.pinned && item.in_day));
+  if (item.pinned) put(FC.pinned); else if (item.in_day) put(FC.day);
+  renderFC(); fdRenderMain();
+}
+async function fcDo(action, id, extra) {
+  if (FC.busy[id]) return null;
+  FC.busy[id] = true;
+  const r = await fcApi({ action, id, ...(extra || {}) });
+  delete FC.busy[id];
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't save. Try again."); return null; }
+  return r.data;
+}
+
+// From the "⋯" menu on a task in the main list.
+async function fcFromMain(it, what) {
+  const d = await fcDo(what, it.id);
+  if (!d) return;
+  fcPut(d.item);
+  toast(what === "pin" ? `Pinned: "${fcShort(it.title)}"` : `On your day: "${fcShort(it.title)}"`);
+}
+
+function fcDueHTML(it) {
+  if (!it.due) return "";
+  const n = it.due_in;
+  const when = n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : n > 1 ? `Due ${shortDate(it.due)} · in ${n} days` : `Due ${shortDate(it.due)} · ${-n} day${n === -1 ? "" : "s"} ago`;
+  return `<div class="fcdue${n < 0 ? " late" : ""}">${esc(when)}</div>`;
+}
+function fcRowHTML(it) {
+  const id = esc(it.id), t = esc(it.title);
+  const pinned = !!it.pinned;
+  const next = pinned
+    ? `<div class="fcnext">${it.next ? `<span><b>Next:</b> ${esc(it.next)}</span><button type="button" class="fclink" data-fcact="next" aria-label="Edit the next step: ${t}">Edit</button>`
+        : `<button type="button" class="fclink" data-fcact="next" aria-label="Add a next step: ${t}">Add a next step</button>`}</div>`
+    : "";
+  const menu = it.done ? "" : `<div class="more">
+      <button type="button" class="moretoggle" aria-haspopup="menu" aria-expanded="false" aria-label="Actions: ${t}">⋯</button>
+      <div class="menu" role="menu">
+        ${pinned
+          ? `<button type="button" role="menuitem" data-fcact="next" aria-label="Edit the next step: ${t}">Next step</button>
+             <button type="button" role="menuitem" data-fcact="unpin" aria-label="Unpin: ${t}">Unpin</button>`
+          : `<button type="button" role="menuitem" data-fcact="unfocus" aria-label="Take off my day: ${t}">Remove from my day</button>
+             <button type="button" role="menuitem" data-fcact="pin" aria-label="Pin to the top: ${t}">Pin</button>`}
+      </div></div>`;
+  const form = FC.edit === it.id
+    ? `<form class="fcform" data-fcform="${id}"><input type="text" maxlength="200" value="${esc(it.next)}" placeholder="One small next step" aria-label="Next step for: ${t}">
+        <button class="btn" type="submit">Save</button><button class="btn quiet" type="button" data-fcact="next-cancel">Cancel</button></form>`
+    : "";
+  return `<div class="item fcitem${it.done ? " done" : ""}" data-fc="${id}">
+    <div class="row">
+      <button type="button" class="check" data-fcact="check" aria-pressed="${!!it.done}" aria-label="${it.done ? "Uncheck" : "Check off"}: ${t}"><span class="box">${CHECK_SVG}</span></button>
+      <div class="text"><span class="title">${t}</span>${fcDueHTML(it)}${next}</div>
+      ${menu}
+    </div>${form}
+  </div>`;
+}
+function renderFC() {
+  const host = $("#yourday"); if (!host || !FC.started) return;
+  if (fcTyping()) { FC.dirty = true; return; }       // a background update never redraws under someone who is typing
+  FC.dirty = false;
+  if (!FC.loaded) {
+    host.innerHTML = FC.err ? `<h2>Pinned and your day</h2><div class="fitcard"><div class="vempty">${esc(FC.err)} <button class="btn quiet" data-fcact="retry" type="button">Try again</button></div></div>` : "";
+    return;
+  }
+  const pinned = FC.pinned.length ? `<h2>Pinned</h2><div class="fitcard fcpin">${FC.pinned.map(fcRowHTML).join("")}</div>` : "";
+  const doneN = FC.day.filter((x) => x.done).length;
+  const head = FC.day.length ? `${doneN} of ${FC.day.length} done` : "Pick what fits today";
+  const body = FC.day.length ? FC.day.map(fcRowHTML).join("") : `<div class="fcempty">Nothing picked yet. Tap ⋯ on any task below and choose “Add to my day”.</div>`;
+  host.innerHTML = `${pinned}<h2>Your day</h2><div class="fitcard fcday"><div class="fchead">${head}</div>${body}</div>`;
+  if (FC.edit) { const f = host.querySelector(".fcform input"); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }
+}
+async function fcCheck(id) {
+  const it = fcFind(id); if (!it || FC.busy[id]) return;
+  const want = !it.done;
+  it.done = want; renderFC();
+  const d = await fcDo(want ? "done" : "undone", id);
+  if (!d) { it.done = !want; renderFC(); return; }
+  fcPut(d.item);
+  if (want) toast(`Checked off: "${fcShort(it.title)}"`);
+}
+$("#yourday").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-fcact]"); if (!b) return;
+  const act = b.dataset.fcact;
+  if (act === "retry") { FC.err = ""; renderFC(); fcRefresh(); return; }
+  const row = b.closest("[data-fc]"); const id = row && row.dataset.fc; const it = id && fcFind(id);
+  if (act === "next-cancel") { fcStopEdit(); renderFC(); return; }
+  if (!it) return;
+  if (act === "check") { await fcCheck(id); return; }
+  if (act === "next") { FC.edit = id; renderFC(); return; }
+  if (act === "pin") { const d = await fcDo("pin", id); if (d) { fcPut(d.item); toast(`Pinned: "${fcShort(it.title)}"`); } return; }
+  if (act === "unpin") { const d = await fcDo("unpin", id); if (d) { fcPut(d.item); toast(`Unpinned: "${fcShort(it.title)}"`); } return; }
+  if (act === "unfocus") { const d = await fcDo("unfocus", id); if (d) { fcPut(d.item); toast(`Off your day: "${fcShort(it.title)}"`); } return; }
+});
+$("#yourday").addEventListener("submit", async (e) => {
+  const f = e.target.closest(".fcform"); if (!f) return;
+  e.preventDefault();
+  const id = f.dataset.fcform, text = f.querySelector("input").value;
+  const btn = f.querySelector("button[type=submit]"); btn.disabled = true;
+  const d = await fcDo("next", id, { next: text });
+  btn.disabled = false;
+  if (d) { fcStopEdit(); fcPut(d.item); }
+});
+$("#yourday").addEventListener("keydown", (e) => { if (e.key === "Escape" && FC.edit && e.target.closest(".fcform")) { fcStopEdit(); renderFC(); } });
+// A background update that waited for you to finish typing goes in as soon as you leave the box.
+$("#yourday").addEventListener("focusout", () => { setTimeout(() => { if (FC.dirty && !fcTyping()) renderFC(); }, 700); });
+// "Add to my day" and "Pin" in the ⋯ menu of a task in the main list.
+$("#main").addEventListener("click", async (e) => {
+  const btn = e.target.closest('[data-act="focus"], [data-act="pin"]'); if (!btn) return;
+  const el = btn.closest(".item"); const it = el && brief && brief.items.find((i) => i.id === el.dataset.id); if (!it) return;
+  await fcFromMain(it, btn.dataset.act);
+});
+
 // ── From Doreen ──────────────────────────────────────────────
 // Tasks Doreen sent you that you haven't answered. Each one is accepted (you confirm or set the day it's due)
 // or pushed back to her with a short reason; Edit rewrites it while it waits. Both answers can be undone for
@@ -2102,7 +2282,7 @@ async function fdRefresh() {
 
 // Ids that are left out of the main lists: everything waiting for an answer, and answered ones until the main list has reloaded.
 function fdHideSet() {
-  const s = new Set();
+  const s = new Set(fcHideIds());          // shown in Pinned or Your day (see below)
   if (!FD.loaded) return s;
   for (const x of FD.items) if (!x._ghost || !x._ghost.shown) s.add(x.id);
   for (const id of FD.dead) s.add(id);
