@@ -56,5 +56,6 @@ Put the real values back for the four lines above first, or set the secrets and 
   `hn_gems`, `act_plans`, `act_settings`, `daily_briefs`, `fitness_logs`, `video_digest`, `youtube_videos`; functions `rsotc_board`, `rsotc_act_extras`,
   `rsotc_act_etf_ladders`, `match_thoughts`) live in Supabase and are not dumped here.
 - The test suites and real-data fixtures (they hold real task and trade rows).
-- Older, unrelated functions in the same project (`open-brain-mcp`, `quick-capture`, `notes-api`, the transcript and video ones, and so on).
+- Older, unrelated functions in the same project (`open-brain-mcp`, `notes-api`, the transcript and video ones, and so on).
 - Two temporary test copies, `brief-focus-test` and `brief-lanes-test`. They were deleted from Supabase on Nov 23, 2026.
+- `brain-priorities` and `quick-capture` (the old Priorities and Capture pages' functions) were also deleted from Supabase on Nov 23, 2026, after the two pages were removed. Their source was not kept here.
