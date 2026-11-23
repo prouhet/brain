@@ -12,7 +12,7 @@
  * own site and login (its front page and its Notes library), so they open in a new tab and get no key.
  *
  * Colours come from the page the bar sits on (--surface, --text, --teal ...), so it follows that page's
- * light and dark themes, including the manual theme button on Priorities and Capture.
+ * light and dark themes.
  */
 (function () {
   "use strict";
