@@ -57,4 +57,4 @@ Put the real values back for the four lines above first, or set the secrets and 
   `rsotc_act_etf_ladders`, `match_thoughts`) live in Supabase and are not dumped here.
 - The test suites and real-data fixtures (they hold real task and trade rows).
 - Older, unrelated functions in the same project (`open-brain-mcp`, `quick-capture`, `notes-api`, the transcript and video ones, and so on).
-- Two temporary test copies, `brief-focus-test` and `brief-lanes-test`, which are meant to be deleted.
+- Two temporary test copies, `brief-focus-test` and `brief-lanes-test`. They were deleted from Supabase on Nov 23, 2026.
