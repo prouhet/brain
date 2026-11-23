@@ -1,15 +1,15 @@
 /* Studio Strong: the one top bar shared by every Brain page.
  *
- *   Morning Brief | Priorities | Capture | Gems | Act | Notes
+ *   Morning Brief | Gems | Act | Drawer | Notes
  *
- * Each page loads it as the first thing in <body>:   <script src="nav.js?v=1"></script>
+ * Each page loads it as the first thing in <body>:   <script src="nav.js?v=2"></script>
  * To add, rename or reorder a page, change PAGES below and upload this one file; every page follows.
  *
  * Keys: this file never writes the key anywhere and the key is not in this file. It only carries it:
  * the key this browser has saved (localStorage "brain-key", saved by the pages themselves) or, when
  * storage is blocked, the one in this page's own address. It adds that key to the other pages' links
- * at the moment you tap, so moving between pages never asks again. Notes is the Drawer (its own
- * login, another site), so it opens in a new tab and gets no key.
+ * at the moment you tap, so moving between pages never asks again. Drawer and Notes live on the Drawer's
+ * own site and login (its front page and its Notes library), so they open in a new tab and get no key.
  *
  * Colours come from the page the bar sits on (--surface, --text, --teal ...), so it follows that page's
  * light and dark themes, including the manual theme button on Priorities and Capture.
@@ -22,11 +22,10 @@
   var STORE = "brain-key";
   var PAGES = [
     { id: "brief",      href: "brief.html",      label: "Morning Brief", short: "Brief" },
-    { id: "priorities", href: "priorities.html", label: "Priorities" },
-    { id: "capture",    href: "capture.html",    label: "Capture" },
     { id: "gems",       href: "gems.html",       label: "Gems" },
     { id: "act",        href: "act.html",        label: "Act" },
-    { id: "notes",      href: "https://drawer.studiostrong.fit/notes", label: "Notes", external: true }
+    { id: "drawer",     href: "https://drawer.studiostrong.fit/",      label: "Drawer", external: true },
+    { id: "notes",      href: "https://drawer.studiostrong.fit/notes", label: "Notes",  external: true }
   ];
 
   var good = function (k) { return /^[A-Za-z0-9_-]{16,}$/.test(k || ""); };
