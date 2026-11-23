@@ -2439,6 +2439,7 @@ function cmRowHTML(it, o = {}) {
       ${onDay ? "" : `<button type="button" role="menuitem" data-cmact="focus" aria-label="Add to my day: ${t}">Add to my day</button>`}
       <button type="button" role="menuitem" data-cmact="pin" aria-label="Pin to the top: ${t}">Pin</button>
       ${moves ? `<hr><div class="cmmenulabel">Move to</div>${moves}` : ""}
+      ${onDay ? "" : `<hr><button type="button" role="menuitem" data-cmact="drop" aria-label="Drop, not doing this: ${t}">Drop</button>`}
     </div></div>`;
   return `<div class="item cmitem${done ? " done" : ""}" data-cm="${id}">
     <div class="row">
@@ -2647,6 +2648,35 @@ async function cmMove(id, lane) {
   cmRender();
   toast(`Moved to ${cmLaneName(lane)}: "${fcShort(it.title)}"`);
 }
+// Drop ("not doing this"): the same drop as Classic's ⋯ menu and the Past due card (brief-pastdue). The row leaves every Calm list and the
+// classic list at once, with an Undo for 8 seconds. A task that is on Pinned or Your day is not offered Drop (those cards have their own buttons).
+function cmGone(id) {
+  FD.dead.add(id);                                   // never put back on the main list this visit
+  if (brief) brief.items = brief.items.filter((i) => i.id !== id);
+  const d = CM.d;
+  for (const c of d.cats) { const n = c.items.length; c.items = c.items.filter((x) => x.id !== id); if (c.items.length !== n) c.count = c.items.length; }
+  for (const p of d.projects) p.tasks = p.tasks.filter((t) => t.id !== id);
+  for (const k of ["quick", "thanks", "coming"]) d[k] = d[k].filter((x) => x.id !== id);
+  d.week.sweep.items = d.week.sweep.items.filter((x) => x.id !== id);
+  d.week.ahead = d.week.ahead.filter((x) => x.id !== id);
+  delete CM.done[id];
+  render(); cmRender();
+}
+async function cmDrop(id) {
+  const it = cmFind(id); if (!it || CM.busy["dr" + id]) return;
+  if (CM.done[id]) { toast("That one is checked off. Uncheck it first to drop it."); return; }
+  CM.busy["dr" + id] = true;
+  const r = await pdApi({ action: "drop", id });
+  delete CM.busy["dr" + id];
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't drop it. Try again."); return; }
+  const prev = r.data.prev || null, label = fcShort(it.title);
+  cmGone(id);
+  toast(`Dropped: "${label}"`, prev ? { label: "Undo", fn: async () => {
+    const u = await pdApi({ action: "undo", id, prev });
+    if (u.ok) { FD.dead.delete(id); toast("Put back"); await load(); cmRefresh(); } else toast((u.data && u.data.error) || "Couldn't undo that. Try again.");
+  } } : null);
+  cmRefreshSoon(1500);                               // the project cards' steps and every count come from the server
+}
 async function cmProjDo(key) {
   const p = CM.d.projects.find((x) => x.key === key); if (!p) return;
   const dayIds = cmDayIds();
@@ -2713,6 +2743,7 @@ async function cmClick(e) {
   if (act === "check") { await cmCheck(id); return; }
   const it = cmFind(id); if (!it) return;
   if (act === "focus" || act === "pin") { await fcFromMain({ id, title: it.title }, act); return; }
+  if (act === "drop") { await cmDrop(id); return; }
   if (act === "sw-undo") { await cmUnsweep(id); return; }
   if (act.startsWith("sw-")) { await cmSweep(id, act.slice(3)); return; }
 }
