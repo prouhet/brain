@@ -544,6 +544,11 @@
   .cmdate { font-size:12.5px; white-space:nowrap; padding:3px 9px; border-radius:999px; background:var(--teal-dim); color:var(--teal); font-weight:600; }
   .cmdate.soon { background:rgba(180,83,42,.13); color:var(--warn); }
   .cmthen { font-size:13.5px; color:var(--dim); margin-top:4px; }
+  .cmnext { font-size:14.5px; margin-top:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+  .cmnext b { color:var(--teal); font-weight:600; }
+  .cmadded { font-size:14px; margin-top:8px; padding:8px 10px; border-radius:8px; background:var(--teal-dim); color:var(--text); overflow-wrap:anywhere; }
+  .cmadded > span:first-child { color:var(--teal); font-weight:700; }
+  .cmseeit { background:none; border:0; padding:8px 4px; margin:-8px 0; min-height:36px; color:var(--teal); font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; white-space:nowrap; }
   .cmgates > summary { cursor:pointer; list-style:none; font-size:13.5px; color:var(--teal); min-height:40px; display:flex; align-items:center; }
   .cmgates > summary::-webkit-details-marker { display:none; }
   .cmgates > summary::before { content:"›"; display:inline-block; width:14px; transition:transform .15s; color:var(--faint); }
@@ -2257,7 +2262,7 @@ async function fcFromMain(it, what) {
   const d = await fcDo(what, it.id);
   if (!d) return;
   fcPut(d.item);
-  toast(what === "pin" ? `Pinned: "${fcShort(it.title)}"` : `On your day: "${fcShort(it.title)}"`);
+  toast(what === "pin" ? `Pinned: "${fcShort(it.title)}"` : `On your day: "${fcShort(it.title)}"`, { label: "See it", fn: cmSeeDay });
 }
 
 function fcDueHTML(it) {
@@ -2481,13 +2486,21 @@ function projCardHTML(p, skipped) {
   const avail = p.tasks.filter((t) => !dayIds.has(t.id) && !CM.done[t.id]);
   const strip = p.gates.map((g) => `<span class="cmgate ${g.state}">${esc(g.name || "Step " + g.n)}${g.state === "done" ? "" : g.open > 1 ? ` · ${g.open}` : ""}</span>`).join("");
   const rows = p.tasks.map((t) => cmRowHTML({ id: t.id, title: t.title, due: t.due, due_in: t.due_in, lane: "", age: 0, snooze: "" }, { dayMark: true })).join("");
+  // What the button will add, and what it already added: the card says both, since Your day is at the very top of the page and out of sight on a phone.
+  const onDayHere = p.tasks.filter((t) => dayIds.has(t.id));
+  const upNext = !skipped && avail.length ? `<div class="cmnext"><b>Up next:</b> ${esc(avail[0].title)}</div>` : "";
+  const addedLine = !skipped && onDayHere.length
+    ? `<div class="cmadded" role="status"><span aria-hidden="true">✓</span> On your day: ${esc(fcShort(onDayHere[0].title))}${onDayHere.length > 1 ? ` + ${onDayHere.length - 1} more` : ""} <button type="button" class="cmseeit" data-cmact="seeday">See it ↑</button></div>`
+    : "";
+  const doLabel = !avail.length ? "All on your day" : onDayHere.length ? "Add another to my day" : "Add to my day";
   const acts = skipped
     ? `<div class="cmacts"><button type="button" class="btn quiet" data-cmact="unskip">Bring back</button></div>`
-    : `<div class="cmacts"><button type="button" class="btn" data-cmact="projdo"${avail.length ? "" : " disabled"}>${avail.length ? "Do this today" : "On your day"}</button>
+    : `<div class="cmacts"><button type="button" class="btn" data-cmact="projdo"${avail.length ? "" : " disabled"}>${doLabel}</button>
         <button type="button" class="btn quiet" data-cmact="skip">Not today</button></div>`;
   return `<div class="fitcard cmproj" data-cmp="${key}">
     <div class="cmphead"><div><div class="cmptitle">${esc(p.name)}</div>${p.now ? `<div class="cmpnow"><b>Now:</b> ${esc(p.now.name || "Step " + p.now.n)}</div>` : ""}</div>${dueChip(p)}</div>
     ${p.then ? `<div class="cmthen">Then: ${esc(p.then)}</div>` : ""}
+    ${upNext}${addedLine}
     <details class="cmgates" data-cmopen="proj:${key}"${CM.open["proj:" + p.key] ? " open" : ""}><summary>${p.open} left in ${p.gates.length} steps</summary>
       <div class="cmstrip">${strip}</div>${rows}</details>
     ${acts}</div>`;
@@ -2677,6 +2690,12 @@ async function cmDrop(id) {
   } } : null);
   cmRefreshSoon(1500);                               // the project cards' steps and every count come from the server
 }
+// Your day is the first card on the page, so after adding something from far down, take the person there.
+function cmSeeDay() {
+  const el = $("#yourday"); if (!el) return;
+  const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+}
 async function cmProjDo(key) {
   const p = CM.d.projects.find((x) => x.key === key); if (!p) return;
   const dayIds = cmDayIds();
@@ -2733,6 +2752,7 @@ async function cmClick(e) {
   if (mv) { if (id) await cmMove(id, mv.dataset.cmmove); return; }
   const act = b.dataset.cmact;
   if (act === "retry") { CM.err = ""; cmRender(); cmRefresh(); return; }
+  if (act === "seeday") { cmSeeDay(); return; }
   if (act === "classic") { CM.classic = !CM.classic; document.body.classList.toggle("showclassic", CM.classic); cmRender(); return; }
   if (act === "showall") { CM.showAll[b.dataset.cmcat] = true; cmRender(); return; }
   const proj = e.target.closest("[data-cmp]"); const pkey = proj && proj.dataset.cmp;
