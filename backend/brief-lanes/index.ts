@@ -14,9 +14,12 @@
 //   week   { keys[] }                  → { ok, pick[] }        up to 7 projects chosen for the week (on a Sunday: for the coming week)
 //   sweep  { id, how, days? }          → { ok, id, prev }      how: keep | snooze (days 7|14|30) | park | drop
 //   unsweep { id, prev }               → { ok, id }
+//   suggest { ids[] }                  → { ok, suggestions[] }  items just added that start with the name of an open project (read-only)
+//   group   { ids[], project, gate? }  → { ok, project, step, done[{id,prev}], skipped[] }   put them in that project's step (gate = a step number, or leave out for a new last step)
+//   ungroup { project, items[{id,prev}] } → { ok, undone, skipped[] }
 //
-// A task is never copied. This function writes only these keys on a task: lane, snooze_until, sweep_kept_at, and (Drop) the
-// archive keys. Per-day and per-week choices (skipped projects, the rep, the week's picks) live in the brief_state table.
+// A task is never copied. This function writes only these keys on a task: lane, snooze_until, sweep_kept_at, the four project keys
+// (group / ungroup), and (Drop) the archive keys. Per-day and per-week choices (skipped projects, the rep, the week's picks) live in the brief_state table.
 // The 5:30 morning-brief function is untouched.
 //
 // Secrets (project-wide, all already set): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BRIEF_PAGE_KEY
@@ -27,6 +30,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.47.10";
 import {
   addDays, buildCats, buildProjects, dowOf, DROPPED_REASON, isMine, LANES, quickWins, REP_LESSON, repAsk, repTally, rowOut, setLane, sweepApply, sweepList,
+  GROUP_MAX, groupApply, groupUndo, othersFor, planGroups, resolveStep, stepsOf, shortTitle,
   pickWeek, sweepUndo, thankYous, todayCentral, comingUp, weekAhead, weekStart, WEEK_PICK_MAX, type Row, type SweepHow,
 } from "./lanes.ts";
 
@@ -179,6 +183,74 @@ async function handleUnsweep(b: Record<string, unknown>) {
   return json({ ok: true, id: t.id });
 }
 
+// ── Grouping related items into a project ─────────────────────
+const UUID = /^[0-9a-f-]{36}$/i;
+const idList = (v: unknown): string[] => Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === "string" && UUID.test(x)))].slice(0, GROUP_MAX) : [];
+async function handleSuggest(b: Record<string, unknown>) {
+  const ids = idList(b.ids);
+  if (!ids.length) return json({ ok: true, suggestions: [] });
+  const [{ data, error }, ptasks] = await Promise.all([base().in("id", ids), projectTasks()]);
+  if (error) throw new Error(error.message);
+  const today = todayCentral();
+  const plans = planGroups((data || []) as Row[], buildProjects(ptasks, today));
+  const suggestions = [];
+  for (const g of plans) {
+    // Other open tasks that begin with the same words (a cheap text search, then the exact check in code).
+    const like = g.cand.text.replace(/[\\%_,()]/g, " ").trim();
+    const { data: more, error: me } = await base().or(OPEN).ilike("content", `%${like}%`).limit(60);
+    if (me) throw new Error(me.message);
+    const others = othersFor(g, (more || []) as Row[]);
+    const st = stepsOf(g.project);
+    suggestions.push({
+      project: g.project.key, name: g.project.name, label: g.cand.text,
+      items: g.items.map((t) => ({ id: t.id, title: shortTitle(t.content, 140) })),
+      others: others.map((t) => ({ id: t.id, title: shortTitle(t.content, 140) })),
+      steps: st.steps, new_step: st.newStep,
+    });
+  }
+  return json({ ok: true, suggestions });
+}
+
+async function handleGroup(b: Record<string, unknown>) {
+  const ids = idList(b.ids), key = String(b.project ?? "").slice(0, 80);
+  if (!ids.length || !key) return json({ error: "Which items, and which project?" }, 400);
+  const p = buildProjects(await projectTasks(), todayCentral()).find((x) => x.key === key);
+  if (!p) return json({ error: "That project isn't open any more." }, 404);
+  const step = resolveStep(p, b.gate);
+  if (!step.ok) return json({ error: step.error }, 400);
+  const done: Array<{ id: string; prev: Record<string, unknown> }> = [], skipped: Array<{ id: string; why: string }> = [];
+  for (const id of ids) {
+    const t = await load(id);
+    if (!t) { skipped.push({ id, why: "Can't find that task." }); continue; }
+    if (!isMine(t)) { skipped.push({ id, why: "That one isn't yours to group." }); continue; }
+    const r = groupApply(t.metadata || {}, { key: p.key, name: p.name }, step);
+    if (!r.ok) { skipped.push({ id, why: r.error }); continue; }
+    const { error } = await db.from("thoughts").update({ metadata: r.meta }).eq("id", t.id);
+    if (error) { skipped.push({ id, why: error.message }); continue; }
+    done.push({ id, prev: r.prev });
+  }
+  if (!done.length) return json({ error: skipped[0]?.why || "Couldn't group those." }, 400);
+  return json({ ok: true, project: { key: p.key, name: p.name }, step: { n: step.n, name: step.name }, done, skipped });
+}
+
+async function handleUngroup(b: Record<string, unknown>) {
+  const key = String(b.project ?? "").slice(0, 80);
+  const items = Array.isArray(b.items) ? b.items.slice(0, GROUP_MAX) as Array<{ id?: unknown; prev?: unknown }> : [];
+  if (!key || !items.length) return json({ error: "Nothing to undo." }, 400);
+  let undone = 0; const skipped: Array<{ id: string; why: string }> = [];
+  for (const it of items) {
+    const t = await load(it?.id);
+    if (!t) { skipped.push({ id: String(it?.id ?? ""), why: "Can't find that task." }); continue; }
+    const r = groupUndo(t.metadata || {}, key, it.prev);
+    if (!r.ok) { skipped.push({ id: t.id, why: r.error }); continue; }
+    const { error } = await db.from("thoughts").update({ metadata: r.meta }).eq("id", t.id);
+    if (error) { skipped.push({ id: t.id, why: error.message }); continue; }
+    undone++;
+  }
+  if (!undone) return json({ error: skipped[0]?.why || "Nothing to undo." }, 400);
+  return json({ ok: true, undone, skipped });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const key = new URL(req.url).searchParams.get("key") || "";
@@ -194,6 +266,9 @@ Deno.serve(async (req) => {
       case "week": return await handleWeek(b);
       case "sweep": return await handleSweep(b);
       case "unsweep": return await handleUnsweep(b);
+      case "suggest": return await handleSuggest(b);
+      case "group": return await handleGroup(b);
+      case "ungroup": return await handleUngroup(b);
       default: return json({ error: "Unknown action." }, 400);
     }
   } catch (e) {

@@ -255,6 +255,99 @@ export function setLane(m: Meta, lane: string): { ok: true; meta: Meta } | { ok:
   return { ok: true, meta: out };
 }
 
+// ── Grouping related items into a project ─────────────────────
+// Suggests, and never decides: items you just added that start with the name of a project that already exists
+// ("TrainerSide: dashboard icons" → TrainerSide for other gyms) can be put in that project, in a step you pick.
+// The only keys written are the four project keys below, and Undo puts back exactly what was there.
+export const GROUP_MAX = 12;           // items in one go
+export const GROUP_OTHERS_MAX = 8;     // other open tasks offered along with them
+export const NEW_STEP_NAME = "New items";
+export const GROUP_KEYS = ["project", "project_name", "project_gate", "project_gate_name"] as const;
+
+const toks = (s: string) => s.toLowerCase().replace(/[’']s\b/g, "").split(/[^a-z0-9]+/).filter(Boolean);
+export interface Cand { key: string; text: string }
+// What a task's first words could be called: the bit before a colon or dash ("Previous client", "Trainerside · Legal") and its first word.
+export function candidates(content: string): Cand[] {
+  const out: Cand[] = [], seen = new Set<string>();
+  const add = (text: string) => {
+    const key = toks(text).join(" ");
+    if (key.replace(/ /g, "").length < 4 || seen.has(key)) return;
+    seen.add(key); out.push({ key, text: text.trim() });
+  };
+  for (const src of [content, stripPrefix(content)]) {
+    const line = src.split("\n")[0].trim();
+    const m = /^([^:—–]{2,40}?)\s*(?::|—|–|\s-\s)\s*\S/.exec(line);
+    if (m && m[1].trim().split(/\s+/).length <= 4) add(m[1]);
+    const w = /^[A-Za-z][A-Za-z0-9’']*/.exec(line);
+    if (w) add(w[0]);
+  }
+  return out;
+}
+const startsWithToks = (name: string[], cand: string[]) => cand.length > 0 && cand.length <= name.length && cand.every((t, i) => name[i] === t);
+// The one open project whose name (or short id) begins with these words. Two or more is too unclear to suggest.
+export function projectFor(c: Cand, projects: ProjectOut[]): ProjectOut | null {
+  const want = c.key.split(" ");
+  const hits = projects.filter((p) => startsWithToks(toks(p.name), want) || startsWithToks(toks(p.key), want));
+  return hits.length === 1 ? hits[0] : null;
+}
+export interface GroupPlan { project: ProjectOut; cand: Cand; items: Row[] }
+// Which of these new items belong with which project. Only open tasks of Dave's that are in no project yet.
+export function planGroups(newRows: Row[], projects: ProjectOut[]): GroupPlan[] {
+  const by = new Map<string, GroupPlan>();
+  for (const t of newRows) {
+    const m = t.metadata || {};
+    if (isArchived(m) || m.project || !isMine(t)) continue;
+    for (const c of candidates(t.content)) {
+      const p = projectFor(c, projects);
+      if (!p) continue;
+      const g = by.get(p.key) || { project: p, cand: c, items: [] };
+      g.items.push(t); by.set(p.key, g);
+      break;
+    }
+  }
+  return [...by.values()];
+}
+// Other open tasks that begin with the same words and are in no project: offered, never pre-ticked.
+export function othersFor(plan: GroupPlan, loose: Row[]): Row[] {
+  const mine = new Set(plan.items.map((t) => t.id));
+  return loose.filter((t) => !mine.has(t.id) && isMine(t) && !t.metadata?.project && !isArchived(t.metadata || {}) &&
+    candidates(t.content).some((c) => c.key === plan.cand.key)).sort(sortRows).slice(0, GROUP_OTHERS_MAX);
+}
+export interface StepOut { n: number; name: string; open: number; state: Gate["state"] }
+export function stepsOf(p: ProjectOut): { steps: StepOut[]; newStep: { n: number; name: string; reuse: boolean } } {
+  const steps = p.gates.filter((g) => g.state !== "done").map((g) => ({ n: g.n, name: g.name, open: g.open, state: g.state }));
+  const had = p.gates.find((g) => g.name === NEW_STEP_NAME && g.state !== "done");
+  const top = p.gates.reduce((a, g) => Math.max(a, g.n), 0);
+  return { steps, newStep: had ? { n: had.n, name: had.name, reuse: true } : { n: top + 1, name: NEW_STEP_NAME, reuse: false } };
+}
+export function resolveStep(p: ProjectOut, gate: unknown): { ok: true; n: number; name: string } | { ok: false; error: string } {
+  const s = stepsOf(p);
+  if (gate === undefined || gate === null || gate === "new") return { ok: true, n: s.newStep.n, name: s.newStep.name };
+  const g = s.steps.find((x) => x.n === Number(gate));
+  return g ? { ok: true, n: g.n, name: g.name } : { ok: false, error: "That step isn't open any more." };
+}
+export function groupApply(m: Meta, project: { key: string; name: string }, step: { n: number; name: string }): { ok: true; meta: Meta; prev: Record<string, unknown> } | { ok: false; error: string } {
+  if (isArchived(m)) return { ok: false, error: "That one is already finished." };
+  if (typeof m.project === "string" && m.project) return { ok: false, error: "That one is already in a project." };
+  const prev: Record<string, unknown> = {};
+  for (const k of GROUP_KEYS) prev[k] = k in m ? m[k] : null;
+  return { ok: true, meta: { ...m, project: project.key, project_name: project.name, project_gate: step.n, project_gate_name: step.name }, prev };
+}
+export function groupUndo(m: Meta, project: string, prevRaw: unknown): { ok: true; meta: Meta } | { ok: false; error: string } {
+  if (!prevRaw || typeof prevRaw !== "object") return { ok: false, error: "Nothing to undo." };
+  if (m.project !== project) return { ok: false, error: "That one has been moved to another project, so it stays there." };
+  const p = prevRaw as Record<string, unknown>, out: Meta = { ...m };
+  for (const k of GROUP_KEYS) {
+    if (!(k in p)) continue;
+    const v = p[k];
+    if (v === null || v === undefined) { delete out[k]; continue; }
+    if (k === "project_gate") { if (typeof v !== "number" || !Number.isFinite(v)) return { ok: false, error: "Can't undo that." }; out[k] = v; continue; }
+    if (typeof v !== "string" || v.length > 120) return { ok: false, error: "Can't undo that." };
+    out[k] = v;
+  }
+  return { ok: true, meta: out };
+}
+
 // ── The week, and the daily marketing rep ─────────────────────
 export const dowOf = (d: string) => new Date(d + "T12:00:00Z").getUTCDay();   // 0 = Sunday
 export function weekStart(d: string): string {                                 // the Monday of that week

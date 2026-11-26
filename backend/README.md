@@ -15,7 +15,7 @@ Functions are deployed to the Brain's Supabase project by pasting the files in (
 | `brief-fromdoreen` | The "From Doreen" hand-off lane (accept, push back, done) | `index.ts`, `handoff.ts` |
 | `brief-videos` | Saved-videos card: turns what he watched into tasks and filing suggestions | `index.ts` |
 | `brief-ask` | The "Ask the Brain" box on the brief | `index.ts` |
-| `brief-lanes` | The Calm view: projects with gates, quick wins, thank-yous, coming up, categories, Sunday view | `index.ts`, `lanes.ts`, `focus.ts` |
+| `brief-lanes` | The Calm view: projects with gates, quick wins, thank-yous, coming up, categories, Sunday view; and grouping new items into a project (`suggest`, `group`, `ungroup`) | `index.ts`, `lanes.ts`, `focus.ts` |
 | `brief-focus` | Pinned and Your day (focus) cards | `index.ts`, `focus.ts` |
 | `hn-gems` | Hacker News "Overlooked gems" tool behind `gems.html` | `index.ts`, `hn.ts`, `search.ts`, `taste.ts`, `topics.ts` |
 | `rsotc-act` | The Act page: RSOTC setups, size, ETF stand-ins | `index.ts`, `quotes.ts`, `size.ts`, `vehicles.ts` |

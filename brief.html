@@ -267,6 +267,26 @@
   .scope button { font:inherit; font-size:13px; padding:10px 10px; border:0; background:none; color:var(--dim); cursor:pointer; }
   .scope button[aria-pressed=true] { background:var(--teal-dim); color:var(--teal); font-weight:600; }
 
+  /* Grouping prompt: sits just above the add bar's form. It only asks. */
+  .grp { max-width:680px; margin:0 auto 10px; background:var(--teal-dim); border:1px solid var(--line2); border-radius:10px; padding:10px 12px; font-size:14px; max-height:46vh; overflow:auto; }
+  .grp[hidden] { display:none; }
+  .grp .grphead { font-weight:600; line-height:1.35; }
+  .grp .grphead:focus { outline:none; }
+  .grp .grpitems { margin:6px 0 0; padding-left:20px; font-size:13px; color:var(--dim); }
+  .grp .grpitems li { margin:2px 0; overflow-wrap:anywhere; }
+  .grp .grpothers { border:0; margin:8px 0 0; padding:0; min-width:0; }
+  .grp .grpothers legend { font-size:13px; padding:0; }
+  .grp .grpothers label { display:flex; gap:8px; align-items:flex-start; min-height:36px; padding:6px 0; font-size:13px; color:var(--dim); }
+  .grp .grpothers input { margin-top:2px; flex-shrink:0; }
+  .grp .grprow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
+  .grp .grprow label { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; }
+  .grp select { font:inherit; font-size:14px; min-height:40px; max-width:100%; border:1px solid var(--line2); border-radius:8px; background:var(--surface); color:var(--text); padding:6px 8px; }
+  .grp .btn { padding:9px 14px; min-height:40px; }
+  .grp .grpfine { font-size:12px; color:var(--faint); margin-top:6px; }
+  .grp .grpothers input { width:20px; height:20px; }
+  body.grp-open:not(.opts-open) .wrap { padding-bottom:calc(var(--grph, 380px) + 24px); }
+  body.grp-open #toast { bottom:var(--grph, 86px); }
+
   /* Saved videos: a collapsible card like the workout log. Videos from the last few days, each with a
      synopsis, a guess at why you saved it, and Ask / Task / App / done. */
   .vidbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:2px; }
@@ -633,6 +653,7 @@
 </div>
 
 <div class="addbar">
+  <div class="grp" id="grp" role="region" aria-label="Group related items" aria-live="polite" hidden></div>
   <div class="addopts" id="addopts" hidden></div>
   <form id="addform">
     <div class="scope" role="group" aria-label="Where this item goes">
@@ -1511,9 +1532,123 @@ $("#addform").addEventListener("submit", async (e) => {
   $("#addbtn").disabled = false;
   if (r.ok) {
     input.value = ""; buildAddOpts();
-    toast((due && due !== TODAY ? `Added, due ${shortDate(due)}` : "Added for today") + (o.repeat ? " · repeats" : "")); await load();
+    toast((due && due !== TODAY ? `Added, due ${shortDate(due)}` : "Added for today") + (o.repeat ? " · repeats" : "")); grpNote(r.data.id, content); await load();
   }
   else toast(r.data.error || "Couldn't add it. Try again.");
+});
+
+// ── Grouping prompt ─────────────────────────────────────────
+// Add something that starts with the name of a project ("TrainerSide: dashboard icons") and the Brain offers to put it in that project.
+// It only asks: nothing moves unless you tap Group, nothing goes onto Your day either way, and Undo puts the task back as it was.
+// The matching is done by the brief-lanes function (suggest, group, ungroup). A suggestion that fails to load is simply not shown.
+const GRP = { added: [], decided: new Set(), declined: new Set(), cur: null, run: 0, timer: 0, hide: 0, busy: false };   // declined: projects you said "keep separate" to, until the page is reloaded
+function grpNote(id, title) {
+  if (!id || !cmOn()) return;
+  GRP.added.push({ id, title }); if (GRP.added.length > 24) GRP.added.shift();
+  clearTimeout(GRP.timer); GRP.timer = setTimeout(grpCheck, 350);
+}
+async function grpCheck() {
+  if (GRP.busy) { clearTimeout(GRP.timer); GRP.timer = setTimeout(grpCheck, 600); return; }
+  const ids = GRP.added.filter((x) => !GRP.decided.has(x.id)).map((x) => x.id).slice(-12);
+  if (!ids.length) return;
+  const run = ++GRP.run;
+  const r = await cmApi({ action: "suggest", ids });
+  if (run !== GRP.run || GRP.busy) return;
+  let list = r.ok && Array.isArray(r.data.suggestions) ? r.data.suggestions : [];
+  if (r.ok) {
+    for (const g of list) if (GRP.declined.has(g.project)) for (const x of g.items) GRP.decided.add(x.id);     // you already said no to this project
+    list = list.filter((g) => !GRP.declined.has(g.project));
+    const hit = new Set(list.flatMap((g) => g.items.map((x) => x.id)));
+    for (const id of ids) if (!hit.has(id)) GRP.decided.add(id);                                              // nothing to suggest for these: don't ask again
+  }
+  const asking = GRP.cur && GRP.cur.state === "ask" ? GRP.cur : null;
+  const sg = (asking && list.find((g) => g.project === asking.sg.project)) || list[0]; if (!sg) return;   // keep the card you are looking at
+  const prev = asking && asking.sg.project === sg.project ? asking : null;
+  GRP.cur = { state: "ask", sg, step: prev && sg.steps.some((s) => String(s.n) === prev.step) ? prev.step : "new",
+    others: new Set(prev ? [...prev.others].filter((id) => sg.others.some((o) => o.id === id)) : []) };
+  clearTimeout(GRP.hide);
+  grpRender(false);
+}
+function grpRender(focus) {
+  const el = $("#grp"), c = GRP.cur;
+  if (!c) { el.hidden = true; el.innerHTML = ""; document.body.classList.remove("grp-open"); document.body.style.removeProperty("--grph"); return; }
+  const sg = c.sg, dis = GRP.busy ? " disabled" : "";
+  let h = "";
+  if (c.state === "ask") {
+    const n = sg.items.length, total = n + c.others.size, them = n === 1 ? "it" : "them";
+    const opts = sg.steps.map((s) => `<option value="${s.n}"${String(s.n) === c.step ? " selected" : ""}>${esc(s.name || "Step " + s.n)} · ${s.open} open${s.state === "now" ? " (current step)" : ""}</option>`).join("")
+      + `<option value="new"${c.step === "new" ? " selected" : ""}>${sg.new_step.reuse ? `The “${esc(sg.new_step.name)}” step you added before` : `A new last step: ${esc(sg.new_step.name)}`}</option>`;
+    h = `<div class="grphead" id="grphead" tabindex="-1">${n === 1 ? "This looks like part of" : "These look like part of"} <b>${esc(sg.name)}</b>. ${n === 1 ? "Put it there?" : "Group them under it?"}</div>
+      <ul class="grpitems">${sg.items.map((x) => `<li>${esc(x.title)}</li>`).join("")}</ul>
+      ${sg.others.length ? `<fieldset class="grpothers"><legend>Also include other open tasks that start with “${esc(sg.label)}”? None are ticked unless you tick them.</legend>${sg.others.map((o) => `<label><input type="checkbox" data-grpother="${esc(o.id)}"${c.others.has(o.id) ? " checked" : ""}${dis}> <span>${esc(o.title)}</span></label>`).join("")}</fieldset>` : ""}
+      <div class="grprow"><label>Put ${them} in <select id="grpstep" aria-label="Step of ${esc(sg.name)}"${dis}>${opts}</select></label></div>
+      <div class="grprow"><button type="button" class="btn" data-grp="group"${dis}>${total === 1 ? "Group it" : "Group them"}</button><button type="button" class="btn quiet" data-grp="keep"${dis}>Keep separate</button></div>
+      <div class="grpfine">Nothing moves onto your day either way.</div>`;
+  } else if (c.state === "done") {
+    const d = c.res.done.length, sk = c.res.skipped.length;
+    h = `<div class="grphead" id="grphead" tabindex="-1">✓ Grouped. ${d === 1 ? "The task now sits" : `The ${d} tasks now sit`} in the <b>${esc(c.res.step.name || "Step " + c.res.step.n)}</b> step of <b>${esc(c.res.project.name)}</b>. Your day did not change.${sk ? ` ${sk} could not be grouped.` : ""}</div>
+      <div class="grprow"><button type="button" class="btn quiet" data-grp="undo"${dis}>Undo</button><button type="button" class="btn quiet" data-grp="close"${dis}>Done</button></div>`;
+  } else {
+    const n = sg.items.length;
+    h = `<div class="grphead" id="grphead" tabindex="-1">Left as ${n === 1 ? "a separate item" : `${n} separate items`}.</div>
+      <div class="grprow"><button type="button" class="btn quiet" data-grp="close">Done</button></div>`;
+  }
+  el.innerHTML = h; el.hidden = false;
+  document.body.classList.add("grp-open"); grpSize();
+  if (focus) { const hd = $("#grphead"); if (hd) hd.focus({ preventScroll: true }); }
+}
+// How far the top of the card is from the bottom of the screen: the page keeps that much room, and the toast sits above it.
+function grpSize() { const el = $("#grp"); if (!el.hidden) document.body.style.setProperty("--grph", Math.ceil(window.innerHeight - el.getBoundingClientRect().top + 8) + "px"); }
+window.addEventListener("resize", grpSize);
+function grpClose() {
+  clearTimeout(GRP.hide); GRP.cur = null; grpRender(false);
+  if (GRP.added.some((x) => !GRP.decided.has(x.id))) grpCheck();     // something else was waiting
+}
+function grpKeep() {
+  const c = GRP.cur; if (!c || c.state !== "ask" || GRP.busy) return;
+  for (const x of c.sg.items) GRP.decided.add(x.id);
+  GRP.declined.add(c.sg.project);
+  c.state = "kept"; grpRender(true);
+  clearTimeout(GRP.hide); GRP.hide = setTimeout(grpClose, 6000);
+}
+async function grpGroup() {
+  const c = GRP.cur; if (!c || c.state !== "ask" || GRP.busy) return;
+  const ids = [...c.sg.items.map((x) => x.id), ...c.sg.others.map((o) => o.id).filter((id) => c.others.has(id))];
+  GRP.busy = true; grpRender(true);
+  const body = { action: "group", ids, project: c.sg.project }; if (c.step !== "new") body.gate = Number(c.step);
+  const r = await cmApi(body);
+  GRP.busy = false;
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't group those. Try again."); grpRender(true); return; }
+  c.state = "done"; c.res = r.data; c.ids = ids;
+  for (const id of ids) GRP.decided.add(id);
+  if (CM.started) cmRefresh();                       // the project's card picks up the new step and count
+  grpRender(true);
+  clearTimeout(GRP.hide); GRP.hide = setTimeout(grpClose, 20000);
+}
+async function grpUndo() {
+  const c = GRP.cur; if (!c || c.state !== "done" || GRP.busy) return;
+  clearTimeout(GRP.hide); GRP.busy = true; grpRender(true);
+  const r = await cmApi({ action: "ungroup", project: c.res.project.key, items: c.res.done });
+  GRP.busy = false;
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't undo that. Try again."); grpRender(true); GRP.hide = setTimeout(grpClose, 20000); return; }
+  for (const id of c.ids) GRP.decided.delete(id);
+  c.state = "ask"; delete c.res;
+  if (CM.started) cmRefresh();
+  toast("Put back as it was"); grpRender(true);
+}
+$("#grp").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-grp]"); if (!b) return;
+  const a = b.dataset.grp;
+  if (a === "group") grpGroup(); else if (a === "keep") grpKeep(); else if (a === "undo") grpUndo(); else if (a === "close") grpClose();
+});
+$("#grp").addEventListener("change", (e) => {
+  const c = GRP.cur; if (!c || c.state !== "ask") return;
+  if (e.target.id === "grpstep") c.step = e.target.value;
+  else if (e.target.dataset.grpother) { if (e.target.checked) c.others.add(e.target.dataset.grpother); else c.others.delete(e.target.dataset.grpother); grpRender(false); const cb = document.querySelector(`#grp [data-grpother="${CSS.escape(e.target.dataset.grpother)}"]`); if (cb) cb.focus({ preventScroll: true }); }
+});
+$("#grp").addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || !GRP.cur || GRP.busy) return;
+  if (GRP.cur.state === "ask") grpKeep(); else grpClose();
 });
 
 // Due date for new items: blank means the brief's day
@@ -1623,6 +1758,7 @@ $("#askout").addEventListener("click", async (e) => {
     card.classList.add("added");
     card.querySelector(".aprow").innerHTML = `<span class="addedmsg">✓ Added for ${esc(when)}</span>`;
     toast(`Added for ${when}`);
+    grpNote(r.data.id, content);
     await load();
   } else { lock(false); toast(r.data.error || "Couldn't add it. Try again."); }
 });
