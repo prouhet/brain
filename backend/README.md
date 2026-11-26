@@ -9,6 +9,7 @@ Functions are deployed to the Brain's Supabase project by pasting the files in (
 | Folder | What it does | Files |
 |---|---|---|
 | `morning-brief` | The 5:30 AM brief: picks and ranks the day, emails it, and serves the brief page its data (check off, add, move, snooze, Drop filtering) | `index.ts` |
+| `morning-email` | What the 5:30 AM job now calls (since Nov 26). Asks `morning-brief` to build the brief without emailing it, adds a Calm-style top (Open today's page button, Pinned, each project's next task, quick wins, coming up), and sends the email. Falls back to the plain `morning-brief` email if anything fails | `index.ts`, `top.ts` |
 | `brief-pastdue` | The "Past due" review on the brief: keep, snooze, drop, undo | `index.ts` |
 | `brief-markets` | The Markets cards: TSP brief, Hard Asset brief, RSOTC card, and the "by bet" view | `index.ts`, `board.ts`, `bets.ts`, `parse.ts` |
 | `brief-fromdoreen` | The "From Doreen" hand-off lane (accept, push back, done) | `index.ts`, `handoff.ts` |
@@ -29,16 +30,28 @@ No secrets are in this repo. They live in Supabase, under the project's function
 - everywhere: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRIEF_PAGE_KEY` (optional `BRIEF_OWNER`, default `dave`)
 - AI calls (`morning-brief`, `brief-ask`, `brief-videos`): `ANTHROPIC_API_KEY`, `BRIEF_MODEL`, `ASK_MODEL`, `OPENROUTER_API_KEY`
 - `morning-brief` only: `BRIEF_TO`, `BRIEF_PAGE_URL`, `BRIEF_TRIGGER_KEY`, `RECAP_TRIGGER_KEY`, `GCAL_ICS_URL`, `JEV_API_KEY`, `JEV_API_URL`, `JEV_MODEL`, `POSTMARK_SERVER_TOKEN`
+- `morning-email` uses the same project secrets (`BRIEF_TRIGGER_KEY`, `BRIEF_PAGE_KEY`, `POSTMARK_SERVER_TOKEN`, optional `BRIEF_TO`, `BRIEF_PAGE_URL`)
 - `brief-markets` only: `DIDS_ADMIN_URL`
 
 ## Differences from what is deployed
 
-Four lines were changed or blanked here because this repo is public. The deployed functions keep the real values.
+Five lines were changed or blanked here because this repo is public. The deployed functions keep the real values.
 
 1. `brief-markets/index.ts`: the default for `DIDS_ADMIN_URL` is empty (the real admin link is a private URL).
 2. `morning-brief/index.ts`: the default for `BRIEF_TO` is empty (the deployed copy has the real address as its default).
 3. `brief-lanes/lanes.ts`: the category guess for "health" uses a short generic word list. The deployed one also has condition-specific words.
 4. `brief-videos/index.ts`: the `PROFILE` paragraph that tells the AI about the owner and his projects is replaced by a placeholder.
+5. `morning-email/index.ts`: the default for `BRIEF_TO` is empty (same as `morning-brief`; the deployed copy has the real address).
+
+## The 5:30 AM email
+
+The cron job named `morning-brief` (pg_cron job 2, `30 11 * * *`) calls **`morning-email`** since Nov 26, 2026. It used to call
+`morning-brief` directly; `morning-brief` is unchanged and still builds the brief and serves the page. To go back to the old
+email, point the job at `morning-brief` again: `select cron.alter_job(job_id := 2, command := $$ select net.http_post(url :=
+'https://<project>.supabase.co/functions/v1/morning-brief?key=' || (select decrypted_secret from vault.decrypted_secrets where
+name = 'brief_trigger_key'), headers := '{"Content-Type":"application/json"}'::jsonb, timeout_milliseconds := 120000); $$);`
+`morning-email` can also be called with `dry=1` (skips `morning-brief`, uses a stand-in email, returns the HTML and sends nothing)
+to check the new top against the live lists. Its helper `top.ts` is pure (no network) and has tests in the build workspace.
 
 Also, a few deployed functions carry shorter header comments than the files here (the code is the same): `brief-lanes`
 (which also bundles a trimmed `focus.ts` with only the helpers it uses) and `rsotc-ladders`. `morning-brief` was
