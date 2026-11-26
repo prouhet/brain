@@ -958,6 +958,8 @@ Return ONLY valid JSON (no markdown fences):
       const isPaid = MEMBERSHIP?.isPaid || MEMBERSHIP?.isPrivileged;
       // How many videos in the library belong to this watch (saved by it, or from the same channel).
       const libCount = (w) => { const wf = { name: w.channel_name, ids: new Set(watchStats[w.id]?.ids || []) }; return videos.filter((v) => videoInWatch(v, wf)).length; };
+      // Jump to the Videos tab showing only this channel's videos (used by the channel name and the "View these" link).
+      const showChannel = (w) => onShowChannel && onShowChannel(w.channel_name, watchStats[w.id]?.ids || []);
 
       useEffect(() => {
         if (!isPaid) return;
@@ -1102,7 +1104,11 @@ Return ONLY valid JSON (no markdown fences):
                   ) : (
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>{w.channel_name}</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 3 }}>
+                          {libCount(w) > 0
+                            ? <button onClick={() => showChannel(w)} title={`Show the ${libCount(w)} videos from ${w.channel_name} in your library`} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "inherit", textAlign: "left", textDecoration: "underline", textDecorationColor: "var(--acc)", textUnderlineOffset: 3 }}>{w.channel_name}</button>
+                            : w.channel_name}
+                        </p>
                         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                           {w.channel_handle && <span style={{ fontSize: 12, color: "var(--t3)" }}>{w.channel_handle}</span>}
                           {(w.keywords || []).length
@@ -1118,7 +1124,7 @@ Return ONLY valid JSON (no markdown fences):
                           {!w.active && <span style={{ fontSize: 11, color: "var(--t3)" }}>Paused</span>}
                         </div>
                         <div style={{ display: "flex", gap: 16, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
-                          {libCount(w) > 0 && <button onClick={() => onShowChannel && onShowChannel(w.channel_name, watchStats[w.id]?.ids || [])} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--acc)", fontFamily: "Figtree,system-ui" }}>View these {libCount(w)} videos in your library →</button>}
+                          {libCount(w) > 0 && <button onClick={() => showChannel(w)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--acc)", fontFamily: "Figtree,system-ui" }}>View these {libCount(w)} videos in your library →</button>}
                           <a href={`https://www.youtube.com/channel/${w.channel_id}/videos`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "var(--t2)", textDecoration: "none" }}>All videos on YouTube ↗</a>
                         </div>
                       </div>
