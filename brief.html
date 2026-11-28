@@ -573,10 +573,14 @@
   .cmgates > summary::-webkit-details-marker { display:none; }
   .cmgates > summary::before { content:"›"; display:inline-block; width:14px; transition:transform .15s; color:var(--faint); }
   .cmgates[open] > summary::before { transform:rotate(90deg); }
-  .cmstrip { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 6px; }
-  .cmgate { font-size:12.5px; padding:4px 10px; border-radius:999px; border:1px solid var(--line2); color:var(--dim); }
-  .cmgate.now { border-color:var(--teal); background:var(--teal-dim); color:var(--teal); font-weight:600; }
-  .cmgate.done { text-decoration:line-through; opacity:.6; }
+  .cmstep { margin:6px 0 4px; }
+  .cmstephead { display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; font-size:13.5px; padding:6px 0 2px; border-top:1px solid var(--line2); }
+  .cmstep:first-of-type .cmstephead { border-top:0; }
+  .cmstepname { font-weight:600; }
+  .cmstepnote { font-size:12.5px; color:var(--faint); }
+  .cmstep.now .cmstepname, .cmstep.now .cmstepnote { color:var(--teal); }
+  .cmstep.done .cmstepname, .cmstep.wait .cmstepname { text-decoration:line-through; opacity:.6; }
+  .cmstepmore { margin:2px 0 4px 40px; }
   .cmacts { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .cmitem .title { font-size:15.5px; }
   .cmmeta { font-size:13px; color:var(--dim); margin-top:2px; }
@@ -2572,10 +2576,10 @@ function cmMeta(it, o) {
   return bits.join("");
 }
 function cmRowHTML(it, o = {}) {
-  const id = esc(it.id), t = esc(it.title), done = !!CM.done[it.id];
+  const id = esc(it.id), t = esc(it.title), done = !!CM.done[it.id], again = it.repeat ? String(it.repeat) : "";
   const onDay = cmDayIds().has(it.id);
   const moves = o.move ? (CM.d.lanes || []).filter((l) => l.key !== it.lane).map((l) => `<button type="button" role="menuitem" data-cmmove="${esc(l.key)}" aria-label="Move to ${esc(l.name)}: ${t}">${esc(l.name)}</button>`).join("") : "";
-  const menu = `<div class="more"><button type="button" class="moretoggle" aria-haspopup="menu" aria-expanded="false" aria-label="Actions: ${t}">⋯</button>
+  const menu = again ? "" : `<div class="more"><button type="button" class="moretoggle" aria-haspopup="menu" aria-expanded="false" aria-label="Actions: ${t}">⋯</button>
     <div class="menu" role="menu">
       ${onDay ? "" : `<button type="button" role="menuitem" data-cmact="focus" aria-label="Add to my day: ${t}">Add to my day</button>`}
       <button type="button" role="menuitem" data-cmact="pin" aria-label="Pin to the top: ${t}">Pin</button>
@@ -2585,7 +2589,7 @@ function cmRowHTML(it, o = {}) {
   return `<div class="item cmitem${done ? " done" : ""}" data-cm="${id}">
     <div class="row">
       <button type="button" class="check" data-cmact="check" aria-pressed="${done}" aria-label="${esc(o.checkLabel || "Check off")}: ${t}"><span class="box">${CHECK_SVG}</span></button>
-      <div class="text"><span class="title">${t}</span>${cmMeta(it, o)}${o.dayMark && onDay ? `<div class="cmmeta">On your day</div>` : ""}</div>
+      <div class="text"><span class="title">${t}</span>${cmMeta(it, o)}${again ? `<div class="cmmeta">Repeats ${esc(again)}</div>` : ""}${o.dayMark && onDay ? `<div class="cmmeta">On your day</div>` : ""}</div>
       ${menu}
     </div></div>`;
 }
@@ -2617,13 +2621,23 @@ function dueChip(p) {
   const txt = n < 0 ? `Late · ${shortDate(p.due)}` : n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : `Due ${shortDate(p.due)} · ${n} days`;
   return `<span class="cmdate${soon ? " soon" : ""}">${esc(txt)}</span>`;
 }
+// The steps of a project, each with its own tasks. A step that was checked off for this round (a repeating task) shows when it is due again.
+function projStepsHTML(p) {
+  const steps = p.steps || [{ n: p.now ? p.now.n : 0, name: p.now ? p.now.name : "", state: "now", open: p.tasks.length, next: "", tasks: p.tasks }];
+  return steps.map((s) => {
+    const note = s.state === "now" ? "Now" : s.state === "done" ? "Done" : s.state === "wait" ? (s.next ? `Done for now · due again ${esc(shortDate(s.next))}` : "Done for now") : "";
+    const rows = s.tasks.map((t) => cmRowHTML({ id: t.id, title: t.title, due: t.due, due_in: t.due_in, lane: "", age: 0, snooze: "", repeat: t.repeat }, { dayMark: true })).join("");
+    const more = s.open > s.tasks.length ? `<div class="cmmeta cmstepmore">+ ${s.open - s.tasks.length} more in this step</div>` : "";
+    return `<div class="cmstep ${esc(s.state)}"><div class="cmstephead"><span class="cmstepname">${esc(s.name || "Step " + s.n)}</span>${note ? `<span class="cmstepnote">${note}</span>` : ""}</div>${rows}${more}</div>`;
+  }).join("");
+}
 function projCardHTML(p, skipped) {
   const key = esc(p.key), dayIds = cmDayIds();
-  const avail = p.tasks.filter((t) => !dayIds.has(t.id) && !CM.done[t.id]);
-  const strip = p.gates.map((g) => `<span class="cmgate ${g.state}">${esc(g.name || "Step " + g.n)}${g.state === "done" ? "" : g.open > 1 ? ` · ${g.open}` : ""}</span>`).join("");
-  const rows = p.tasks.map((t) => cmRowHTML({ id: t.id, title: t.title, due: t.due, due_in: t.due_in, lane: "", age: 0, snooze: "" }, { dayMark: true })).join("");
+  // Repeating tasks (a monthly newsletter) are checked off right on the card; they cannot go on Your day.
+  const plain = p.tasks.filter((t) => !t.repeat);
+  const avail = plain.filter((t) => !dayIds.has(t.id) && !CM.done[t.id]);
   // What the button will add, and what it already added: the card says both, since Your day is at the very top of the page and out of sight on a phone.
-  const onDayHere = p.tasks.filter((t) => dayIds.has(t.id));
+  const onDayHere = plain.filter((t) => dayIds.has(t.id));
   const upNext = !skipped && avail.length ? `<div class="cmnext"><b>Up next:</b> ${esc(avail[0].title)}</div>` : "";
   const addedLine = !skipped && onDayHere.length
     ? `<div class="cmadded" role="status"><span aria-hidden="true">✓</span> On your day: ${esc(fcShort(onDayHere[0].title))}${onDayHere.length > 1 ? ` + ${onDayHere.length - 1} more` : ""} <button type="button" class="cmseeit" data-cmact="seeday">See it ↑</button></div>`
@@ -2631,14 +2645,14 @@ function projCardHTML(p, skipped) {
   const doLabel = !avail.length ? "All on your day" : onDayHere.length ? "Add another to my day" : "Add to my day";
   const acts = skipped
     ? `<div class="cmacts"><button type="button" class="btn quiet" data-cmact="unskip">Bring back</button></div>`
-    : `<div class="cmacts"><button type="button" class="btn" data-cmact="projdo"${avail.length ? "" : " disabled"}>${doLabel}</button>
+    : `<div class="cmacts">${plain.length ? `<button type="button" class="btn" data-cmact="projdo"${avail.length ? "" : " disabled"}>${doLabel}</button>` : ""}
         <button type="button" class="btn quiet" data-cmact="skip">Not today</button></div>`;
   return `<div class="fitcard cmproj" data-cmp="${key}">
     <div class="cmphead"><div><div class="cmptitle">${esc(p.name)}</div>${p.now ? `<div class="cmpnow"><b>Now:</b> ${esc(p.now.name || "Step " + p.now.n)}</div>` : ""}</div>${dueChip(p)}</div>
     ${p.then ? `<div class="cmthen">Then: ${esc(p.then)}</div>` : ""}
     ${upNext}${addedLine}
     <details class="cmgates" data-cmopen="proj:${key}"${CM.open["proj:" + p.key] ? " open" : ""}><summary>${p.open} left in ${p.gates.length} steps</summary>
-      <div class="cmstrip">${strip}</div>${rows}</details>
+      ${projStepsHTML(p)}</details>
     ${acts}</div>`;
 }
 function projectsHTML(d) {
@@ -2735,7 +2749,7 @@ function cmIndex(d) {
   const m = new Map();
   const put = (x) => { if (x && x.id && !m.has(x.id)) m.set(x.id, x); };
   d.cats.forEach((c) => c.items.forEach(put));
-  d.projects.forEach((p) => p.tasks.forEach((t) => put({ ...t, lane: "" })));
+  d.projects.forEach((p) => { p.tasks.forEach((t) => put({ ...t, lane: "" })); (p.steps || []).forEach((s) => s.tasks.forEach((t) => put({ ...t, lane: "" }))); });
   [...d.quick, ...d.thanks, ...d.coming, ...d.week.sweep.items, ...d.week.ahead].forEach(put);
   CM.idx = m;
 }
@@ -2773,17 +2787,23 @@ function cmMarkRow(id, want) {
     const c = el.querySelector(".check"); if (c) c.setAttribute("aria-pressed", String(want));
   });
 }
+// One round of a repeating task (the monthly newsletter): the same check-off Classic does, kept by brief-lanes because Your day only takes one-time tasks.
+async function cmCycle(id, want) {
+  const r = await cmApi({ action: "cycle", id, ...(want ? {} : { undo: true }) });
+  if (!r.ok) { toast((r.data && r.data.error) || "Couldn't save. Try again."); return null; }
+  return r.data;
+}
 async function cmCheck(id) {
   const it = cmFind(id); if (!it || CM.busy[id]) return;
   const want = !CM.done[id];
   CM.done[id] = want; cmMarkRow(id, want);
   CM.busy[id] = true;
-  const d = await fcDo(want ? "done" : "undone", id);
+  const d = it.repeat ? await cmCycle(id, want) : await fcDo(want ? "done" : "undone", id);
   delete CM.busy[id];
   if (!d) { CM.done[id] = !want; cmMarkRow(id, !want); return; }
-  if (want) toast(`Checked off: "${fcShort(it.title)}"`);
-  if (fcFind(id)) fcRefresh();
-  cmRefreshSoon();
+  if (want) toast(`Checked off: "${fcShort(it.title)}"` + (it.repeat && d.next ? `. Due again ${shortDate(d.next)}.` : ""));
+  if (!it.repeat && fcFind(id)) fcRefresh();
+  cmRefreshSoon(it.repeat ? 600 : 0);
 }
 async function cmMove(id, lane) {
   const it = cmFind(id); if (!it || CM.busy["mv" + id]) return;
@@ -2804,7 +2824,7 @@ function cmGone(id) {
   if (brief) brief.items = brief.items.filter((i) => i.id !== id);
   const d = CM.d;
   for (const c of d.cats) { const n = c.items.length; c.items = c.items.filter((x) => x.id !== id); if (c.items.length !== n) c.count = c.items.length; }
-  for (const p of d.projects) p.tasks = p.tasks.filter((t) => t.id !== id);
+  for (const p of d.projects) { p.tasks = p.tasks.filter((t) => t.id !== id); (p.steps || []).forEach((s) => { s.tasks = s.tasks.filter((t) => t.id !== id); }); }
   for (const k of ["quick", "thanks", "coming"]) d[k] = d[k].filter((x) => x.id !== id);
   d.week.sweep.items = d.week.sweep.items.filter((x) => x.id !== id);
   d.week.ahead = d.week.ahead.filter((x) => x.id !== id);
@@ -2835,7 +2855,7 @@ function cmSeeDay() {
 async function cmProjDo(key) {
   const p = CM.d.projects.find((x) => x.key === key); if (!p) return;
   const dayIds = cmDayIds();
-  const t = p.tasks.find((x) => !dayIds.has(x.id) && !CM.done[x.id]); if (!t) return;
+  const t = p.tasks.find((x) => !x.repeat && !dayIds.has(x.id) && !CM.done[x.id]); if (!t) return;
   await fcFromMain({ id: t.id, title: t.title }, "focus");
 }
 async function cmSkip(key, undo) {

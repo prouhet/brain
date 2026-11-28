@@ -1,5 +1,5 @@
 // ============================================================
-// STUDIO STRONG OPEN BRAIN — Brief "Calm view" lists v1.0
+// STUDIO STRONG OPEN BRAIN — Brief "Calm view" lists v1.3
 // ============================================================
 // Powers the Calm view of the morning-brief page (reelcall.app/brief.html): the data behind
 //   project cards with gates · quick wins · thank-yous owed · coming up · all your items by category ·
@@ -17,9 +17,10 @@
 //   suggest { ids[] }                  → { ok, suggestions[] }  items just added that start with the name of an open project (read-only)
 //   group   { ids[], project, gate? }  → { ok, project, step, done[{id,prev}], skipped[] }   put them in that project's step (gate = a step number, or leave out for a new last step)
 //   ungroup { project, items[{id,prev}] } → { ok, undone, skipped[] }
+//   cycle   { id, undo? }              → { ok, id, next }      check off (or undo) one round of a repeating task that belongs to a project, the way Classic does: sets last_completed; next = when it is due again
 //
 // A task is never copied. This function writes only these keys on a task: lane, snooze_until, sweep_kept_at, the four project keys
-// (group / ungroup), and (Drop) the archive keys. Per-day and per-week choices (skipped projects, the rep, the week's picks) live in the brief_state table.
+// (group / ungroup), last_completed (cycle), and (Drop) the archive keys. Per-day and per-week choices (skipped projects, the rep, the week's picks) live in the brief_state table.
 // The 5:30 morning-brief function is untouched.
 //
 // Secrets (project-wide, all already set): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BRIEF_PAGE_KEY
@@ -30,7 +31,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.47.10";
 import {
   addDays, buildCats, buildProjects, dowOf, DROPPED_REASON, isMine, LANES, quickWins, REP_LESSON, repAsk, repTally, rowOut, setLane, sweepApply, sweepList,
-  GROUP_MAX, groupApply, groupUndo, othersFor, planGroups, resolveStep, stepsOf, shortTitle,
+  GROUP_MAX, cycleApply, groupApply, groupUndo, othersFor, planGroups, resolveStep, stepsOf, shortTitle,
   pickWeek, sweepUndo, thankYous, todayCentral, comingUp, weekAhead, weekStart, WEEK_PICK_MAX, type Row, type SweepHow,
 } from "./lanes.ts";
 
@@ -184,6 +185,15 @@ async function handleUnsweep(b: Record<string, unknown>) {
 }
 
 // ── Grouping related items into a project ─────────────────────
+async function handleCycle(b: Record<string, unknown>) {
+  const t = await load(b.id);
+  if (!t) return json({ error: "Can't find that task." }, 404);
+  const r = cycleApply(t.metadata || {}, !!b.undo, todayCentral(), new Date().toISOString());
+  if (!r.ok) return json({ error: r.error }, 400);
+  const { error } = await db.from("thoughts").update({ metadata: r.meta }).eq("id", t.id);
+  if (error) return json({ error: error.message }, 500);
+  return json({ ok: true, id: t.id, next: r.next });
+}
 const UUID = /^[0-9a-f-]{36}$/i;
 const idList = (v: unknown): string[] => Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === "string" && UUID.test(x)))].slice(0, GROUP_MAX) : [];
 async function handleSuggest(b: Record<string, unknown>) {
@@ -269,6 +279,7 @@ Deno.serve(async (req) => {
       case "suggest": return await handleSuggest(b);
       case "group": return await handleGroup(b);
       case "ungroup": return await handleUngroup(b);
+      case "cycle": return await handleCycle(b);
       default: return json({ error: "Unknown action." }, 400);
     }
   } catch (e) {

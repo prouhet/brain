@@ -102,13 +102,82 @@ export function sortRows(a: Row, b: Row): number {
   return touched(b).localeCompare(touched(a));
 }
 
+// ── Repeating tasks ───────────────────────────────────────────
+// Same rules as the morning-brief function: the schedule is { every, unit } or a word ("monthly"); a task repeats from its due date
+// (same day each month, same weekday each week) and the next one due is the first date after the last check-off.
+type Recur = { n: number; unit: "day" | "week" | "month" | "year" };
+export function parseRecur(r: unknown): Recur | null {
+  if (!r) return null;
+  if (typeof r === "object") {
+    const o = r as { every?: number; unit?: string };
+    const u = String(o.unit || "days").toLowerCase();
+    const n = Math.max(1, Number(o.every) || 1);
+    return { n, unit: /week/.test(u) ? "week" : /month/.test(u) ? "month" : /year/.test(u) ? "year" : "day" };
+  }
+  const w = String(r).toLowerCase();
+  if (/biweek|fortnight/.test(w)) return { n: 2, unit: "week" };
+  if (/week/.test(w)) return { n: 1, unit: "week" };
+  if (/quarter/.test(w)) return { n: 3, unit: "month" };
+  if (/semi.?annual/.test(w)) return { n: 6, unit: "month" };
+  if (/month/.test(w)) return { n: 1, unit: "month" };
+  if (/year|annual/.test(w)) return { n: 1, unit: "year" };
+  if (/day|daily/.test(w)) return { n: 1, unit: "day" };
+  return { n: 1, unit: "week" };
+}
+function addRecur(dateStr: string, r: Recur): string {
+  if (r.unit === "day") return addDays(dateStr, r.n);
+  if (r.unit === "week") return addDays(dateStr, 7 * r.n);
+  const d = new Date(dateStr + "T12:00:00Z");
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + (r.unit === "month" ? r.n : 12 * r.n));
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
+  return d.toISOString().slice(0, 10);
+}
+const dayOfStamp = (v: unknown) => { if (!v) return ""; const d = new Date(String(v)); return isNaN(d.getTime()) ? "" : todayCentral(d); };
+export function nextRecurringDue(m: Meta, today: string): string {
+  const r = parseRecur(m.recurring) || { n: 1, unit: "week" };
+  const last = dayOfStamp(m.last_completed);
+  const anchor = dateOf(m.due_date);
+  if (anchor) {
+    let next = anchor;
+    for (let i = 0; last && next <= last && i < 2000; i++) next = addRecur(next, r);
+    return next;
+  }
+  return last ? addRecur(last, r) : today;
+}
+// The date a task is really due: for a repeating task the next round, not the date it was first set to.
+export const effectiveDue = (m: Meta, today: string) => (m.recurring ? nextRecurringDue(m, today) : dateOf(m.due_date));
+
+// Check off (or undo) one round of a repeating task that belongs to a project: the same thing Classic does, last_completed on the task.
+export function cycleApply(m: Meta, undo: boolean, today: string, now: string): { ok: true; meta: Meta; next: string } | { ok: false; error: string } {
+  if (isArchived(m)) return { ok: false, error: "That task is already closed." };
+  if (!m.recurring || typeof m.project !== "string" || !m.project || !["task", ""].includes(String(m.type ?? "task").toLowerCase())) return { ok: false, error: "That one isn't a repeating project task." };
+  if (m.assignee === "doreen" || waitingOnDave(m)) return { ok: false, error: "That one is Doreen's." };
+  if (undo) {
+    if (dayOfStamp(m.last_completed) !== today) return { ok: false, error: "Nothing to undo for that one." };
+    const meta: Meta = { ...m };
+    if (m.prev_last_completed) meta.last_completed = m.prev_last_completed; else delete meta.last_completed;
+    delete meta.prev_last_completed;
+    return { ok: true, meta, next: nextRecurringDue(meta, today) };
+  }
+  if (nextRecurringDue(m, today) > today) return { ok: false, error: "That one is already checked off for this round." };
+  const meta: Meta = { ...m, prev_last_completed: m.last_completed ?? null, last_completed: now };
+  return { ok: true, meta, next: nextRecurringDue(meta, today) };
+}
+
 // ── Projects ──────────────────────────────────────────────────
-export interface Gate { n: number; name: string; total: number; open: number; state: "done" | "now" | "later" }
+// A step is "wait" when everything left in it is a repeating task that is not due yet (checked off for this round).
+export interface Gate { n: number; name: string; total: number; open: number; state: "done" | "now" | "later" | "wait"; wait?: number; next?: string }
+export interface TaskOut { id: string; title: string; due: string; due_in: number | null; repeat: string }
+export interface StepTasks { n: number; name: string; state: Gate["state"]; open: number; next: string; tasks: TaskOut[] }
 export interface ProjectOut {
   key: string; name: string; gates: Gate[]; now: { n: number; name: string } | null; then: string;
-  tasks: Array<{ id: string; title: string; due: string; due_in: number | null }>;
+  tasks: TaskOut[]; steps: StepTasks[];
   due: string; due_in: number | null; open: number; total: number;
 }
+export const STEP_TASKS_MAX = 8;
 // `rows` includes finished tasks, so a gate can show as done.
 export function buildProjects(rows: Row[], today: string): ProjectOut[] {
   const by = new Map<string, Row[]>();
@@ -118,31 +187,48 @@ export function buildProjects(rows: Row[], today: string): ProjectOut[] {
     if (!by.has(k)) by.set(k, []);
     by.get(k)!.push(t);
   }
+  const eff = (t: Row) => effectiveDue(t.metadata || {}, today);
+  const notDue = (t: Row) => !!t.metadata?.recurring && nextRecurringDue(t.metadata || {}, today) > today;
+  const byDue = (a: Row, b: Row) => {
+    const da = eff(a), db = eff(b);
+    if (da && db) return da.localeCompare(db) || touched(b).localeCompare(touched(a));
+    if (da) return -1;
+    if (db) return 1;
+    return touched(b).localeCompare(touched(a));
+  };
+  const gateOf = (t: Row) => Number(t.metadata?.project_gate) || 0;
+  const taskOut = (t: Row): TaskOut => {
+    const d = eff(t);
+    return { id: t.id, title: shortTitle(t.content, 140), due: d, due_in: d ? daysBetween(today, d) : null, repeat: t.metadata?.recurring ? repeatLabel(t.metadata.recurring) : "" };
+  };
   const out: ProjectOut[] = [];
   for (const [key, list] of by) {
-    const open = list.filter((t) => !isArchived(t.metadata || {}) && !waitingOnDave(t.metadata || {}));
-    if (!open.length) continue;      // finished projects drop off
+    const open = list.filter((t) => !isArchived(t.metadata || {}) && !waitingOnDave(t.metadata || {}) && !notDue(t));
+    if (!open.length) continue;      // finished projects drop off (a repeating task checked off for this round counts as finished until it comes round again)
     const gm = new Map<number, Gate>();
     for (const t of list) {
       const m = t.metadata || {};
-      const n = Number(m.project_gate) || 0;
-      const g = gm.get(n) || { n, name: "", total: 0, open: 0, state: "later" as const };
+      const n = gateOf(t);
+      const g = gm.get(n) || { n, name: "", total: 0, open: 0, state: "later" as Gate["state"] };
       if (!g.name && typeof m.project_gate_name === "string") g.name = m.project_gate_name;
       g.total++;
-      if (!isArchived(m)) g.open++;
+      if (!isArchived(m)) {
+        if (notDue(t)) { g.wait = (g.wait || 0) + 1; const nx = eff(t); if (!g.next || nx < g.next) g.next = nx; } else g.open++;
+      }
       gm.set(n, g);
     }
     const gates = [...gm.values()].sort((a, b) => a.n - b.n);
     const nowG = gates.find((g) => g.open > 0) || null;
-    for (const g of gates) g.state = g.open === 0 ? "done" : g === nowG ? "now" : "later";
-    const nowTasks = open.filter((t) => (Number(t.metadata?.project_gate) || 0) === nowG?.n).sort(sortRows);
+    for (const g of gates) g.state = g.open === 0 ? (g.wait ? "wait" : "done") : g === nowG ? "now" : "later";
+    const nowTasks = open.filter((t) => gateOf(t) === nowG?.n).sort(byDue);
     const nextG = nowG ? gates.find((g) => g.n > nowG.n && g.open > 0) : null;
-    const dues = open.map((t) => dateOf(t.metadata?.due_date)).filter(Boolean).sort();
+    const dues = open.map(eff).filter(Boolean).sort();
     const due = dues[0] || "";
     out.push({
       key, name: String(list.find((t) => typeof t.metadata?.project_name === "string")?.metadata?.project_name || key),
       gates, now: nowG ? { n: nowG.n, name: nowG.name } : null, then: nextG ? nextG.name : "",
-      tasks: nowTasks.slice(0, 6).map((t) => { const d = dateOf(t.metadata?.due_date); return { id: t.id, title: shortTitle(t.content, 140), due: d, due_in: d ? daysBetween(today, d) : null }; }),
+      tasks: nowTasks.slice(0, 6).map(taskOut),
+      steps: gates.map((g) => ({ n: g.n, name: g.name, state: g.state, open: g.open, next: g.next || "", tasks: open.filter((t) => gateOf(t) === g.n).sort(byDue).slice(0, STEP_TASKS_MAX).map(taskOut) })),
       due, due_in: due ? daysBetween(today, due) : null, open: open.length, total: list.length,
     });
   }
